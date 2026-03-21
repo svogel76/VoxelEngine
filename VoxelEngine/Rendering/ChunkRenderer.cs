@@ -12,6 +12,8 @@ public class ChunkRenderer : IDisposable
 
     private readonly Dictionary<(int X, int Z), Mesh> _meshes = new();
 
+    public bool IsWireframe { get; set; } = false;
+
     public ChunkRenderer(GL gl, Shader shader, Texture texture)
     {
         _gl      = gl;
@@ -52,8 +54,12 @@ public class ChunkRenderer : IDisposable
         texture.Bind(TextureUnit.Texture0);
         shader.SetInt("uTexture", 0);
 
+        _gl.PolygonMode(GLEnum.FrontAndBack, IsWireframe ? GLEnum.Line : GLEnum.Fill);
+
         foreach (var mesh in _meshes.Values)
             mesh.Draw();
+
+        _gl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
     }
 
     public void Dispose()

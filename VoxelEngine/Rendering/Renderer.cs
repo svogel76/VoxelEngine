@@ -29,6 +29,12 @@ public class Renderer : IDisposable
         _chunkRenderer = new ChunkRenderer(_gl, _shader, _texture);
     }
 
+    public bool IsWireframe
+    {
+        get => _chunkRenderer.IsWireframe;
+        set => _chunkRenderer.IsWireframe = value;
+    }
+
     public void BuildWorldMeshes(World.World world)
         => _chunkRenderer.BuildMeshes(world);
 

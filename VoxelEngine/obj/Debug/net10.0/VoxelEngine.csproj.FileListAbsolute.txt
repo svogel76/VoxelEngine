@@ -35,3 +35,6 @@ C:\projects\VoxelEngine\VoxelEngine\obj\Debug\net10.0\ref\VoxelEngine.dll
 C:\projects\VoxelEngine\VoxelEngine\bin\Debug\net10.0\Assets\Shaders\basic.frag
 C:\projects\VoxelEngine\VoxelEngine\bin\Debug\net10.0\Assets\Shaders\basic.vert
 C:\projects\VoxelEngine\VoxelEngine\bin\Debug\net10.0\StbImageSharp.dll
+C:\projects\VoxelEngine\VoxelEngine\bin\Debug\net10.0\Assets\Fonts\font.png
+C:\projects\VoxelEngine\VoxelEngine\bin\Debug\net10.0\Assets\Shaders\text.frag
+C:\projects\VoxelEngine\VoxelEngine\bin\Debug\net10.0\Assets\Shaders\text.vert

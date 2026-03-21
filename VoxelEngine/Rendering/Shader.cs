@@ -63,5 +63,11 @@ public class Shader : IDisposable
         _gl.Uniform1(location, value);
     }
 
+    public void SetVector4(string name, float x, float y, float z, float w)
+    {
+        int location = _gl.GetUniformLocation(_handle, name);
+        _gl.Uniform4(location, x, y, z, w);
+    }
+
     public void Dispose() => _gl.DeleteProgram(_handle);
 }

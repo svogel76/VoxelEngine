@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VoxelEngine")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b3689a31015f1928e8ab5daa1f1b2a70ad9603b1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c66a04842f6442df112d0f2d4cf8e25a0c16b8b")]
 [assembly: System.Reflection.AssemblyProductAttribute("VoxelEngine")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VoxelEngine")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

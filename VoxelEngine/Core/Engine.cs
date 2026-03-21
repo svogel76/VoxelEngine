@@ -3,6 +3,7 @@ using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
 
@@ -10,22 +11,30 @@ namespace VoxelEngine.Core;
 
 public class Engine : IDisposable
 {
-    private readonly IWindow       _window;
+    private readonly IWindow        _window;
     private readonly EngineSettings _settings;
-    private readonly double        _fixedDelta;
+    private readonly double         _fixedDelta;
 
     private GL            _gl           = null!;
     private IInputContext _inputContext = null!;
-    private InputHandler  _input        = null!;
-    private Camera        _camera       = null!;
-    private Renderer      _renderer     = null!;
-    private World.World   _world        = null!;
+    private GameContext   _context      = null!;
+    private DebugOverlay  _debugOverlay = null!;
 
     private readonly Stopwatch _frameTimer = new();
 
     private double _accumulator = 0.0;
-    private double _fpsTimer   = 0.0;
-    private int    _frameCount = 0;
+    private double _fpsTimer    = 0.0;
+    private double _fps         = 0.0;
+    private int    _frameCount  = 0;
+
+    // Edge detection
+    private bool _prevF1        = false;
+    private bool _prevEnter     = false;
+    private bool _prevBackspace = false;
+    private bool _prevEscape    = false;
+
+    // Eingabe-Buffer für Debug-Konsole (Silk.NET-spezifisch)
+    private string _consoleInput = "";
 
     public Engine(EngineSettings settings)
     {
@@ -56,21 +65,37 @@ public class Engine : IDisposable
         _gl = GL.GetApi(_window);
 
         _inputContext = _window.CreateInput();
-        _input        = new InputHandler(_inputContext);
+        var input     = new InputHandler(_inputContext);
 
-        float aspectRatio = (float)_settings.WindowWidth / _settings.WindowHeight;
+        // Zeichen-Input für Konsole
+        input.Keyboard.KeyChar += (_, c) =>
+        {
+            if (_context?.Console.IsOpen == true)
+                _consoleInput += c;
+        };
+
+        float aspectRatio      = (float)_settings.WindowWidth / _settings.WindowHeight;
         var (camX, camY, camZ) = _settings.CameraStartPosition;
-        _camera = new Camera(new Vector3D<float>(camX, camY, camZ), aspectRatio, _settings);
+        var camera   = new Camera(new Vector3D<float>(camX, camY, camZ), aspectRatio, _settings);
+        var renderer = new Renderer(_gl);
+        var world    = new World.World();
 
-        _renderer = new Renderer(_gl);
-
-        _world = new World.World();
         var generator = new WorldGenerator(_settings.Terrain);
-        generator.GenerateTerrain(_world, -4, 4, -4, 4);
-        Console.WriteLine($"Loaded chunks: {_world.LoadedChunkCount}");
-        Console.WriteLine($"Block at (0,64,0): {_world.GetBlock(0, 64, 0)}");
+        generator.GenerateTerrain(world, -4, 4, -4, 4);
+        Console.WriteLine($"Loaded chunks: {world.LoadedChunkCount}");
+        Console.WriteLine($"Block at (0,64,0): {world.GetBlock(0, 64, 0)}");
 
-        _renderer.BuildWorldMeshes(_world);
+        renderer.BuildWorldMeshes(world);
+
+        _context = new GameContext(_settings, world, camera, renderer, input);
+
+        _context.Console.Register(new HelpCommand(_context.Console));
+        _context.Console.Register(new PosCommand());
+        _context.Console.Register(new TeleportCommand());
+        _context.Console.Register(new WireframeCommand());
+        _context.Console.Register(new ChunkInfoCommand());
+
+        _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight);
 
         _frameTimer.Start();
     }
@@ -94,16 +119,55 @@ public class Engine : IDisposable
 
     private void Update(double fixedDelta)
     {
-        if (_input.IsKeyPressed(Key.Escape))
+        // F1 — Konsole öffnen/schließen
+        bool f1Now = _context.Input.IsKeyPressed(Key.F1);
+        if (f1Now && !_prevF1)
+            _context.Console.Toggle();
+        _prevF1 = f1Now;
+
+        if (_context.Console.IsOpen)
+        {
+            // Escape — Konsole schließen
+            bool escNow = _context.Input.IsKeyPressed(Key.Escape);
+            if (escNow && !_prevEscape)
+            {
+                _context.Console.Toggle();
+                _consoleInput = "";
+            }
+            _prevEscape = escNow;
+
+            // Backspace — letztes Zeichen entfernen
+            bool bsNow = _context.Input.IsKeyPressed(Key.Backspace);
+            if (bsNow && !_prevBackspace && _consoleInput.Length > 0)
+                _consoleInput = _consoleInput[..^1];
+            _prevBackspace = bsNow;
+
+            // Enter — Kommando ausführen
+            bool enterNow = _context.Input.IsKeyPressed(Key.Enter);
+            if (enterNow && !_prevEnter)
+            {
+                _context.Console.Execute(_consoleInput);
+                _consoleInput = "";
+            }
+            _prevEnter = enterNow;
+
+            return;
+        }
+
+        _prevEscape    = false;
+        _prevBackspace = false;
+        _prevEnter     = false;
+
+        if (_context.Input.IsKeyPressed(Key.Escape))
         {
             _window.Close();
             return;
         }
 
-        _camera.ProcessKeyboard(_input.Keyboard, fixedDelta);
+        _context.Camera.ProcessKeyboard(_context.Input.Keyboard, fixedDelta);
 
-        var (deltaX, deltaY) = _input.GetMouseDelta();
-        _camera.ProcessMouseMovement(deltaX, deltaY);
+        var (deltaX, deltaY) = _context.Input.GetMouseDelta();
+        _context.Camera.ProcessMouseMovement(deltaX, deltaY);
     }
 
     private void Render(double interpolation, double frameTime)
@@ -113,19 +177,21 @@ public class Engine : IDisposable
 
         if (_fpsTimer >= 0.5)
         {
-            double fps = _frameCount / _fpsTimer;
-            _window.Title = $"{_settings.Title} | FPS: {fps:F0}";
+            _fps        = _frameCount / _fpsTimer;
+            _window.Title = $"{_settings.Title} | FPS: {_fps:F0}";
             _fpsTimer   = 0.0;
             _frameCount = 0;
         }
 
-        _renderer.Render(_camera, interpolation);
+        _context.Renderer.Render(_context.Camera, interpolation);
+        _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
     }
 
     private void Close()
     {
         // GL-Kontext ist hier noch aktiv — alle OpenGL-Ressourcen hier freigeben
-        _renderer?.Dispose();
+        _debugOverlay?.Dispose();
+        _context?.Dispose();
         _inputContext?.Dispose();
         Console.WriteLine("Engine closing.");
     }

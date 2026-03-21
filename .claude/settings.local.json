@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(curl -s \"https://dwarffortresswiki.org/api.php?action=query&titles=File:Curses_square_16x16.png&prop=imageinfo&iiprop=url&format=json\")",
+      "Bash(curl -s -o /dev/null -w \"%{url_effective} %{http_code}\" -L \"https://web.archive.org/web/2024/https://dwarffortresswiki.org/images/b/be/Curses_square_16x16.png\")",
+      "Bash(curl -s \"https://archive.org/wayback/available?url=dwarffortresswiki.org/images/b/be/Curses_square_16x16.png\")",
+      "Bash(curl -s \"https://archive.org/wayback/available?url=dwarffortresswiki.org/images/b/be/Curses_square_16x16.png&timestamp=20230101\")",
+      "Bash(curl -s -L -o \"c:/projects/VoxelEngine/VoxelEngine/Assets/Fonts/font.png\" \"https://github.com/cicontinuum/robsquare/raw/master/data/init/Curses_square_16x16.png\" -w \"%{http_code} %{size_download}\")",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}
