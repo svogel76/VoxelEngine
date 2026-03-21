@@ -1,3 +1,5 @@
+using VoxelEngine.World;
+
 namespace VoxelEngine.Core;
 
 public class EngineSettings
@@ -21,4 +23,11 @@ public class EngineSettings
     public float NearPlane        { get; init; } = 0.1f;
     public float FarPlane         { get; init; } = 500.0f;
     public bool  InvertMouseY     { get; init; } = false;
+
+    // Camera start position
+    public (float X, float Y, float Z) CameraStartPosition { get; init; } = (0f, 80f, 30f);
+
+    // Terrain
+    /// <summary>Wird später durch BiomeDefinitions[] ersetzt</summary>
+    public NoiseSettings Terrain { get; init; } = new NoiseSettings();
 }

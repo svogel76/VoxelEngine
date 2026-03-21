@@ -38,6 +38,9 @@ public class ChunkRenderer : IDisposable
     public void Render(Shader shader, Camera camera, Texture texture)
     {
         _gl.Enable(GLEnum.DepthTest);
+        _gl.Enable(GLEnum.CullFace);
+        _gl.CullFace(GLEnum.Back);
+        _gl.FrontFace(GLEnum.Ccw);
         _gl.ClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 

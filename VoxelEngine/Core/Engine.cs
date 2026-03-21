@@ -59,14 +59,16 @@ public class Engine : IDisposable
         _input        = new InputHandler(_inputContext);
 
         float aspectRatio = (float)_settings.WindowWidth / _settings.WindowHeight;
-        _camera = new Camera(new Vector3D<float>(0f, 0f, 3f), aspectRatio, _settings);
+        var (camX, camY, camZ) = _settings.CameraStartPosition;
+        _camera = new Camera(new Vector3D<float>(camX, camY, camZ), aspectRatio, _settings);
 
         _renderer = new Renderer(_gl);
 
         _world = new World.World();
-        WorldGenerator.GenerateFlat(_world, -2, 2, -2, 2);
+        var generator = new WorldGenerator(_settings.Terrain);
+        generator.GenerateTerrain(_world, -4, 4, -4, 4);
         Console.WriteLine($"Loaded chunks: {_world.LoadedChunkCount}");
-        Console.WriteLine($"Block at (0,4,0): {_world.GetBlock(0, 4, 0)}");
+        Console.WriteLine($"Block at (0,64,0): {_world.GetBlock(0, 64, 0)}");
 
         _renderer.BuildWorldMeshes(_world);
 

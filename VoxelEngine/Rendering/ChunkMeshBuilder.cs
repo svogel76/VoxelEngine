@@ -17,8 +17,8 @@ public static class ChunkMeshBuilder
     // 4 vertex offsets per face × 6 faces  (order: Top, Bottom, Front, Back, Right, Left)
     private static readonly (int Ox, int Oy, int Oz)[,] FaceOffsets =
     {
-        { (0,1,0),(1,1,0),(1,1,1),(0,1,1) },  // Top
-        { (0,0,1),(1,0,1),(1,0,0),(0,0,0) },  // Bottom
+        { (0,1,1),(1,1,1),(1,1,0),(0,1,0) },  // Top
+        { (0,0,0),(1,0,0),(1,0,1),(0,0,1) },  // Bottom
         { (0,0,1),(1,0,1),(1,1,1),(0,1,1) },  // Front
         { (1,0,0),(0,0,0),(0,1,0),(1,1,0) },  // Back
         { (1,0,1),(1,0,0),(1,1,0),(1,1,1) },  // Right
