@@ -37,6 +37,32 @@ public class ChunkRenderer : IDisposable
         }
     }
 
+    public void BuildMesh(Chunk chunk, World.World world)
+    {
+        // Bestehendes Mesh ersetzen falls vorhanden
+        if (_meshes.TryGetValue(chunk.ChunkPosition, out var old))
+        {
+            old.Dispose();
+            _meshes.Remove(chunk.ChunkPosition);
+        }
+
+        var (vertices, indices) = ChunkMeshBuilder.Build(chunk, world);
+        if (vertices.Length == 0)
+            return;
+
+        _meshes[chunk.ChunkPosition] = new Mesh(_gl, vertices, indices);
+    }
+
+    public void RemoveMesh(int chunkX, int chunkZ)
+    {
+        var key = (chunkX, chunkZ);
+        if (_meshes.TryGetValue(key, out var mesh))
+        {
+            mesh.Dispose();
+            _meshes.Remove(key);
+        }
+    }
+
     public void Render(Shader shader, Camera camera, Texture texture)
     {
         _gl.Enable(GLEnum.DepthTest);

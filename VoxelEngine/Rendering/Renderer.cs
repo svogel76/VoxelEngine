@@ -38,6 +38,12 @@ public class Renderer : IDisposable
     public void BuildWorldMeshes(World.World world)
         => _chunkRenderer.BuildMeshes(world);
 
+    public void BuildChunkMesh(World.Chunk chunk, World.World world)
+        => _chunkRenderer.BuildMesh(chunk, world);
+
+    public void RemoveChunkMesh(int chunkX, int chunkZ)
+        => _chunkRenderer.RemoveMesh(chunkX, chunkZ);
+
     public void Render(Camera camera, double _)
         => _chunkRenderer.Render(_shader, camera, _texture);
 

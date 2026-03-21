@@ -38,5 +38,8 @@ public class World
         chunk.SetBlock(WorldToLocal(worldX), worldY, WorldToLocal(worldZ), type);
     }
 
+    public void RemoveChunk(int chunkX, int chunkZ)
+        => _chunks.Remove((chunkX, chunkZ));
+
     public IEnumerable<Chunk> GetAllChunks() => _chunks.Values;
 }

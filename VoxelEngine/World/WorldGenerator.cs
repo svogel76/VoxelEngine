@@ -40,44 +40,47 @@ public class WorldGenerator
     }
 
     /// <summary>
+    /// Generiert genau einen Chunk an der angegebenen Position.
+    /// </summary>
+    public void GenerateChunk(int chunkX, int chunkZ, World world)
+    {
+        world.GetOrCreateChunk(chunkX, chunkZ);
+
+        for (int x = 0; x < Chunk.Width; x++)
+        for (int z = 0; z < Chunk.Depth; z++)
+        {
+            int worldX = chunkX * Chunk.Width + x;
+            int worldZ = chunkZ * Chunk.Depth + z;
+
+            float noiseValue = _noise.GetNoise(worldX, worldZ);
+            int height = (int)(_settings.BaseHeight + noiseValue * _settings.Amplitude);
+            height = Math.Clamp(height, 1, Chunk.Height - 1);
+
+            for (int y = 0; y <= height; y++)
+            {
+                byte blockType;
+
+                if (y == 0)
+                    blockType = BlockType.Stone;
+                else if (y < height - 2)
+                    blockType = BlockType.Stone;
+                else if (y < height)
+                    blockType = BlockType.Dirt;
+                else
+                    blockType = BlockType.Grass;
+
+                world.SetBlock(worldX, y, worldZ, blockType);
+            }
+        }
+    }
+
+    /// <summary>
     /// Generiert Terrain basierend auf Perlin Noise Höhenkarte.
     /// </summary>
     public void GenerateTerrain(World world, int fromChunkX, int toChunkX, int fromChunkZ, int toChunkZ)
     {
         for (int cx = fromChunkX; cx <= toChunkX; cx++)
         for (int cz = fromChunkZ; cz <= toChunkZ; cz++)
-        {
-            // Lade oder erstelle Chunk
-            var chunk = world.GetOrCreateChunk(cx, cz);
-
-            for (int x = 0; x < Chunk.Width; x++)
-            for (int z = 0; z < Chunk.Depth; z++)
-            {
-                int worldX = cx * Chunk.Width + x;
-                int worldZ = cz * Chunk.Depth + z;
-
-                // Berechne Terrain-Höhe basierend auf Noise
-                float noiseValue = _noise.GetNoise(worldX, worldZ);
-                int height = (int)(_settings.BaseHeight + noiseValue * _settings.Amplitude);
-                height = Math.Clamp(height, 1, Chunk.Height - 1);
-
-                // Befülle Blöcke von Y=0 bis Y=height
-                for (int y = 0; y <= height; y++)
-                {
-                    byte blockType;
-
-                    if (y == 0)
-                        blockType = BlockType.Stone;
-                    else if (y < height - 2)
-                        blockType = BlockType.Stone;
-                    else if (y < height)
-                        blockType = BlockType.Dirt;
-                    else // y == height
-                        blockType = BlockType.Grass;
-
-                    world.SetBlock(worldX, y, worldZ, blockType);
-                }
-            }
-        }
+            GenerateChunk(cx, cz, world);
     }
 }

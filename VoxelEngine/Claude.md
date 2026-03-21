@@ -17,27 +17,45 @@ Implementierung erfolgt in Claude Code.
 ## Projektstruktur
 VoxelEngine/
 ├── Assets/
+│   ├── Fonts/
+│   │   └── font.png              # CP437 Bitmap Font (16×16 ASCII Grid)
 │   └── Shaders/
-│       ├── basic.vert        # MVP-Transformation + UV-Koordinaten
-│       └── basic.frag        # Textur-Sampling
+│       ├── basic.vert            # MVP-Transformation + UV-Koordinaten
+│       ├── basic.frag            # Textur-Sampling
+│       ├── text.vert             # Orthografische 2D Projektion
+│       └── text.frag             # Font-Rendering mit discard
 ├── Core/
-│   ├── Engine.cs             # Hauptklasse, besitzt Window/GL/Camera/Renderer/World
-│   ├── EngineSettings.cs     # Zentrale Konfiguration (Window, Loop, Camera)
-│   ├── GameLoop.cs           # Loop-Konstanten / Dokumentation
-│   └── InputHandler.cs       # Maus (Raw) + Tastatur via Silk.NET IInputContext
+│   ├── Debug/
+│   │   ├── Commands/
+│   │   │   ├── ChunkInfoCommand.cs
+│   │   │   ├── HelpCommand.cs
+│   │   │   ├── PosCommand.cs
+│   │   │   ├── TeleportCommand.cs
+│   │   │   └── WireframeCommand.cs
+│   │   ├── DebugConsole.cs       # Command-Registry, History, Output-Log
+│   │   └── ICommand.cs           # Interface: Name, Description, Usage, Execute
+│   ├── Engine.cs                 # Hauptklasse, Silk.NET Window + Loop
+│   ├── EngineSettings.cs         # Zentrale Konfiguration
+│   ├── GameContext.cs            # Container für alle Systeme
+│   ├── GameLoop.cs
+│   └── InputHandler.cs
 ├── Rendering/
-│   ├── Camera.cs             # Yaw/Pitch, View/Projection Matrix, WASD+Maus
-│   ├── ChunkMeshBuilder.cs   # Naive Culling: sichtbare Flächen → float[] vertices
-│   ├── ChunkRenderer.cs      # Dictionary<(int,int), Mesh>, BuildMeshes, Render
-│   ├── Mesh.cs               # VAO/VBO/EBO, DrawElements
-│   ├── Renderer.cs           # Koordiniert ChunkRenderer, Shader, Texture
-│   ├── Shader.cs             # Kompilierung, Linking, Uniform-Setter
-│   └── Texture.cs            # Laden via StbImageSharp, oder CreateFromBytes()
+│   ├── BitmapFont.cs             # Font-Atlas Textur, UV-Berechnung pro Zeichen
+│   ├── Camera.cs
+│   ├── ChunkMeshBuilder.cs
+│   ├── ChunkRenderer.cs
+│   ├── DebugOverlay.cs           # HUD + Konsolen-Overlay
+│   ├── Mesh.cs
+│   ├── Renderer.cs
+│   ├── Shader.cs
+│   ├── TextRenderer.cs           # DynamicDraw VBO, DrawArrays, 2D Quads
+│   └── Texture.cs
 └── World/
-    ├── BlockType.cs          # byte-Konstanten: Air=0, Grass=1, Dirt=2, Stone=3
-    ├── Chunk.cs              # 16×256×16 byte[,,], ChunkPosition, Get/SetBlock
-    ├── World.cs              # Dictionary<(int,int),Chunk>, Koordinaten-Umrechnung
-    └── WorldGenerator.cs     # GenerateFlat() — flache Testwelt
+    ├── BlockType.cs
+    ├── Chunk.cs
+    ├── NoiseSettings.cs
+    ├── World.cs
+    └── WorldGenerator.cs
 
 ## Koordinaten-System
 - Chunk-Koordinate:  Math.Floor(worldCoord / Chunk.Width)
@@ -52,16 +70,21 @@ VoxelEngine/
 - [x] Shader-System (Shader.cs mit Fehlerprüfung)
 - [x] Mesh-System (VAO/VBO/EBO)
 - [x] Texture-System (StbImageSharp + CreateFromBytes Fallback)
-- [x] FPS-Anzeige im Fenstertitel (geglättet über 0.5s)
+- [x] FPS-Anzeige im Fenstertitel
 - [x] MVP-Matrix Pipeline (Model/View/Projection als Uniforms)
 - [x] Chunk-Datenstruktur (BlockType, Chunk, World, WorldGenerator)
-- [x] Flache Testwelt (5×5 Chunks, Grass/Dirt/Stone)
+- [x] Perlin Noise Terrain-Generation mit NoiseSettings
 - [x] Naive Culling Meshing (ChunkMeshBuilder)
 - [x] ChunkRenderer — Welt wird gerendert
-- [ ] Echte Texturen pro Block-Typ (Textur-Atlas)
+- [x] Backface Culling (CCW Winding Order, alle 6 Seiten verifiziert)
+- [x] GameContext (zentraler Container für alle Systeme)
+- [x] Bitmap Font System (CP437, UV-Berechnung, Orthografische Projektion)
+- [x] Debug-Konsole (F1, Command-Registry, ICommand Interface)
+- [x] HUD (FPS + Position, immer sichtbar)
+- [x] Kommandos: help, pos, tp, wireframe, chunk info
 - [ ] Chunk-Manager (dynamisches Laden/Entladen)
-- [ ] Perlin Noise Höhenkarte
-- [ ] Face Culling (Backface Culling in OpenGL)
+- [ ] Textur-Atlas (verschiedene Texturen pro Block-Typ)
+- [ ] Perlin Noise Terrain-Generation mit NoiseSettings
 
 ## Coding-Konventionen
 - IDisposable konsequent implementieren

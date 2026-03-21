@@ -76,24 +76,33 @@ public class Engine : IDisposable
 
         float aspectRatio      = (float)_settings.WindowWidth / _settings.WindowHeight;
         var (camX, camY, camZ) = _settings.CameraStartPosition;
-        var camera   = new Camera(new Vector3D<float>(camX, camY, camZ), aspectRatio, _settings);
-        var renderer = new Renderer(_gl);
-        var world    = new World.World();
-
+        var camera    = new Camera(new Vector3D<float>(camX, camY, camZ), aspectRatio, _settings);
+        var renderer  = new Renderer(_gl);
+        var world     = new World.World();
         var generator = new WorldGenerator(_settings.Terrain);
-        generator.GenerateTerrain(world, -4, 4, -4, 4);
-        Console.WriteLine($"Loaded chunks: {world.LoadedChunkCount}");
-        Console.WriteLine($"Block at (0,64,0): {world.GetBlock(0, 64, 0)}");
 
-        renderer.BuildWorldMeshes(world);
-
-        _context = new GameContext(_settings, world, camera, renderer, input);
+        _context = new GameContext(_settings, world, camera, renderer, input, generator);
 
         _context.Console.Register(new HelpCommand(_context.Console));
         _context.Console.Register(new PosCommand());
         _context.Console.Register(new TeleportCommand());
         _context.Console.Register(new WireframeCommand());
         _context.Console.Register(new ChunkInfoCommand());
+        _context.Console.Register(new RenderDistanceCommand());
+
+        // Initiales Laden: alle Chunks im RenderDistance sofort generieren
+        _context.ChunkManager.Update(camX, camZ);
+        while (_context.ChunkManager.PendingChunks > 0)
+        {
+            _context.ChunkManager.ProcessLoadQueue((x, z) =>
+            {
+                var chunk = _context.World.GetChunk(x, z);
+                if (chunk is not null)
+                    _context.Renderer.BuildChunkMesh(chunk, _context.World);
+            });
+        }
+
+        Console.WriteLine($"Loaded chunks: {world.LoadedChunkCount}");
 
         _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight);
 
@@ -168,6 +177,21 @@ public class Engine : IDisposable
 
         var (deltaX, deltaY) = _context.Input.GetMouseDelta();
         _context.Camera.ProcessMouseMovement(deltaX, deltaY);
+
+        // Chunk-Manager: Laden/Entladen
+        _context.ChunkManager.Update(_context.Camera.Position.X, _context.Camera.Position.Z);
+
+        // Meshes für entladene Chunks entfernen
+        foreach (var (x, z) in _context.ChunkManager.UnloadedThisUpdate)
+            _context.Renderer.RemoveChunkMesh(x, z);
+
+        // Neue Chunks laden (maximal MaxChunksLoadedPerFrame pro Frame)
+        _context.ChunkManager.ProcessLoadQueue((x, z) =>
+        {
+            var chunk = _context.World.GetChunk(x, z);
+            if (chunk is not null)
+                _context.Renderer.BuildChunkMesh(chunk, _context.World);
+        });
     }
 
     private void Render(double interpolation, double frameTime)
@@ -177,10 +201,10 @@ public class Engine : IDisposable
 
         if (_fpsTimer >= 0.5)
         {
-            _fps        = _frameCount / _fpsTimer;
-            _window.Title = $"{_settings.Title} | FPS: {_fps:F0}";
-            _fpsTimer   = 0.0;
-            _frameCount = 0;
+            _fps          = _frameCount / _fpsTimer;
+            _window.Title = $"{_settings.Title} | FPS: {_fps:F0}  Chunks: {_context.World.LoadedChunkCount}";
+            _fpsTimer     = 0.0;
+            _frameCount   = 0;
         }
 
         _context.Renderer.Render(_context.Camera, interpolation);

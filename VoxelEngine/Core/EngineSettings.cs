@@ -30,4 +30,17 @@ public class EngineSettings
     // Terrain
     /// <summary>Wird später durch BiomeDefinitions[] ersetzt</summary>
     public NoiseSettings Terrain { get; init; } = new NoiseSettings();
+
+    // World
+    /// <summary>Radius in Chunks der um den Spieler geladen wird</summary>
+    public int RenderDistance { get; init; } = 5;
+
+    /// <summary>
+    /// Chunks werden erst entladen wenn sie diesen Radius überschreiten.
+    /// Muss größer als RenderDistance sein um Chunk-Flicker zu vermeiden.
+    /// </summary>
+    public int UnloadDistance { get; init; } = 7;
+
+    /// <summary>Maximale Anzahl neu geladener Chunks pro Update-Schritt</summary>
+    public int MaxChunksLoadedPerFrame { get; init; } = 2;
 }
