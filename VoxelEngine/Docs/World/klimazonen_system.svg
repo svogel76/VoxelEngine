@@ -1,0 +1,70 @@
+<svg width="100%" viewBox="0 0 680 480" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect width="680" height="480" fill="#F1EFE8"/>
+
+  <!-- Titel -->
+  <text font-family="sans-serif" font-size="14" font-weight="500" fill="#2C2C2A" x="340" y="24" text-anchor="middle">Zwei Parameter bestimmen alles</text>
+
+  <!-- Y-Achse: Temperatur -->
+  <line x1="60" y1="50" x2="60" y2="420" stroke="#5F5E5A" stroke-width="1.5"/>
+  <line x1="55" y1="50" x2="65" y2="50" stroke="#5F5E5A" stroke-width="1.5"/>
+  <line x1="55" y1="420" x2="65" y2="420" stroke="#5F5E5A" stroke-width="1.5"/>
+  <text font-family="sans-serif" font-size="12" fill="#5F5E5A" x="50" y="54" text-anchor="end">Heiß</text>
+  <text font-family="sans-serif" font-size="12" fill="#5F5E5A" x="50" y="424" text-anchor="end">Kalt</text>
+  <text font-family="sans-serif" font-size="13" font-weight="500" fill="#2C2C2A" x="18" y="240" text-anchor="middle" transform="rotate(-90, 18, 240)">Temperatur</text>
+
+  <!-- X-Achse: Feuchtigkeit -->
+  <line x1="60" y1="420" x2="640" y2="420" stroke="#5F5E5A" stroke-width="1.5"/>
+  <line x1="60" y1="415" x2="60" y2="425" stroke="#5F5E5A" stroke-width="1.5"/>
+  <line x1="640" y1="415" x2="640" y2="425" stroke="#5F5E5A" stroke-width="1.5"/>
+  <text font-family="sans-serif" font-size="12" fill="#5F5E5A" x="60" y="438" text-anchor="middle">Trocken</text>
+  <text font-family="sans-serif" font-size="12" fill="#5F5E5A" x="640" y="438" text-anchor="middle">Feucht</text>
+  <text font-family="sans-serif" font-size="13" font-weight="500" fill="#2C2C2A" x="350" y="456" text-anchor="middle">Feuchtigkeit</text>
+
+  <!-- Wüste: heiß + trocken -->
+  <rect x="65" y="55" width="185" height="120" rx="4" fill="#C8A850" fill-opacity="0.4" stroke="#C8A850" stroke-width="1"/>
+  <text font-family="sans-serif" font-size="14" font-weight="500" fill="#4a3800" x="157" y="100" text-anchor="middle">Wüste</text>
+  <text font-family="sans-serif" font-size="12" fill="#4a3800" x="157" y="118" text-anchor="middle">heiß + trocken</text>
+  <text font-family="sans-serif" font-size="12" fill="#4a3800" x="157" y="134" text-anchor="middle">Sahara, Arabien</text>
+
+  <!-- Tropen: heiß + feucht -->
+  <rect x="450" y="55" width="185" height="120" rx="4" fill="#2D8B3E" fill-opacity="0.4" stroke="#2D8B3E" stroke-width="1"/>
+  <text font-family="sans-serif" font-size="14" font-weight="500" fill="#0d3314" x="542" y="100" text-anchor="middle">Tropen</text>
+  <text font-family="sans-serif" font-size="12" fill="#0d3314" x="542" y="118" text-anchor="middle">heiß + feucht</text>
+  <text font-family="sans-serif" font-size="12" fill="#0d3314" x="542" y="134" text-anchor="middle">Amazonas, Borneo</text>
+
+  <!-- Savanne: heiß + mittel -->
+  <rect x="255" y="55" width="190" height="120" rx="4" fill="#8BC34A" fill-opacity="0.3" stroke="#8BC34A" stroke-width="1"/>
+  <text font-family="sans-serif" font-size="14" font-weight="500" fill="#2d4a00" x="350" y="100" text-anchor="middle">Savanne</text>
+  <text font-family="sans-serif" font-size="12" fill="#2d4a00" x="350" y="118" text-anchor="middle">heiß + mäßig feucht</text>
+  <text font-family="sans-serif" font-size="12" fill="#2d4a00" x="350" y="134" text-anchor="middle">Afrika, Australien</text>
+
+  <!-- Steppe: mittel + trocken -->
+  <rect x="65" y="180" width="185" height="120" rx="4" fill="#D4A843" fill-opacity="0.3" stroke="#D4A843" stroke-width="1"/>
+  <text font-family="sans-serif" font-size="14" font-weight="500" fill="#4a3200" x="157" y="225" text-anchor="middle">Steppe</text>
+  <text font-family="sans-serif" font-size="12" fill="#4a3200" x="157" y="243" text-anchor="middle">mittel + trocken</text>
+  <text font-family="sans-serif" font-size="12" fill="#4a3200" x="157" y="259" text-anchor="middle">Zentralasien</text>
+
+  <!-- Gemäßigt: mittel + feucht -->
+  <rect x="255" y="180" width="380" height="120" rx="4" fill="#7EC850" fill-opacity="0.3" stroke="#7EC850" stroke-width="1"/>
+  <text font-family="sans-serif" font-size="14" font-weight="500" fill="#1a4a00" x="445" y="225" text-anchor="middle">Gemäßigt</text>
+  <text font-family="sans-serif" font-size="12" fill="#1a4a00" x="445" y="243" text-anchor="middle">mittel + feucht</text>
+  <text font-family="sans-serif" font-size="12" fill="#1a4a00" x="445" y="259" text-anchor="middle">Europa, Nordamerika</text>
+
+  <!-- Tundra: kalt + trocken -->
+  <rect x="65" y="305" width="280" height="110" rx="4" fill="#A8C8D8" fill-opacity="0.3" stroke="#A8C8D8" stroke-width="1"/>
+  <text font-family="sans-serif" font-size="14" font-weight="500" fill="#1a3a4a" x="205" y="348" text-anchor="middle">Tundra</text>
+  <text font-family="sans-serif" font-size="12" fill="#1a3a4a" x="205" y="366" text-anchor="middle">kalt + trocken</text>
+  <text font-family="sans-serif" font-size="12" fill="#1a3a4a" x="205" y="384" text-anchor="middle">Sibirien, Kanada</text>
+
+  <!-- Taiga: kalt + feucht -->
+  <rect x="350" y="305" width="285" height="110" rx="4" fill="#3E7A5B" fill-opacity="0.3" stroke="#3E7A5B" stroke-width="1"/>
+  <text font-family="sans-serif" font-size="14" font-weight="500" fill="#0d3320" x="492" y="348" text-anchor="middle">Taiga</text>
+  <text font-family="sans-serif" font-size="12" fill="#0d3320" x="492" y="366" text-anchor="middle">kalt + feucht</text>
+  <text font-family="sans-serif" font-size="12" fill="#0d3320" x="492" y="384" text-anchor="middle">Skandinavien, Russland</text>
+</svg>

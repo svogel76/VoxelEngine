@@ -14,20 +14,20 @@
 - ✅ Naive Culling Meshing
 - ✅ Backface Culling
 - ✅ Perlin Noise Terrain-Generation
-- 🔴 Chunk-Manager — dynamisches Laden/Entladen um Spielerposition
-- 🟡 Chunk-Mesh Rebuild bei Block-Änderung
-- 🟡 Sichtweite konfigurierbar (render distance)
+- ✅ Chunk-Manager — dynamisches Laden/Entladen um Spielerposition
+- ✅ Chunk-Mesh Rebuild bei Block-Änderung
+- ✅ Sichtweite konfigurierbar (render distance)
 
 ---
 
 ## Phase 2.5 — Debug & Entwicklungswerkzeuge
 > Früh implementieren — vereinfacht alle weiteren Phasen erheblich
 
-- 🔴 GameContext (zentraler Container für alle Systeme)
+- ✅ GameContext (zentraler Container für alle Systeme)
        Voraussetzung für mächtige Kommandos, räumt Engine.cs auf
-- 🔴 Debug-Konsole (Overlay, Command-Parser, Registry)
+- ✅ Debug-Konsole (Overlay, Command-Parser, Registry)
        Öffnen mit § oder F1
-- 🔴 Basis-Kommandos:
+- ✅ Basis-Kommandos:
        "help"              → alle Kommandos auflisten
        "pos"               → Spieler-Position anzeigen
        "tp x y z"          → Teleportieren
@@ -36,7 +36,7 @@
        "chunk info x z"    → Chunk-Daten anzeigen
        "chunk rebuild"     → Alle Meshes neu generieren
        "render distance x" → Sichtweite ändern
-- 🟡 Erweiterbare Command-Registry (ICommand Interface)
+- ✅ Erweiterbare Command-Registry (ICommand Interface)
 - 🟡 Konsolen-History (Pfeiltasten blättern durch letzte Kommandos)
 - 🟡 Autocomplete (Tab vervollständigt Kommando-Namen)
 - 🟢 Konsolen-Output (farbige Fehlermeldungen, Erfolgs-Meldungen)
@@ -52,29 +52,59 @@
 
 ---
 
-## Phase 3 — Biome & World Generation
+## Phase 3 — Klimazonen & World Generation
+
+### Klimazonen-Architektur
+> Realistisches System angelehnt an Köppen-Klimaklassifikation.
+> Zwei Parameter bestimmen die Klimazone: Temperatur + Feuchtigkeit.
+> Ersetzt das einfache Biom-Noise System.
+
+- 🔴 ClimateSystem (Temperatur + Feuchtigkeit pro Block-Position)
+       Temperatur: primär Z-Koordinate (Breitengrad) + leichter Noise
+       Feuchtigkeit: eigenständiger Noise-Wert
+       Höhen-Einfluss: Berge kühlen Temperatur ab
+- 🔴 ClimateZone Klasse (ersetzt BiomeDefinition)
+       Felder: NoiseSettings, BlockTypes, TreeLine, SnowLine
+       Lookup: (temperature, humidity) → ClimateZone
+- 🔴 Übergangs-Interpolation zwischen Klimazonen
+       Keine harten Grenzen — sanfter Übergang über ~20 Blöcke
+- 🔴 Meeresspiegel (fester Y-Wert, Wasser-Block unter dieser Höhe)
+
+### Klimazonen (angelehnt an Erde)
+- 🟡 Polarregion   (sehr kalt → Schnee, Eis, kein Bewuchs)
+- 🟡 Tundra        (kalt + trocken → karges Gras, Flechten, Permafrost)
+- 🟡 Taiga         (kalt + feucht → Nadelwald, Moos, Farne)
+- 🟡 Steppe        (mittel + trocken → trockenes Gras, wenig Bäume)
+- 🟡 Gemäßigt      (mittel + feucht → Laubwald, Gras, Europa-Feeling)
+- 🟡 Mediterran    (mittel + warm/trocken → Olivenbäume, Kalkstein)
+- 🟡 Savanne       (heiß + mäßig feucht → Gras, vereinzelte Bäume)
+- 🟡 Wüste         (heiß + trocken → Sand, Kalkstein, Kakteen)
+- 🟡 Tropen        (heiß + feucht → dichter Wald, Palmen, Bambus)
+
+### Höhenzonen (überlagern Klimazonen)
+- 🟡 Meeresgrund   (unter Wasser → Sand, Kies, Korallen)
+- 🟡 Küste         (Y=64-68 → Sand/Kies Übergangszone)
+- 🟡 Tiefland      (Normales Terrain der jeweiligen Klimazone)
+- 🟡 Waldgrenze    (pro Klimazone unterschiedlich → keine Bäume mehr)
+- 🟡 Schneegrenze  (pro Klimazone unterschiedlich → Schnee beginnt)
+- 🟡 Gipfelzone    (reiner Stein/Schnee, kein Bewuchs)
 
 ### Terrain-Grundformen
-- 🔴 BiomeDefinition Klasse (NoiseSettings pro Biom)
-- 🔴 Biome-Noise (niedrige Frequenz, bestimmt Biom-Verteilung)
-- 🔴 Bilineare Interpolation zwischen Biomen an Grenzen
-- 🟡 Meeresspiegel (fester Y-Wert, Wasser-Block unter dieser Höhe)
-
-### Biome
-- 🟡 Biom: Ebene (flach, Gras)
-- 🟡 Biom: Hügel (mittlere Amplitude)
-- 🟡 Biom: Berge (hohe Amplitude, Stein + Schnee an Gipfeln)
-- 🟡 Biom: Wüste (flach, Sand statt Gras/Erde)
-- 🟡 Biom: Ozean (unter Meeresspiegel, Sand/Kies am Boden)
-- 🟢 Biom: Strand (Übergang Ozean/Land, Sand)
-- 🟢 Biom: Sumpf (flach, nass, dunkles Gras)
+- 🟡 Ebene         (flach, gemäßigte/Savanne Klimazone)
+- 🟡 Hügel         (mittlere Amplitude, gemäßigt/Taiga)
+- 🟡 Berge         (hohe Amplitude, alle Klimazonen)
+- 🟡 Ozean         (unter Meeresspiegel, Sand/Kies am Boden)
+- 🟢 Fjorde        (schmale Meeresarme in Bergregionen)
+- 🟢 Atolle        (flache Inseln in tropischen Ozeanen)
 
 ### Gewässer — Generierung
 - 🟡 Wasser-Block (transparent, eigene Rendering-Logik)
 - 🟡 Meere (Terrain unter Meeresspiegel = Wasser aufgefüllt)
 - 🟡 Seen (Mulden im Terrain werden aufgefüllt)
+- 🟡 Gletscher (Eis-Blöcke in Polar/Tundra Klimazonen)
 - 🟢 Flüsse (Pfad-Algorithmus von Bergen zum Meer)
-- 🟢 Strände (Übergangs-Biom zwischen Ozean und Land)
+- 🟢 Oasen (Wasser in Wüsten-Klimazone)
+- 🟢 Sumpfgebiete (flaches Wasser in feuchten Klimazonen)
 
 ### Gewässer — Simulation (Laufzeit)
 > Erst sinnvoll wenn Block-Interaktion und transparentes Rendering stehen
@@ -85,9 +115,20 @@
 - 🟢 Spieler-Interaktion (Block entfernen leitet Wasser um)
 - 🟢 Strömung (Wasser-Blöcke haben Fließrichtung)
 
+### Wetter pro Klimazone
+- 🟢 Polarregion: Schneestürme, Permafrost
+- 🟢 Tundra: langer Winter, kurzer Sommer
+- 🟢 Taiga: Schnee im Winter, Regen im Sommer
+- 🟢 Gemäßigt: wechselhaft, alle Jahreszeiten
+- 🟢 Mediterran: trockener Sommer, milder Winter
+- 🟢 Savanne: Trocken- und Regenzeit
+- 🟢 Wüste: selten Regen, Sandstürme
+- 🟢 Tropen: häufige Gewitter, Monsun
+
 ### Unterirdisches
 - 🟡 Höhlen via 3D Noise (Density-Field Ansatz)
-- 🟡 Erzvorkommen (Noise-Einschlüsse in Stein-Schichten)
+- 🟡 Erzvorkommen (Noise-Einschlüsse pro Klimazone)
+       Wüste: Sandstein, Kupfer / Taiga: Eisen, Kohle / Berge: Gold, Diamant
 - 🟢 Dungeons (prozedurale Räume, BSP-Baum Algorithmus)
 - 🟢 Katakomben (unter Ruinen/Dörfern, verbunden mit Höhlen)
 - 🟢 Antike Tunnel (lineare unterirdische Strukturen)
@@ -97,36 +138,44 @@
 ### Oberflächen-Strukturen
 
 #### Natürlich
-- 🟢 Bäume — Schablone pro Biom
-       (Eiche, Fichte, Kaktus, Palme)
+- 🟢 Bäume — Schablone pro Klimazone
+       Tropen: Palmen, Bananenstauden
+       Gemäßigt: Eiche, Birke, Buche
+       Taiga: Fichte, Kiefer, Tanne
+       Wüste: Kaktus, Dornenstrauch
+       Tundra: Zwergbirke, Flechten
 - 🟢 Bäume — L-System für organische Verzweigung
-- 🟢 Felsen / Steinformationen (3D Noise)
+- 🟢 Felsen / Steinformationen (pro Klimazone)
+       Wüste: Sandsteinbögen / Berge: Felsnadeln / Küste: Klippen
 - 🟢 Überhänge / Klippen (entstehen mit 3D Terrain-Noise)
-- 🟢 Gletscher / Eisformationen (Bergbiome)
+- 🟢 Gletscher / Eisformationen (Polar + hohe Berge)
+- 🟢 Korallenriffe (tropische Flachwasserzone)
 
 #### Zivilisation
 - 🟢 Ruinen (Schablone + Verfall-Algorithmus)
-       Typen: Turm, Mauer, Tempel, Haus
-- 🟢 Dörfer (BSP-Baum, Straßennetz, Häuser pro Parzelle)
-- 🟢 Burgen / Festungen (auf Berggipfeln)
-- 🟢 Tempel / Pyramiden (geometrisch, Wüsten-Biom)
-- 🟢 Alte Straßen / Pfade (Pfad-Algorithmus zwischen Punkten)
+       Typen abhängig von Klimazone:
+       Wüste: Pyramiden, Tempel / Gemäßigt: Burgen, Türme
+       Tropen: Dschungeltempel / Tundra: Steinkreise
+- 🟢 Dörfer (BSP-Baum, Straßennetz, Häuser pro Klimazone)
+- 🟢 Burgen / Festungen (auf Berggipfeln, gemäßigte Zone)
 - 🟢 Hafen-Strukturen (nur wo Land auf Wasser trifft)
+- 🟢 Alte Straßen / Pfade (Pfad-Algorithmus zwischen Punkten)
+- 🟢 Nomaden-Lager (Wüste, Tundra — temporär wirkende Strukturen)
 
 ### Struktur-System Architektur
 - 🟡 Structure Seeds (deterministisch, Chunk-Grenzen übergreifend)
-- 🟡 Struktur-Registry (welche Struktur in welchem Biom?)
+- 🟡 Struktur-Registry (welche Struktur in welcher Klimazone?)
 - 🟡 Terrain-Validierung vor Platzierung
-       z.B. Dorf nur auf flachem Gras-Biom
+       z.B. Dorf nur auf flachem Terrain der passenden Klimazone
 - 🟢 Schablonen-Format (externe Datei statt hardcodierter Blöcke)
 
 ---
 
 ## Phase 4 — Rendering & Visuals
 
-- 🔴 Textur-Atlas (verschiedene Texturen pro Block-Typ)
+- ✅ Textur-Atlas (verschiedene Texturen pro Block-Typ)
 - 🟡 Greedy Meshing (Optimierung — große Quads statt viele kleine)
-- 🟡 Frustum Culling (Chunks außerhalb Sichtfeld nicht rendern)
+- ✅ Frustum Culling (Chunks außerhalb Sichtfeld nicht rendern)
 - 🟡 Transparente Blöcke (Wasser, Glas — eigener Render-Pass)
 - 🟡 Ambient Occlusion (weiche Schatten an Block-Kanten)
 

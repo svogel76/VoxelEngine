@@ -30,6 +30,7 @@ VoxelEngine/
 │   │   │   ├── ChunkInfoCommand.cs
 │   │   │   ├── HelpCommand.cs
 │   │   │   ├── PosCommand.cs
+│   │   │   ├── RenderDistanceCommand.cs  # renderdistance <n>
 │   │   │   ├── TeleportCommand.cs
 │   │   │   └── WireframeCommand.cs
 │   │   ├── DebugConsole.cs       # Command-Registry, History, Output-Log
@@ -40,22 +41,27 @@ VoxelEngine/
 │   ├── GameLoop.cs
 │   └── InputHandler.cs
 ├── Rendering/
+│   ├── AtlasTexture.cs           # 64×64 Atlas, 4×4 Tiles, programmatisch generiert
 │   ├── BitmapFont.cs             # Font-Atlas Textur, UV-Berechnung pro Zeichen
-│   ├── Camera.cs
-│   ├── ChunkMeshBuilder.cs
-│   ├── ChunkRenderer.cs
-│   ├── DebugOverlay.cs           # HUD + Konsolen-Overlay
-│   ├── Mesh.cs
-│   ├── Renderer.cs
-│   ├── Shader.cs
+│   ├── Camera.cs                 # Yaw/Pitch, View/Projection Matrix, WASD+Maus
+│   ├── ChunkMeshBuilder.cs       # Naive Culling, Atlas-UVs, FaceDirection
+│   ├── ChunkRenderer.cs          # Dictionary<(int,int), Mesh>, FrustumCuller
+│   ├── DebugOverlay.cs           # HUD + Konsolen-Overlay, Chunks: X/Y
+│   ├── FrustumCuller.cs          # Gribb-Hartmann, AABB-Test, LastVisibleCount
+│   ├── Mesh.cs                   # VAO/VBO/EBO, DrawElements
+│   ├── Renderer.cs               # Koordiniert ChunkRenderer, Shader, Texture
+│   ├── Shader.cs                 # Kompilierung, Linking, Uniform-Setter
 │   ├── TextRenderer.cs           # DynamicDraw VBO, DrawArrays, 2D Quads
-│   └── Texture.cs
+│   └── Texture.cs                # Laden via StbImageSharp
 └── World/
-    ├── BlockType.cs
-    ├── Chunk.cs
-    ├── NoiseSettings.cs
-    ├── World.cs
-    └── WorldGenerator.cs
+    ├── BlockTextures.cs          # Tile-Index pro BlockType + FaceDirection
+    ├── BlockType.cs              # byte-Konstanten: Air=0, Grass=1, Dirt=2, Stone=3, Sand=4
+    ├── Chunk.cs                  # 16×256×16 byte[,,], ChunkPosition, Get/SetBlock
+    ├── ChunkManager.cs           # Update, ProcessLoadQueue, Hysterese
+    ├── FaceDirection.cs          # Enum: Top, Bottom, Front, Back, Left, Right
+    ├── NoiseSettings.cs          # Seed, Frequency, Octaves, Amplitude, BaseHeight
+    ├── World.cs                  # Dictionary<(int,int),Chunk>, Koordinaten-Umrechnung
+    └── WorldGenerator.cs         # GenerateTerrain, GenerateChunk, FastNoiseLite
 
 ## Koordinaten-System
 - Chunk-Koordinate:  Math.Floor(worldCoord / Chunk.Width)
@@ -80,11 +86,17 @@ VoxelEngine/
 - [x] GameContext (zentraler Container für alle Systeme)
 - [x] Bitmap Font System (CP437, UV-Berechnung, Orthografische Projektion)
 - [x] Debug-Konsole (F1, Command-Registry, ICommand Interface)
-- [x] HUD (FPS + Position, immer sichtbar)
-- [x] Kommandos: help, pos, tp, wireframe, chunk info
-- [ ] Chunk-Manager (dynamisches Laden/Entladen)
-- [ ] Textur-Atlas (verschiedene Texturen pro Block-Typ)
-- [ ] Perlin Noise Terrain-Generation mit NoiseSettings
+- [x] HUD (FPS + Position + Chunks X/Y, immer sichtbar)
+- [x] Kommandos: help, pos, tp, wireframe, chunk info, renderdistance
+- [x] Chunk-Manager (dynamisches Laden/Entladen, Hysterese, MaxChunksPerFrame)
+- [x] Textur-Atlas (AtlasTexture, programmatisch generiert, Nearest-Filtering)
+- [x] BlockTextures + FaceDirection (Tile-Index pro Block-Typ und Fläche)
+- [x] Frustum Culling (FrustumCuller, Gribb-Hartmann, AABB-Test)
+- [ ] Konsolen-History (Pfeiltasten blättern)
+- [ ] Autocomplete (Tab)
+- [ ] Greedy Meshing
+- [ ] Transparente Blöcke (Wasser)
+- [ ] Ambient Occlusion
 
 ## Coding-Konventionen
 - IDisposable konsequent implementieren
@@ -92,10 +104,4 @@ VoxelEngine/
 - Keine Magic Numbers — alles über EngineSettings
 - Unsafe-Blöcke nur wo OpenGL es erfordert
 - Shader-Fehler werfen Exceptions mit InfoLog-Text
-- World/ niemals Silk.NET importieren
-
-## Nächste Schritte (Phase 2 Fortsetzung)
-1. Perlin Noise Höhenkarte — erste echte Terrain-Generation
-2. Chunk-Manager — dynamisches Laden um Spielerposition
-3. Textur-Atlas — verschiedene Texturen pro Block-Typ
-4. Backface Culling — GPU rendert Rückseiten nicht
+- World/ niemals Silk.NET importieren — Portabilität gewährleisten

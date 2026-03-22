@@ -25,8 +25,10 @@ public class DebugOverlay : IDisposable
         _textRenderer.BeginFrame(windowWidth, windowHeight);
 
         // HUD — immer sichtbar (oben links)
-        var pos = _context.Camera.Position;
-        string hud = $"FPS: {fps:F0}  X:{pos.X:F1} Y:{pos.Y:F1} Z:{pos.Z:F1}";
+        var pos     = _context.Camera.Position;
+        int visible = _context.Renderer.VisibleChunkCount;
+        int loaded  = _context.World.LoadedChunkCount;
+        string hud  = $"FPS: {fps:F0}  X:{pos.X:F1} Y:{pos.Y:F1} Z:{pos.Z:F1}  Chunks: {visible}/{loaded}";
         _textRenderer.DrawText(hud, 8f, 8f, r: 1f, g: 1f, b: 0f);
 
         if (_context.Console.IsOpen)

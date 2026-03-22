@@ -4,9 +4,8 @@ namespace VoxelEngine.Rendering;
 
 public class Renderer : IDisposable
 {
-    private readonly GL _gl;
-    private Shader        _shader       = null!;
-    private Texture       _texture      = null!;
+    private readonly GL           _gl;
+    private Shader        _shader        = null!;
     private ChunkRenderer _chunkRenderer = null!;
 
     public Renderer(GL gl)
@@ -19,14 +18,8 @@ public class Renderer : IDisposable
     {
         _shader = new Shader(_gl, "Assets/Shaders/basic.vert", "Assets/Shaders/basic.frag");
 
-        byte[] pixels =
-        [
-            255, 255, 255, 255,    0, 255,   0, 255,
-              0, 255,   0, 255,  255, 255, 255, 255,
-        ];
-        _texture = Texture.CreateFromBytes(_gl, pixels, 2, 2);
-
-        _chunkRenderer = new ChunkRenderer(_gl, _shader, _texture);
+        // AtlasTexture wird intern von ChunkRenderer verwaltet
+        _chunkRenderer = new ChunkRenderer(_gl, _shader);
     }
 
     public bool IsWireframe
@@ -34,6 +27,8 @@ public class Renderer : IDisposable
         get => _chunkRenderer.IsWireframe;
         set => _chunkRenderer.IsWireframe = value;
     }
+
+    public int VisibleChunkCount => _chunkRenderer.VisibleChunkCount;
 
     public void BuildWorldMeshes(World.World world)
         => _chunkRenderer.BuildMeshes(world);
@@ -45,13 +40,12 @@ public class Renderer : IDisposable
         => _chunkRenderer.RemoveMesh(chunkX, chunkZ);
 
     public void Render(Camera camera, double _)
-        => _chunkRenderer.Render(_shader, camera, _texture);
+        => _chunkRenderer.Render(_shader, camera);
 
     public void Dispose()
     {
         _chunkRenderer.Dispose();
         _shader.Dispose();
-        _texture.Dispose();
         GC.SuppressFinalize(this);
     }
 }

@@ -14,6 +14,16 @@ public static class ChunkMeshBuilder
         (-1,  0,  0),  // Left
     ];
 
+    private static readonly FaceDirection[] FaceDirections =
+    [
+        FaceDirection.Top,
+        FaceDirection.Bottom,
+        FaceDirection.Front,
+        FaceDirection.Back,
+        FaceDirection.Right,
+        FaceDirection.Left,
+    ];
+
     // 4 vertex offsets per face × 6 faces  (order: Top, Bottom, Front, Back, Right, Left)
     private static readonly (int Ox, int Oy, int Oz)[,] FaceOffsets =
     {
@@ -25,10 +35,8 @@ public static class ChunkMeshBuilder
         { (0,0,0),(0,0,1),(0,1,1),(0,1,0) },  // Left
     };
 
-    private static readonly (float U, float V)[] UVs =
-        [(0f, 0f), (1f, 0f), (1f, 1f), (0f, 1f)];
-
-    public static (float[] vertices, uint[] indices) Build(Chunk chunk, World.World world)
+    public static (float[] vertices, uint[] indices) Build(
+        Chunk chunk, World.World world, AtlasTexture atlas)
     {
         var vertices = new List<float>();
         var indices  = new List<uint>();
@@ -37,7 +45,8 @@ public static class ChunkMeshBuilder
         for (int y = 0; y < Chunk.Height; y++)
         for (int z = 0; z < Chunk.Depth;  z++)
         {
-            if (chunk.GetBlock(x, y, z) == BlockType.Air)
+            byte blockType = chunk.GetBlock(x, y, z);
+            if (blockType == BlockType.Air)
                 continue;
 
             int worldX = chunk.ChunkPosition.X * Chunk.Width + x;
@@ -49,12 +58,26 @@ public static class ChunkMeshBuilder
                 if (GetNeighbor(chunk, world, x, y, z, dx, dy, dz) != BlockType.Air)
                     continue;
 
+                int tileIndex = BlockTextures.GetTileIndex(blockType, FaceDirections[face]);
+                var (u, v)    = atlas.GetTileUV(tileIndex);
+                float uEnd    = u + AtlasTexture.TileUV;
+                float vEnd    = v + AtlasTexture.TileUV;
+
+                // UV-Ecken: links-unten, rechts-unten, rechts-oben, links-oben
+                (float U, float V)[] uvCorners =
+                [
+                    (u,    vEnd),
+                    (uEnd, vEnd),
+                    (uEnd, v   ),
+                    (u,    v   ),
+                ];
+
                 uint baseIndex = (uint)(vertices.Count / 5);
 
                 for (int vi = 0; vi < 4; vi++)
                 {
                     var (ox, oy, oz) = FaceOffsets[face, vi];
-                    var (tu, tv)     = UVs[vi];
+                    var (tu, tv)     = uvCorners[vi];
                     vertices.Add(worldX + ox);
                     vertices.Add(y      + oy);
                     vertices.Add(worldZ + oz);
