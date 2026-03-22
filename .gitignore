@@ -1,0 +1,15 @@
+# Build-Ausgaben
+bin/
+obj/
+
+# User-spezifische Visual Studio Dateien
+*.user
+*.suo
+.vs/
+
+# Rider
+.idea/
+
+# NuGet
+*.nupkg
+packages/
