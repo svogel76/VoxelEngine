@@ -89,6 +89,31 @@ public class WorldGenerator
         }
     }
 
+    public byte SampleBlock(int worldX, int worldY, int worldZ)
+    {
+        if (worldY < 0 || worldY >= Chunk.Height)
+            return BlockType.Air;
+
+        float noiseValue = _noise.GetNoise(worldX, worldZ);
+        int height = (int)(_settings.BaseHeight + noiseValue * _settings.Amplitude);
+        height = Math.Clamp(height, 1, Chunk.Height - 1);
+
+        if (worldY == 0)
+            return BlockType.Stone;
+
+        if (worldY <= height)
+        {
+            if (worldY < height - 2) return BlockType.Stone;
+            if (worldY < height)     return BlockType.Dirt;
+            return BlockType.Grass;
+        }
+
+        if (worldY <= SeaLevel)
+            return BlockType.Water;
+
+        return BlockType.Air;
+    }
+
     /// <summary>
     /// Generiert Terrain basierend auf Perlin Noise Höhenkarte.
     /// </summary>

@@ -33,7 +33,7 @@ public class ChunkRenderer : IDisposable
         FogEndFactor    = settings.FogEndFactor;
     }
 
-    public void BuildMeshes(World.World world)
+    public void BuildMeshes(World.World world, WorldGenerator generator)
     {
         foreach (var mesh in _opaqueMeshes.Values)      mesh.Dispose();
         foreach (var mesh in _transparentMeshes.Values) mesh.Dispose();
@@ -42,7 +42,7 @@ public class ChunkRenderer : IDisposable
 
         foreach (var chunk in world.GetAllChunks())
         {
-            var (oVerts, oIdx, tVerts, tIdx) = GreedyMeshBuilder.Build(chunk, world);
+            var (oVerts, oIdx, tVerts, tIdx) = GreedyMeshBuilder.Build(chunk, world, generator);
             if (oVerts.Length > 0)
                 _opaqueMeshes[chunk.ChunkPosition] = new Mesh(_gl, oVerts, oIdx);
             if (tVerts.Length > 0)
@@ -50,7 +50,7 @@ public class ChunkRenderer : IDisposable
         }
     }
 
-    public void BuildMesh(Chunk chunk, World.World world)
+    public void BuildMesh(Chunk chunk, World.World world, WorldGenerator generator)
     {
         var key = chunk.ChunkPosition;
 
@@ -65,7 +65,7 @@ public class ChunkRenderer : IDisposable
             _transparentMeshes.Remove(key);
         }
 
-        var (oVerts, oIdx, tVerts, tIdx) = GreedyMeshBuilder.Build(chunk, world);
+        var (oVerts, oIdx, tVerts, tIdx) = GreedyMeshBuilder.Build(chunk, world, generator);
         if (oVerts.Length > 0)
             _opaqueMeshes[key] = new Mesh(_gl, oVerts, oIdx);
         if (tVerts.Length > 0)

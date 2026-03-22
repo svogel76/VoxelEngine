@@ -101,7 +101,7 @@ public class Engine : IDisposable
             {
                 var chunk = _context.World.GetChunk(x, z);
                 if (chunk is not null)
-                    _context.Renderer.BuildChunkMesh(chunk, _context.World);
+                    _context.Renderer.BuildChunkMesh(chunk, _context.World, _context.Generator);
             });
         }
 
@@ -193,7 +193,7 @@ public class Engine : IDisposable
         {
             var chunk = _context.World.GetChunk(x, z);
             if (chunk is not null)
-                _context.Renderer.BuildChunkMesh(chunk, _context.World);
+                _context.Renderer.BuildChunkMesh(chunk, _context.World, _context.Generator);
         });
     }
 

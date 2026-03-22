@@ -38,7 +38,7 @@ public static class GreedyMeshBuilder
 
     public static (float[] opaqueVerts, uint[] opaqueIdx,
                    float[] transparentVerts, uint[] transparentIdx)
-        Build(Chunk chunk, World.World world)
+        Build(Chunk chunk, World.World world, WorldGenerator generator)
     {
         var opaqueVerts      = new List<float>();
         var opaqueInds       = new List<uint>();
@@ -81,8 +81,8 @@ public static class GreedyMeshBuilder
                 for (pos[vAxis] = 0; pos[vAxis] < vSize; pos[vAxis]++)
                 for (pos[uAxis] = 0; pos[uAxis] < uSize; pos[uAxis]++, n++)
                 {
-                    byte blockA = GetBlock(chunk, world, pos[0], pos[1], pos[2], baseWX, baseWZ);
-                    byte blockB = GetBlock(chunk, world,
+                    byte blockA = GetBlock(chunk, world, generator, pos[0], pos[1], pos[2], baseWX, baseWZ);
+                    byte blockB = GetBlock(chunk, world, generator,
                                            pos[0] + q[0], pos[1] + q[1], pos[2] + q[2],
                                            baseWX, baseWZ);
 
@@ -388,13 +388,21 @@ public static class GreedyMeshBuilder
     private static (float x, float y, float z) LocalToWorld(int lx, int ly, int lz, int baseWX, int baseWZ)
         => (baseWX + lx, ly, baseWZ + lz);
 
-    private static byte GetBlock(Chunk chunk, World.World world,
+    private static byte GetBlock(Chunk chunk, World.World world, WorldGenerator generator,
                                   int lx, int ly, int lz,
                                   int baseWX, int baseWZ)
     {
         if (ly < 0 || ly >= Chunk.Height) return BlockType.Air;
         if (lx >= 0 && lx < Chunk.Width && lz >= 0 && lz < Chunk.Depth)
             return chunk.GetBlock(lx, ly, lz);
-        return world.GetBlock(baseWX + lx, ly, baseWZ + lz);
+
+        int worldX = baseWX + lx;
+        int worldZ = baseWZ + lz;
+        int chunkX = (int)Math.Floor(worldX / (float)Chunk.Width);
+        int chunkZ = (int)Math.Floor(worldZ / (float)Chunk.Depth);
+
+        return world.GetChunk(chunkX, chunkZ) is not null
+            ? world.GetBlock(worldX, ly, worldZ)
+            : generator.SampleBlock(worldX, ly, worldZ);
     }
 }
