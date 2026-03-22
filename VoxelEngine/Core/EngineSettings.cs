@@ -29,7 +29,8 @@ public class EngineSettings
 
     // Terrain
     /// <summary>Wird später durch BiomeDefinitions[] ersetzt</summary>
-    public NoiseSettings Terrain { get; init; } = new NoiseSettings();
+    public NoiseSettings Terrain  { get; init; } = new NoiseSettings();
+    public int           SeaLevel { get; init; } = 64;
 
     // World
     /// <summary>Radius in Chunks der um den Spieler geladen wird</summary>

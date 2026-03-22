@@ -2,6 +2,8 @@ namespace VoxelEngine.World;
 
 public class WorldGenerator
 {
+    public const int SeaLevel = 64;
+
     private readonly NoiseSettings _settings;
     private readonly FastNoiseLite _noise;
 
@@ -70,6 +72,19 @@ public class WorldGenerator
                     blockType = BlockType.Grass;
 
                 world.SetBlock(worldX, y, worldZ, blockType);
+            }
+        }
+
+        // Täler unter Meeresspiegel mit Wasser füllen
+        for (int x = 0; x < Chunk.Width; x++)
+        for (int z = 0; z < Chunk.Depth; z++)
+        {
+            int worldX = chunkX * Chunk.Width + x;
+            int worldZ = chunkZ * Chunk.Depth + z;
+            for (int y = 1; y <= SeaLevel; y++)
+            {
+                if (world.GetBlock(worldX, y, worldZ) == BlockType.Air)
+                    world.SetBlock(worldX, y, worldZ, BlockType.Water);
             }
         }
     }

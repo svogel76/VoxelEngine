@@ -28,7 +28,9 @@ VoxelEngine/
 │       ├── skybox.vert
 │       ├── skybox.frag
 │       ├── celestial.vert
-│       └── celestial.frag
+│       ├── celestial.frag
+│       ├── stars.vert
+│       └── stars.frag
 ├── Core/
 │   ├── Debug/
 │   │   ├── Commands/
@@ -48,7 +50,7 @@ VoxelEngine/
 │   ├── GameLoop.cs
 │   └── InputHandler.cs
 ├── Rendering/
-│   ├── ArrayTexture.cs           # Texture2DArray, 8 Schichten
+│   ├── ArrayTexture.cs           # Texture2DArray, 11 Schichten (inkl. Wasser/Glas/Eis mit Alpha)
 │   ├── BitmapFont.cs
 │   ├── Camera.cs
 │   ├── CelestialBody.cs          # Billboard Quad für Sonne/Mond
@@ -56,11 +58,12 @@ VoxelEngine/
 │   ├── ChunkRenderer.cs
 │   ├── DebugOverlay.cs           # HUD: FPS, Pos, Chunks, Verts, Time
 │   ├── FrustumCuller.cs
-│   ├── GreedyMeshBuilder.cs      # 3-Achsen-Sweep, AO-korrekter Merge
+│   ├── GreedyMeshBuilder.cs      # 3-Achsen-Sweep, AO-korrekter Merge, Opaque/Transparent Split
 │   ├── Mesh.cs                   # VAO/VBO/EBO, Stride 7 floats
 │   ├── Renderer.cs
 │   ├── Shader.cs
-│   ├── Skybox.cs                 # Prozeduraler Himmel + Sonne/Mond
+│   ├── Skybox.cs                 # Prozeduraler Himmel + Sonne/Mond/Sterne
+│   ├── StarField.cs              # Instanced Rendering, 1500 Sterne, Twinkle-Effekt
 │   ├── SkyColorCurve.cs          # Keyframe-Interpolation für Tagesfarben
 │   ├── TextRenderer.cs
 │   └── Texture.cs
@@ -111,8 +114,9 @@ VoxelEngine/
 - [x] Mond (Billboard Quad, Mondphasen 0-7, Helligkeit bei Vollmond)
 - [x] Fog (linearer Entfernungs-Nebel, FogColor aus Skybox, Tag/Nacht-Anpassung)
 - [x] FogCommand (fog on/off, fog start/end)
+- [x] Sternenhimmel (Instanced Rendering, 1500 Sterne, Billboard Quads, Twinkle via sin)
 - [ ] Konsolen-History + Autocomplete
-- [ ] Transparente Blöcke (Wasser)
+- [x] Transparente Blöcke (Wasser/Glas/Eis, Two-Pass Rendering, Back-to-Front Sortierung)
 - [ ] Diffuse Beleuchtung (Sonnenrichtung als Shader-Uniform)
 - [ ] Licht/Schatten System
 

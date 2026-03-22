@@ -55,11 +55,11 @@ public class Renderer : IDisposable
     public void RemoveChunkMesh(int chunkX, int chunkZ)
         => _chunkRenderer.RemoveMesh(chunkX, chunkZ);
 
-    public void Render(Camera camera, WorldTime time)
+    public void Render(Camera camera, WorldTime time, float deltaTime)
     {
         _gl.ClearColor(0f, 0f, 0f, 1f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-        _skybox.Render(camera, time);
+        _skybox.Render(camera, time, deltaTime);
         _chunkRenderer.Render(_shader, camera, _skybox, time);
     }
 

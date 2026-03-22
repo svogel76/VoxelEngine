@@ -36,10 +36,14 @@ public static class GreedyMeshBuilder
 
     private static readonly int[] Dims = { Chunk.Width, Chunk.Height, Chunk.Depth };
 
-    public static (float[] vertices, uint[] indices) Build(Chunk chunk, World.World world)
+    public static (float[] opaqueVerts, uint[] opaqueIdx,
+                   float[] transparentVerts, uint[] transparentIdx)
+        Build(Chunk chunk, World.World world)
     {
-        var verts = new List<float>();
-        var inds  = new List<uint>();
+        var opaqueVerts      = new List<float>();
+        var opaqueInds       = new List<uint>();
+        var transparentVerts = new List<float>();
+        var transparentInds  = new List<uint>();
 
         int baseWX = chunk.ChunkPosition.X * Chunk.Width;
         int baseWZ = chunk.ChunkPosition.Z * Chunk.Depth;
@@ -82,45 +86,50 @@ public static class GreedyMeshBuilder
                                            pos[0] + q[0], pos[1] + q[1], pos[2] + q[2],
                                            baseWX, baseWZ);
 
-                    bool solidA = blockA != BlockType.Air;
-                    bool solidB = blockB != BlockType.Air;
-
-                    if (solidA == solidB)
+                    if (!NeedsFace(blockA, blockB))
                     {
                         mask[n] = default;
                     }
-                    else if (solidA)
-                    {
-                        // Forward face: solid block is blockA at pos[axis].
-                        // Only generate if blockA is within this chunk — otherwise the
-                        // neighbouring chunk already owns and generates this face.
-                        if (pos[axis] >= 0)
-                        {
-                            int aoSlice = pos[axis] + 1;
-                            ComputeAOs(pos[uAxis], pos[vAxis], axis, uAxis, vAxis,
-                                       aoSlice, baseWX, baseWZ, world,
-                                       out int ao0, out int ao1, out int ao2, out int ao3);
-                            mask[n] = new MaskEntry(blockA,
-                                                    BlockTextures.GetTileIndex(blockA, forwardDir),
-                                                    false, ao0, ao1, ao2, ao3);
-                        }
-                        // else: blockA is in the neighbouring chunk → skip, it generates the face
-                    }
                     else
                     {
-                        // Back face: solid block is blockB at pos[axis]+1.
-                        // Only generate if blockB is within this chunk.
-                        if (pos[axis] + 1 < Dims[axis])
+                        // Wer "besitzt" die Fläche?
+                        // Transparent(A) neben Solid(B): blockB besitzt die Rückseite —
+                        // sichtbar durch blockA hindurch, keine Wasser-Seite gegen Terrain.
+                        bool aOwnsForward = blockA != BlockType.Air
+                                         && !(BlockType.IsTransparent(blockA) && BlockType.IsSolid(blockB));
+
+                        if (aOwnsForward)
                         {
-                            int aoSlice = pos[axis];
-                            ComputeAOs(pos[uAxis], pos[vAxis], axis, uAxis, vAxis,
-                                       aoSlice, baseWX, baseWZ, world,
-                                       out int ao0, out int ao1, out int ao2, out int ao3);
-                            mask[n] = new MaskEntry(blockB,
-                                                    BlockTextures.GetTileIndex(blockB, backDir),
-                                                    true, ao0, ao1, ao2, ao3);
+                            // Forward face: blockA sichtbar von blockB-Seite.
+                            // Nur generieren wenn blockA im eigenen Chunk liegt.
+                            if (pos[axis] >= 0)
+                            {
+                                int aoSlice = pos[axis] + 1;
+                                ComputeAOs(pos[uAxis], pos[vAxis], axis, uAxis, vAxis,
+                                           aoSlice, baseWX, baseWZ, world,
+                                           out int ao0, out int ao1, out int ao2, out int ao3, blockA);
+                                mask[n] = new MaskEntry(blockA,
+                                                        BlockTextures.GetTileIndex(blockA, forwardDir),
+                                                        false, ao0, ao1, ao2, ao3);
+                            }
+                            // else: blockA liegt im Nachbar-Chunk → überspringen
                         }
-                        // else: blockB is in the neighbouring chunk → skip
+                        else
+                        {
+                            // Back face: blockB sichtbar von blockA-Seite.
+                            // Nur generieren wenn blockB im eigenen Chunk liegt.
+                            if (pos[axis] + 1 < Dims[axis])
+                            {
+                                int aoSlice = pos[axis];
+                                ComputeAOs(pos[uAxis], pos[vAxis], axis, uAxis, vAxis,
+                                           aoSlice, baseWX, baseWZ, world,
+                                           out int ao0, out int ao1, out int ao2, out int ao3, blockB);
+                                mask[n] = new MaskEntry(blockB,
+                                                        BlockTextures.GetTileIndex(blockB, backDir),
+                                                        true, ao0, ao1, ao2, ao3);
+                            }
+                            // else: blockB liegt im Nachbar-Chunk → überspringen
+                        }
                     }
                 }
 
@@ -160,7 +169,11 @@ public static class GreedyMeshBuilder
                     int[] du = new int[3]; du[uAxis] = w;
                     int[] dv = new int[3]; dv[vAxis] = h;
 
-                    AddQuad(verts, inds, v0, du, dv, w, h,
+                    bool isTransparentFace = BlockType.IsTransparent(entry.Block);
+                    var  faceVerts = isTransparentFace ? transparentVerts : opaqueVerts;
+                    var  faceInds  = isTransparentFace ? transparentInds  : opaqueInds;
+
+                    AddQuad(faceVerts, faceInds, v0, du, dv, w, h,
                             entry.TileLayer, entry.IsBackFace,
                             entry.AO0, entry.AO1, entry.AO2, entry.AO3,
                             baseWX, baseWZ, axis);
@@ -175,10 +188,23 @@ public static class GreedyMeshBuilder
             }
         }
 
-        if (verts.Count == 0)
-            return (Array.Empty<float>(), Array.Empty<uint>());
+        return (
+            opaqueVerts.Count > 0      ? opaqueVerts.ToArray()      : Array.Empty<float>(),
+            opaqueInds.Count > 0       ? opaqueInds.ToArray()       : Array.Empty<uint>(),
+            transparentVerts.Count > 0 ? transparentVerts.ToArray() : Array.Empty<float>(),
+            transparentInds.Count > 0  ? transparentInds.ToArray()  : Array.Empty<uint>()
+        );
+    }
 
-        return (verts.ToArray(), inds.ToArray());
+    // Bestimmt ob an der Grenze zwischen blockA und blockB überhaupt eine Fläche benötigt wird.
+    // Symmetrisch — welcher Block die Fläche "besitzt" wird separat via aOwnsForward bestimmt.
+    private static bool NeedsFace(byte blockA, byte blockB)
+    {
+        if (blockA == blockB) return false;  // gleicher Typ (Wasser-Wasser, Luft-Luft)
+        if (blockA == BlockType.Air || blockB == BlockType.Air) return true;  // Luft-Grenze
+        // Beide nicht-Luft, verschiedene Typen
+        if (!BlockType.IsTransparent(blockA) && !BlockType.IsTransparent(blockB)) return false; // Opak-Opak: kein Interface
+        return true;  // Opak-Transparent, Transparent-Opak oder zwei verschiedene transparente Typen
     }
 
     // ─── AO Helpers ──────────────────────────────────────────────────────────
@@ -191,12 +217,50 @@ public static class GreedyMeshBuilder
     private static void ComputeAOs(
         int bi, int bj, int axis, int uAxis, int vAxis,
         int aoSlice, int baseWX, int baseWZ, World.World world,
-        out int ao0, out int ao1, out int ao2, out int ao3)
+        out int ao0, out int ao1, out int ao2, out int ao3,
+        byte ownerBlock = BlockType.Stone)
     {
-        ao0 = SampleAO(bi, bj, -1, -1, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world);
-        ao1 = SampleAO(bi, bj, +1, -1, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world);
-        ao2 = SampleAO(bi, bj, +1, +1, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world);
-        ao3 = SampleAO(bi, bj, -1, +1, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world);
+        // Kein AO für transparente Blöcke oder wenn irgendein AO-Nachbar transparent ist.
+        // Verhindert dunkle Artefakte an Wasser-Grenzen: Terrain-Blöcke im Wasser würden
+        // sonst als AO-Okkluder wirken und benachbarte Flächen dunkel einfärben.
+        if (BlockType.IsTransparent(ownerBlock) ||
+            HasTransparentAONeighbor(bi, bj, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world))
+        {
+            ao0 = ao1 = ao2 = ao3 = 3;
+            return;
+        }
+
+        ao0 = SampleAO(bi, bj, -1, -1, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world, ownerBlock);
+        ao1 = SampleAO(bi, bj, +1, -1, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world, ownerBlock);
+        ao2 = SampleAO(bi, bj, +1, +1, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world, ownerBlock);
+        ao3 = SampleAO(bi, bj, -1, +1, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world, ownerBlock);
+    }
+
+    /// <summary>
+    /// Prüft alle 8 Nachbarpositionen in der AO-Ebene (3×3 minus Zentrum) auf transparente Blöcke.
+    /// Wenn ein Nachbar transparent ist (z.B. Wasser), bekommt das Quad AO=3 (kein AO-Schatten).
+    /// </summary>
+    private static bool HasTransparentAONeighbor(
+        int bi, int bj, int axis, int uAxis, int vAxis,
+        int aoSlice, int baseWX, int baseWZ, World.World world)
+    {
+        for (int ou = -1; ou <= 1; ou++)
+        for (int ov = -1; ov <= 1; ov++)
+        {
+            if (ou == 0 && ov == 0) continue;
+
+            int[] lp = new int[3];
+            lp[axis]  = aoSlice;
+            lp[uAxis] = bi + ou;
+            lp[vAxis] = bj + ov;
+
+            int wy = lp[1];
+            if (wy < 0 || wy >= Chunk.Height) continue;
+
+            if (BlockType.IsTransparent(world.GetBlock(baseWX + lp[0], wy, baseWZ + lp[2])))
+                return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -207,7 +271,8 @@ public static class GreedyMeshBuilder
     private static int SampleAO(
         int bi, int bj, int ou, int ov,
         int axis, int uAxis, int vAxis,
-        int aoSlice, int baseWX, int baseWZ, World.World world)
+        int aoSlice, int baseWX, int baseWZ, World.World world,
+        byte ownerBlock)
     {
         bool s1 = IsNeighborSolid(bi + ou, bj,      axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world);
         bool s2 = IsNeighborSolid(bi,      bj + ov, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world);
@@ -230,7 +295,7 @@ public static class GreedyMeshBuilder
 
         int wx = baseWX + lp[0];
         int wz = baseWZ + lp[2];
-        return world.GetBlock(wx, wy, wz) != BlockType.Air;
+        return BlockType.IsSolid(world.GetBlock(wx, wy, wz));
     }
 
     private static int VertexAO(bool side1, bool side2, bool corner)

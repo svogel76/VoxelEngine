@@ -20,6 +20,10 @@ public class Skybox : IDisposable
     private          Texture        _moonTexture;
     private          int            _lastMoonPhase = -1;
 
+    private readonly StarField      _starField;
+    private          float          _elapsedTime;
+    private          float          _sunAngle;
+
     public Vector3 ZenithColor      = new(0.1f, 0.4f, 0.8f);
     public Vector3 HorizonColor     = new(0.6f, 0.8f, 1.0f);
     public Vector3 GroundColor      = new(0.3f, 0.25f, 0.2f);
@@ -80,10 +84,14 @@ public class Skybox : IDisposable
 
         _sunTexture  = CelestialTextures.CreateSunTexture(gl);
         _moonTexture = CelestialTextures.CreateMoonTexture(gl, 4); // Vollmond als Start
+
+        _starField = new StarField(gl);
     }
 
-    public void UpdateColors(WorldTime time)
+    public void UpdateColors(WorldTime time, float deltaTime)
     {
+        _elapsedTime += deltaTime;
+
         var frame           = _colorCurve.Evaluate(time.Time);
         ZenithColor         = frame.Zenith;
         HorizonColor        = frame.Horizon;
@@ -91,7 +99,8 @@ public class Skybox : IDisposable
         CurrentAmbientLight = frame.AmbientLight;
         CurrentSunColor     = frame.SunColor;
 
-        float sunAngle  = (float)((time.Time / 24.0) * 360.0) - 90f;
+        _sunAngle = (float)((time.Time / 24.0) * 360.0) - 90f;
+        float sunAngle  = _sunAngle;
         float moonAngle = sunAngle + 180f;
 
         _sun.Angle  = sunAngle;
@@ -117,9 +126,9 @@ public class Skybox : IDisposable
             HorizonColor += new Vector3(moonBrightness * moonHeight);
     }
 
-    public unsafe void Render(Camera camera, WorldTime time)
+    public unsafe void Render(Camera camera, WorldTime time, float deltaTime)
     {
-        UpdateColors(time);
+        UpdateColors(time, deltaTime);
         _gl.Disable(GLEnum.DepthTest);
         _gl.DepthMask(false);
         _gl.Disable(GLEnum.CullFace);
@@ -158,6 +167,11 @@ public class Skybox : IDisposable
         _moonTexture.Bind(TextureUnit.Texture0);
         _moon.Render(projection, skyView);
 
+        float sunAngleRad = _sunAngle * MathF.PI / 180f;
+        float sunHeight   = MathF.Sin(sunAngleRad);
+        float starOpacity = Math.Clamp(-sunHeight * 4f, 0f, 1f);
+        _starField.Render(projection, skyView, starOpacity, _elapsedTime);
+
         _gl.DepthMask(true);
         _gl.Enable(GLEnum.DepthTest);
         _gl.Enable(GLEnum.CullFace);
@@ -175,6 +189,7 @@ public class Skybox : IDisposable
         _celestialShader.Dispose();
         _sunTexture.Dispose();
         _moonTexture.Dispose();
+        _starField.Dispose();
 
         GC.SuppressFinalize(this);
     }

@@ -38,44 +38,6 @@
 
 ---
 
-## Phase 4 — Rendering & Visuals
-
-- ✅ Textur-Atlas → ArrayTexture (Texture2DArray, 8 Schichten)
-- ✅ Greedy Meshing (3-Achsen-Sweep, AO-korrekter Merge)
-- ✅ Frustum Culling (FrustumCuller, Gribb-Hartmann)
-- ✅ Ambient Occlusion (VertexAO, Diagonal-Flip, Z-Fighting Fix)
-- ✅ Skybox (prozeduraler Gradient, Zenith/Horizont/Boden)
-- ✅ WorldTime (Time, DayCount, MoonPhase, TimeScale)
-- ✅ SkyColorCurve (7 Keyframes, Interpolation)
-- ✅ Sonne + Mond (Billboard Quads, Mondphasen, Opacity-Fade)
-- ✅ Diffuse Beleuchtung (Sonnenrichtung → Shader-Uniform → Flächen-Helligkeit)
-- 🟡 Transparente Blöcke (Wasser, Glas — eigener Render-Pass)
-- 🟡 Sterne (Nachthimmel — Partikel oder Billboard-Quads)
-- 🟡 Fog (Entfernungs-Nebel an Chunk-Grenzen)
-- 🟢 Sonnen-Halo / Atmosphären-Streuung (Horizont heller wenn Sonne nah)
-- 🟢 Wolken (prozedural, ziehen mit Wind)
-- 🟢 Ambient Occlusion verfeinern (SSAO als Post-Process)
-
-### Tageszeit & Jahreszeiten
-- 🟡 Jahreszeiten-Zyklus (alle 90 Tage, DayCount bereits vorhanden)
-- 🟡 Tageslänge variiert mit Jahreszeit
-- 🟡 Gras/Laub Farb-Tint pro Jahreszeit
-- 🟢 Bäume verlieren Laub im Herbst/Winter
-
-### Wetter
-- 🟡 Wetter-Zustandsautomat (Sonnig → Bewölkt → Regen/Schnee)
-- 🟡 Regen/Schnee Partikel
-- 🟡 Dynamischer Fog bei Regen/Nebel
-- 🟢 Gewitter (Blitz, Donner)
-- 🟢 Schnee-Akkumulation auf Oberflächen
-
-### Distant Horizons
-- 🟢 Heightmap-only für entfernte Bereiche (ohne Chunk laden)
-- 🟢 LOD-Stufen (voll / vereinfacht / Silhouette)
-- 🟢 Nahtloser Übergang in Skybox
-
----
-
 ## Phase 3 — Klimazonen & World Generation
 
 ### Klimazonen-Architektur
@@ -109,6 +71,44 @@
 - 🟢 Bäume pro Klimazone (Schablone + L-System)
 - 🟢 Ruinen, Dörfer, Burgen, Tempel
 - 🟢 Struktur-Seeds (Chunk-Grenzen übergreifend)
+
+---
+
+## Phase 4 — Rendering & Visuals
+
+- ✅ Textur-Atlas → ArrayTexture (Texture2DArray, 8 Schichten)
+- ✅ Greedy Meshing (3-Achsen-Sweep, AO-korrekter Merge)
+- ✅ Frustum Culling (FrustumCuller, Gribb-Hartmann)
+- ✅ Ambient Occlusion (VertexAO, Diagonal-Flip, Z-Fighting Fix)
+- ✅ Skybox (prozeduraler Gradient, Zenith/Horizont/Boden)
+- ✅ WorldTime (Time, DayCount, MoonPhase, TimeScale)
+- ✅ SkyColorCurve (7 Keyframes, Interpolation)
+- ✅ Sonne + Mond (Billboard Quads, Mondphasen, Opacity-Fade)
+- ✅ Diffuse Beleuchtung (Sonnenrichtung → Shader-Uniform → Flächen-Helligkeit)
+- 🟡 Transparente Blöcke (Wasser, Glas — eigener Render-Pass)
+- ✅ Sterne (Nachthimmel — Partikel oder Billboard-Quads)
+- ✅ Fog (Entfernungs-Nebel an Chunk-Grenzen)
+- 🟢 Sonnen-Halo / Atmosphären-Streuung (Horizont heller wenn Sonne nah)
+- 🟢 Wolken (prozedural, ziehen mit Wind)
+- 🟢 Ambient Occlusion verfeinern (SSAO als Post-Process)
+
+### Tageszeit & Jahreszeiten
+- 🟡 Jahreszeiten-Zyklus (alle 90 Tage, DayCount bereits vorhanden)
+- 🟡 Tageslänge variiert mit Jahreszeit
+- 🟡 Gras/Laub Farb-Tint pro Jahreszeit
+- 🟢 Bäume verlieren Laub im Herbst/Winter
+
+### Wetter
+- 🟡 Wetter-Zustandsautomat (Sonnig → Bewölkt → Regen/Schnee)
+- 🟡 Regen/Schnee Partikel
+- 🟡 Dynamischer Fog bei Regen/Nebel
+- 🟢 Gewitter (Blitz, Donner)
+- 🟢 Schnee-Akkumulation auf Oberflächen
+
+### Distant Horizons
+- 🟢 Heightmap-only für entfernte Bereiche (ohne Chunk laden)
+- 🟢 LOD-Stufen (voll / vereinfacht / Silhouette)
+- 🟢 Nahtloser Übergang in Skybox
 
 ---
 

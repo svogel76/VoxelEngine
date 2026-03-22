@@ -210,7 +210,7 @@ public class Engine : IDisposable
             _frameCount   = 0;
         }
 
-        _context.Renderer.Render(_context.Camera, _context.Time);
+        _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
     }
 

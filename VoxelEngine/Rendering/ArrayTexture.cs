@@ -5,7 +5,7 @@ namespace VoxelEngine.Rendering;
 public class ArrayTexture : IDisposable
 {
     public const int TileSize  = 16;
-    public const int TileCount = 8;
+    public const int TileCount = 11;
 
     private readonly GL   _gl;
     private readonly uint _handle;
@@ -38,6 +38,9 @@ public class ArrayTexture : IDisposable
         UploadLayer(gl, 5, GenerateNoise(0xFF, 0xFF, 0xFF, rng));  // Schnee Top
         UploadLayer(gl, 6, GenerateWoodSide(rng));                  // Holz Side
         UploadLayer(gl, 7, GenerateWoodTop(rng));                   // Holz Top
+        UploadLayer(gl, 8, GenerateWater(rng));                     // Wasser
+        UploadLayer(gl, 9, GenerateGlass(rng));                     // Glas
+        UploadLayer(gl, 10, GenerateIce(rng));                      // Eis
     }
 
     public void Bind(TextureUnit unit)
@@ -134,6 +137,61 @@ public class ArrayTexture : IDisposable
             pixels[idx + 1] = Clamp(g + noise);
             pixels[idx + 2] = Clamp(b + noise);
             pixels[idx + 3] = 255;
+        }
+        return pixels;
+    }
+
+    // Wasser: tiefblau #1A5C8C, Alpha=180, leichtes Noise-Muster
+    private static byte[] GenerateWater(Random rng)
+    {
+        var pixels = new byte[TileSize * TileSize * 4];
+        for (int py = 0; py < TileSize; py++)
+        for (int px = 0; px < TileSize; px++)
+        {
+            int  noise = rng.Next(-15, 16);
+            int  idx   = (py * TileSize + px) * 4;
+            pixels[idx]     = Clamp(0x1A + noise);
+            pixels[idx + 1] = Clamp(0x5C + noise);
+            pixels[idx + 2] = Clamp(0x8C + noise);
+            pixels[idx + 3] = 180;
+        }
+        return pixels;
+    }
+
+    // Glas: helles Grau-Blau #E8F0F8, Alpha=80 — fast durchsichtig
+    private static byte[] GenerateGlass(Random rng)
+    {
+        var pixels = new byte[TileSize * TileSize * 4];
+        for (int py = 0; py < TileSize; py++)
+        for (int px = 0; px < TileSize; px++)
+        {
+            // Leichter Rahmen-Effekt: Rand etwas dunkler
+            bool isEdge = px == 0 || px == TileSize - 1 || py == 0 || py == TileSize - 1;
+            int  noise  = rng.Next(-5, 6);
+            byte base_  = isEdge ? (byte)0xC0 : (byte)0xE8;
+            int  idx    = (py * TileSize + px) * 4;
+            pixels[idx]     = Clamp(base_ + noise);
+            pixels[idx + 1] = Clamp(0xF0 + noise);
+            pixels[idx + 2] = Clamp(0xF8 + noise);
+            pixels[idx + 3] = isEdge ? (byte)160 : (byte)80;
+        }
+        return pixels;
+    }
+
+    // Eis: hellblau #A8D4F0 mit weißen Einschlüssen, Alpha=160
+    private static byte[] GenerateIce(Random rng)
+    {
+        var pixels = new byte[TileSize * TileSize * 4];
+        for (int py = 0; py < TileSize; py++)
+        for (int px = 0; px < TileSize; px++)
+        {
+            int  noise    = rng.Next(-12, 13);
+            bool isCrack  = rng.Next(0, 10) == 0;  // gelegentliche weiße Einschlüsse
+            int  idx      = (py * TileSize + px) * 4;
+            pixels[idx]     = isCrack ? (byte)255 : Clamp(0xA8 + noise);
+            pixels[idx + 1] = isCrack ? (byte)255 : Clamp(0xD4 + noise);
+            pixels[idx + 2] = isCrack ? (byte)255 : Clamp(0xF0 + noise);
+            pixels[idx + 3] = 160;
         }
         return pixels;
     }
