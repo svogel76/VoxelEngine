@@ -41,14 +41,14 @@ VoxelEngine/
 │   ├── GameLoop.cs
 │   └── InputHandler.cs
 ├── Rendering/
-│   ├── AtlasTexture.cs           # 64×64 Atlas, 4×4 Tiles, programmatisch generiert
+│   ├── ArrayTexture.cs           # Texture2DArray, 8 Schichten, programmatisch
 │   ├── BitmapFont.cs             # Font-Atlas Textur, UV-Berechnung pro Zeichen
 │   ├── Camera.cs                 # Yaw/Pitch, View/Projection Matrix, WASD+Maus
-│   ├── ChunkMeshBuilder.cs       # Naive Culling, Atlas-UVs, FaceDirection
 │   ├── ChunkRenderer.cs          # Dictionary<(int,int), Mesh>, FrustumCuller
 │   ├── DebugOverlay.cs           # HUD + Konsolen-Overlay, Chunks: X/Y
 │   ├── FrustumCuller.cs          # Gribb-Hartmann, AABB-Test, LastVisibleCount
-│   ├── Mesh.cs                   # VAO/VBO/EBO, DrawElements
+│   ├── GreedyMeshBuilder.cs      # 3-Achsen-Sweep, Greedy-Merge, UV-Kachelung
+│   ├── Mesh.cs                   # VAO/VBO/EBO, Stride 6 floats, TileLayer Attrib
 │   ├── Renderer.cs               # Koordiniert ChunkRenderer, Shader, Texture
 │   ├── Shader.cs                 # Kompilierung, Linking, Uniform-Setter
 │   ├── TextRenderer.cs           # DynamicDraw VBO, DrawArrays, 2D Quads
@@ -94,9 +94,11 @@ VoxelEngine/
 - [x] Frustum Culling (FrustumCuller, Gribb-Hartmann, AABB-Test)
 - [ ] Konsolen-History (Pfeiltasten blättern)
 - [ ] Autocomplete (Tab)
-- [ ] Greedy Meshing
+- [x] Greedy Meshing (GreedyMeshBuilder, 3-Achsen-Sweep, UV-Kachelung)
+- [x] ArrayTexture (Texture2DArray, 8 Schichten, Nearest-Filtering)
+- [x] Vertex-Format 6 floats (x,y,z,u,v,tileLayer)
 - [ ] Transparente Blöcke (Wasser)
-- [ ] Ambient Occlusion
+- [x] Ambient Occlusion (Voxel AO, VertexAO(), Diagonal-Flip, Z-Fighting Fix)
 
 ## Coding-Konventionen
 - IDisposable konsequent implementieren

@@ -10,10 +10,14 @@ public class Mesh : IDisposable
     private readonly uint _ebo;
     private readonly uint _indexCount;
 
+    /// <summary>Anzahl Vertices (floats / stride 7)</summary>
+    public int VertexCount { get; }
+
     public unsafe Mesh(GL gl, float[] vertices, uint[] indices)
     {
         _gl         = gl;
         _indexCount = (uint)indices.Length;
+        VertexCount = vertices.Length / 7;
 
         _vao = gl.GenVertexArray();
         _vbo = gl.GenBuffer();
@@ -33,7 +37,7 @@ public class Mesh : IDisposable
                       (nuint)(indices.Length * sizeof(uint)),
                       indices.AsSpan(), BufferUsageARB.StaticDraw);
 
-        uint stride = 5 * sizeof(float);
+        uint stride = 7 * sizeof(float);
 
         // Location 0: Position (3 floats)
         gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, stride, (void*)0);
@@ -42,6 +46,14 @@ public class Mesh : IDisposable
         // Location 1: TexCoord (2 floats, offset 3 floats)
         gl.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, stride, (void*)(3 * sizeof(float)));
         gl.EnableVertexAttribArray(1);
+
+        // Location 2: TileLayer (1 float, offset 5 floats)
+        gl.VertexAttribPointer(2, 1, VertexAttribPointerType.Float, false, stride, (void*)(5 * sizeof(float)));
+        gl.EnableVertexAttribArray(2);
+
+        // Location 3: AO (1 float, offset 6 floats)
+        gl.VertexAttribPointer(3, 1, VertexAttribPointerType.Float, false, stride, (void*)(6 * sizeof(float)));
+        gl.EnableVertexAttribArray(3);
 
         gl.BindVertexArray(0);
     }

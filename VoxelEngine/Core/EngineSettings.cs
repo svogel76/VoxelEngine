@@ -43,4 +43,8 @@ public class EngineSettings
 
     /// <summary>Maximale Anzahl neu geladener Chunks pro Update-Schritt</summary>
     public int MaxChunksLoadedPerFrame { get; init; } = 2;
+
+    // Time
+    /// <summary>Zeitbeschleunigung: 72 = ~20min Tag (wie Minecraft), 1 = Echtzeit</summary>
+    public double TimeScale { get; init; } = 72.0;
 }

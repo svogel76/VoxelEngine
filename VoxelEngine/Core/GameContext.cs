@@ -14,6 +14,7 @@ public class GameContext : IDisposable
     public DebugConsole   Console       { get; }
     public WorldGenerator Generator     { get; }
     public ChunkManager   ChunkManager  { get; }
+    public WorldTime      Time          { get; }
 
     public GameContext(
         EngineSettings  settings,
@@ -31,6 +32,7 @@ public class GameContext : IDisposable
         Generator    = generator;
         Console      = new DebugConsole(this);
         ChunkManager = new ChunkManager(world, generator, settings);
+        Time         = new WorldTime { TimeScale = settings.TimeScale };
     }
 
     public void Dispose()

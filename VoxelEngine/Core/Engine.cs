@@ -89,6 +89,8 @@ public class Engine : IDisposable
         _context.Console.Register(new WireframeCommand());
         _context.Console.Register(new ChunkInfoCommand());
         _context.Console.Register(new RenderDistanceCommand());
+        _context.Console.Register(new SkyboxCommand());
+        _context.Console.Register(new TimeCommand());
 
         // Initiales Laden: alle Chunks im RenderDistance sofort generieren
         _context.ChunkManager.Update(camX, camZ);
@@ -122,8 +124,7 @@ public class Engine : IDisposable
 
     private void OnRender(double deltaTime)
     {
-        double interpolation = _accumulator / _fixedDelta;
-        Render(interpolation, deltaTime);
+        Render(deltaTime);
     }
 
     private void Update(double fixedDelta)
@@ -173,6 +174,7 @@ public class Engine : IDisposable
             return;
         }
 
+        _context.Time.Update(fixedDelta);
         _context.Camera.ProcessKeyboard(_context.Input.Keyboard, fixedDelta);
 
         var (deltaX, deltaY) = _context.Input.GetMouseDelta();
@@ -194,7 +196,7 @@ public class Engine : IDisposable
         });
     }
 
-    private void Render(double interpolation, double frameTime)
+    private void Render(double frameTime)
     {
         _frameCount++;
         _fpsTimer += frameTime;
@@ -207,16 +209,17 @@ public class Engine : IDisposable
             _frameCount   = 0;
         }
 
-        _context.Renderer.Render(_context.Camera, interpolation);
+        _context.Renderer.Render(_context.Camera, _context.Time);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
     }
 
     private void Close()
     {
         // GL-Kontext ist hier noch aktiv — alle OpenGL-Ressourcen hier freigeben
+        // _inputContext wird von Silk.NET/GLFW intern disposed wenn das Fenster schließt —
+        // manuelles Dispose hier würde eine ObjectDisposedException auslösen.
         _debugOverlay?.Dispose();
         _context?.Dispose();
-        _inputContext?.Dispose();
         Console.WriteLine("Engine closing.");
     }
 

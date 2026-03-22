@@ -1,4 +1,5 @@
 using Silk.NET.OpenGL;
+using VoxelEngine.World;
 
 namespace VoxelEngine.Rendering;
 
@@ -7,6 +8,9 @@ public class Renderer : IDisposable
     private readonly GL           _gl;
     private Shader        _shader        = null!;
     private ChunkRenderer _chunkRenderer = null!;
+    private Skybox        _skybox        = null!;
+
+    public Skybox Skybox => _skybox;
 
     public Renderer(GL gl)
     {
@@ -16,10 +20,9 @@ public class Renderer : IDisposable
 
     private void Initialize()
     {
-        _shader = new Shader(_gl, "Assets/Shaders/basic.vert", "Assets/Shaders/basic.frag");
-
-        // AtlasTexture wird intern von ChunkRenderer verwaltet
+        _shader        = new Shader(_gl, "Assets/Shaders/basic.vert", "Assets/Shaders/basic.frag");
         _chunkRenderer = new ChunkRenderer(_gl, _shader);
+        _skybox        = new Skybox(_gl);
     }
 
     public bool IsWireframe
@@ -29,6 +32,7 @@ public class Renderer : IDisposable
     }
 
     public int VisibleChunkCount => _chunkRenderer.VisibleChunkCount;
+    public int TotalVertexCount  => _chunkRenderer.TotalVertexCount;
 
     public void BuildWorldMeshes(World.World world)
         => _chunkRenderer.BuildMeshes(world);
@@ -39,11 +43,17 @@ public class Renderer : IDisposable
     public void RemoveChunkMesh(int chunkX, int chunkZ)
         => _chunkRenderer.RemoveMesh(chunkX, chunkZ);
 
-    public void Render(Camera camera, double _)
-        => _chunkRenderer.Render(_shader, camera);
+    public void Render(Camera camera, WorldTime time)
+    {
+        _gl.ClearColor(0f, 0f, 0f, 1f);
+        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        _skybox.Render(camera, time);
+        _chunkRenderer.Render(_shader, camera);
+    }
 
     public void Dispose()
     {
+        _skybox.Dispose();
         _chunkRenderer.Dispose();
         _shader.Dispose();
         GC.SuppressFinalize(this);

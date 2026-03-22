@@ -6,21 +6,22 @@ namespace VoxelEngine.Rendering;
 
 public class ChunkRenderer : IDisposable
 {
-    private readonly GL           _gl;
-    private readonly Shader       _shader;
-    private readonly AtlasTexture _atlas;
+    private readonly GL            _gl;
+    private readonly Shader        _shader;
+    private readonly ArrayTexture  _atlas;
 
     private readonly Dictionary<(int X, int Z), Mesh> _meshes = new();
     private readonly FrustumCuller _frustumCuller = new();
 
-    public bool IsWireframe      { get; set; } = false;
+    public bool IsWireframe       { get; set; } = false;
     public int  VisibleChunkCount => _frustumCuller.LastVisibleCount;
+    public int  TotalVertexCount  { get; private set; }
 
     public ChunkRenderer(GL gl, Shader shader)
     {
         _gl     = gl;
         _shader = shader;
-        _atlas  = new AtlasTexture(gl);
+        _atlas  = new ArrayTexture(gl);
     }
 
     public void BuildMeshes(World.World world)
@@ -31,7 +32,7 @@ public class ChunkRenderer : IDisposable
 
         foreach (var chunk in world.GetAllChunks())
         {
-            var (vertices, indices) = ChunkMeshBuilder.Build(chunk, world, _atlas);
+            var (vertices, indices) = GreedyMeshBuilder.Build(chunk, world);
             if (vertices.Length == 0)
                 continue;
 
@@ -47,7 +48,7 @@ public class ChunkRenderer : IDisposable
             _meshes.Remove(chunk.ChunkPosition);
         }
 
-        var (vertices, indices) = ChunkMeshBuilder.Build(chunk, world, _atlas);
+        var (vertices, indices) = GreedyMeshBuilder.Build(chunk, world);
         if (vertices.Length == 0)
             return;
 
@@ -70,8 +71,6 @@ public class ChunkRenderer : IDisposable
         _gl.Enable(GLEnum.CullFace);
         _gl.CullFace(GLEnum.Back);
         _gl.FrontFace(GLEnum.Ccw);
-        _gl.ClearColor(0.53f, 0.81f, 0.98f, 1.0f);  // Himmelsblau
-        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         shader.Use();
         shader.SetMatrix4("model",      Matrix4X4<float>.Identity);
@@ -83,6 +82,7 @@ public class ChunkRenderer : IDisposable
 
         var vp = camera.ViewMatrix * camera.ProjectionMatrix;
         _frustumCuller.Update(vp);
+        TotalVertexCount = 0;
 
         _gl.PolygonMode(GLEnum.FrontAndBack, IsWireframe ? GLEnum.Line : GLEnum.Fill);
 
@@ -90,6 +90,7 @@ public class ChunkRenderer : IDisposable
         {
             if (!_frustumCuller.IsChunkVisible(pos.X, pos.Z))
                 continue;
+            TotalVertexCount += mesh.VertexCount;
             mesh.Draw();
         }
 

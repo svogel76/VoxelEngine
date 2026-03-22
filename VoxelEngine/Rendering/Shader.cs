@@ -1,3 +1,4 @@
+using System.Numerics;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 
@@ -58,6 +59,18 @@ public class Shader : IDisposable
     }
 
     public void SetInt(string name, int value)
+    {
+        int location = _gl.GetUniformLocation(_handle, name);
+        _gl.Uniform1(location, value);
+    }
+
+    public void SetVector3(string name, Vector3 value)
+    {
+        int location = _gl.GetUniformLocation(_handle, name);
+        _gl.Uniform3(location, value.X, value.Y, value.Z);
+    }
+
+    public void SetFloat(string name, float value)
     {
         int location = _gl.GetUniformLocation(_handle, name);
         _gl.Uniform1(location, value);
