@@ -77,7 +77,7 @@ public class Engine : IDisposable
         float aspectRatio      = (float)_settings.WindowWidth / _settings.WindowHeight;
         var (camX, camY, camZ) = _settings.CameraStartPosition;
         var camera    = new Camera(new Vector3D<float>(camX, camY, camZ), aspectRatio, _settings);
-        var renderer  = new Renderer(_gl);
+        var renderer  = new Renderer(_gl, _settings);
         var world     = new World.World();
         var generator = new WorldGenerator(_settings.Terrain);
 
@@ -91,6 +91,7 @@ public class Engine : IDisposable
         _context.Console.Register(new RenderDistanceCommand());
         _context.Console.Register(new SkyboxCommand());
         _context.Console.Register(new TimeCommand());
+        _context.Console.Register(new FogCommand());
 
         // Initiales Laden: alle Chunks im RenderDistance sofort generieren
         _context.ChunkManager.Update(camX, camZ);

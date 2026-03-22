@@ -28,6 +28,9 @@ public class Skybox : IDisposable
     public float   CurrentAmbientLight { get; private set; } = 1.0f;
     public Vector3 CurrentSunColor     { get; private set; } = Vector3.One;
 
+    // Fog-Farbe: Horizont leicht Richtung Zenit gemischt — nie heller als der Himmel
+    public Vector3 FogColor => Vector3.Lerp(HorizonColor, ZenithColor, 0.15f);
+
     public unsafe Skybox(GL gl)
     {
         _gl     = gl;

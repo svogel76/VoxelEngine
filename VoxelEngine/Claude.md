@@ -109,6 +109,8 @@ VoxelEngine/
 - [x] SkyColorCurve (Keyframe-Interpolation, 7 Tagesphasen)
 - [x] Sonne (Billboard Quad, Winkel aus WorldTime, Opacity-Fade)
 - [x] Mond (Billboard Quad, Mondphasen 0-7, Helligkeit bei Vollmond)
+- [x] Fog (linearer Entfernungs-Nebel, FogColor aus Skybox, Tag/Nacht-Anpassung)
+- [x] FogCommand (fog on/off, fog start/end)
 - [ ] Konsolen-History + Autocomplete
 - [ ] Transparente Blöcke (Wasser)
 - [ ] Diffuse Beleuchtung (Sonnenrichtung als Shader-Uniform)

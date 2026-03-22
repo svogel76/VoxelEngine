@@ -9,6 +9,7 @@ out vec2 TexCoord;
 flat out float TileLayer;
 out float AO;
 flat out float FaceLight;
+out float FragDistance;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -16,7 +17,10 @@ uniform mat4 projection;
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(aPosition, 1.0);
+    vec4 worldPos    = model * vec4(aPosition, 1.0);
+    vec4 viewPos     = view * worldPos;
+    FragDistance     = abs(viewPos.z);
+    gl_Position      = projection * viewPos;
     TexCoord  = aTexCoord;
     TileLayer = aTileLayer;
     AO        = aAO;

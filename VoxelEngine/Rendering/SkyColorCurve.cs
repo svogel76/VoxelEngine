@@ -19,14 +19,14 @@ public class SkyColorCurve
 
     private readonly SkyKeyframe[] _keyframes =
     {
-        new() { Time =  0.0f, Zenith = Hex(0x0A,0x0A,0x2A), Horizon = Hex(0x0D,0x0D,0x3A), Ground = Hex(0x05,0x05,0x10), AmbientLight = 0.03f, SunColor = new Vector3(0.10f, 0.10f, 0.20f) },
-        new() { Time =  5.5f, Zenith = Hex(0xFF,0x6B,0x35), Horizon = Hex(0xFF,0xB3,0x47), Ground = Hex(0x3A,0x20,0x10), AmbientLight = 0.15f, SunColor = new Vector3(1.00f, 0.50f, 0.20f) },
-        new() { Time =  7.0f, Zenith = Hex(0x4A,0x90,0xD9), Horizon = Hex(0x87,0xCE,0xEB), Ground = Hex(0x3A,0x50,0x20), AmbientLight = 0.70f, SunColor = new Vector3(1.00f, 0.95f, 0.80f) },
-        new() { Time = 12.0f, Zenith = Hex(0x1A,0x6B,0xA0), Horizon = Hex(0xC8,0xE8,0xF8), Ground = Hex(0x3A,0x55,0x20), AmbientLight = 1.00f, SunColor = new Vector3(1.00f, 1.00f, 0.95f) },
-        new() { Time = 17.0f, Zenith = Hex(0x4A,0x90,0xD9), Horizon = Hex(0x87,0xCE,0xEB), Ground = Hex(0x3A,0x50,0x20), AmbientLight = 0.70f, SunColor = new Vector3(1.00f, 0.95f, 0.80f) },
-        new() { Time = 18.5f, Zenith = Hex(0xFF,0x45,0x00), Horizon = Hex(0xFF,0x8C,0x00), Ground = Hex(0x3A,0x20,0x10), AmbientLight = 0.15f, SunColor = new Vector3(1.00f, 0.40f, 0.10f) },
-        new() { Time = 20.0f, Zenith = Hex(0x0A,0x0A,0x2A), Horizon = Hex(0x0D,0x0D,0x3A), Ground = Hex(0x05,0x05,0x10), AmbientLight = 0.03f, SunColor = new Vector3(0.10f, 0.10f, 0.20f) },
-        new() { Time = 24.0f, Zenith = Hex(0x0A,0x0A,0x2A), Horizon = Hex(0x0D,0x0D,0x3A), Ground = Hex(0x05,0x05,0x10), AmbientLight = 0.03f, SunColor = new Vector3(0.10f, 0.10f, 0.20f) },
+        new() { Time =  0.0f, Zenith = Hex(0x0A,0x0A,0x2A), Horizon = new Vector3(0.05f, 0.05f, 0.12f), Ground = Hex(0x05,0x05,0x10), AmbientLight = 0.03f, SunColor = new Vector3(0.10f, 0.10f, 0.20f) },
+        new() { Time =  5.5f, Zenith = Hex(0xFF,0x6B,0x35), Horizon = new Vector3(0.80f, 0.40f, 0.15f), Ground = Hex(0x3A,0x20,0x10), AmbientLight = 0.15f, SunColor = new Vector3(1.00f, 0.50f, 0.20f) },
+        new() { Time =  7.0f, Zenith = Hex(0x4A,0x90,0xD9), Horizon = new Vector3(0.60f, 0.80f, 1.00f), Ground = Hex(0x3A,0x50,0x20), AmbientLight = 0.70f, SunColor = new Vector3(1.00f, 0.95f, 0.80f) },
+        new() { Time = 12.0f, Zenith = Hex(0x1A,0x6B,0xA0), Horizon = new Vector3(0.75f, 0.90f, 1.00f), Ground = Hex(0x3A,0x55,0x20), AmbientLight = 1.00f, SunColor = new Vector3(1.00f, 1.00f, 0.95f) },
+        new() { Time = 17.0f, Zenith = Hex(0x4A,0x90,0xD9), Horizon = new Vector3(0.60f, 0.80f, 1.00f), Ground = Hex(0x3A,0x50,0x20), AmbientLight = 0.70f, SunColor = new Vector3(1.00f, 0.95f, 0.80f) },
+        new() { Time = 18.5f, Zenith = Hex(0xFF,0x45,0x00), Horizon = new Vector3(0.70f, 0.25f, 0.05f), Ground = Hex(0x3A,0x20,0x10), AmbientLight = 0.15f, SunColor = new Vector3(1.00f, 0.40f, 0.10f) },
+        new() { Time = 20.0f, Zenith = Hex(0x0A,0x0A,0x2A), Horizon = new Vector3(0.05f, 0.05f, 0.12f), Ground = Hex(0x05,0x05,0x10), AmbientLight = 0.03f, SunColor = new Vector3(0.10f, 0.10f, 0.20f) },
+        new() { Time = 24.0f, Zenith = Hex(0x0A,0x0A,0x2A), Horizon = new Vector3(0.05f, 0.05f, 0.12f), Ground = Hex(0x05,0x05,0x10), AmbientLight = 0.03f, SunColor = new Vector3(0.10f, 0.10f, 0.20f) },
     };
 
     public SkyKeyframe Evaluate(double worldTime)

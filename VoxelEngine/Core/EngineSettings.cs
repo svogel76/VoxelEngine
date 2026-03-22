@@ -47,4 +47,10 @@ public class EngineSettings
     // Time
     /// <summary>Zeitbeschleunigung: 72 = ~20min Tag (wie Minecraft), 1 = Echtzeit</summary>
     public double TimeScale { get; init; } = 72.0;
+
+    // Fog
+    /// <summary>Fog beginnt bei diesem Anteil der Render Distance (0.0–1.0)</summary>
+    public float FogStartFactor { get; init; } = 0.5f;
+    /// <summary>Fog endet (vollständig) bei diesem Anteil der Render Distance (0.0–1.0)</summary>
+    public float FogEndFactor   { get; init; } = 0.9f;
 }
