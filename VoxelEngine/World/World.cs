@@ -1,8 +1,10 @@
+using System.Collections.Concurrent;
+
 namespace VoxelEngine.World;
 
 public class World
 {
-    private readonly Dictionary<(int X, int Z), Chunk> _chunks = new();
+    private readonly ConcurrentDictionary<(int X, int Z), Chunk> _chunks = new();
 
     public int LoadedChunkCount => _chunks.Count;
 
@@ -16,13 +18,10 @@ public class World
         => _chunks.TryGetValue((chunkX, chunkZ), out var chunk) ? chunk : null;
 
     public Chunk GetOrCreateChunk(int chunkX, int chunkZ)
-    {
-        if (_chunks.TryGetValue((chunkX, chunkZ), out var chunk))
-            return chunk;
-        chunk = new Chunk(chunkX, chunkZ);
-        _chunks[(chunkX, chunkZ)] = chunk;
-        return chunk;
-    }
+        => _chunks.GetOrAdd((chunkX, chunkZ), key => new Chunk(key.X, key.Z));
+
+    public void AddChunk(Chunk chunk) =>
+        _chunks.TryAdd((chunk.ChunkPosition.X, chunk.ChunkPosition.Z), chunk);
 
     public byte GetBlock(int worldX, int worldY, int worldZ)
     {
@@ -39,7 +38,7 @@ public class World
     }
 
     public void RemoveChunk(int chunkX, int chunkZ)
-        => _chunks.Remove((chunkX, chunkZ));
+        => _chunks.TryRemove((chunkX, chunkZ), out _);
 
     public IEnumerable<Chunk> GetAllChunks() => _chunks.Values;
 }

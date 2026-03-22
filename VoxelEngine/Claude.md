@@ -116,8 +116,12 @@ VoxelEngine/
 - [x] FogCommand (fog on/off, fog start/end)
 - [x] Sternenhimmel (Instanced Rendering, 1500 Sterne, Billboard Quads, Twinkle via sin)
 - [ ] Konsolen-History + Autocomplete
-- [x] Transparente Blöcke (Wasser/Glas/Eis, Two-Pass Rendering, Back-to-Front Sortierung)
-- [ ] Diffuse Beleuchtung (Sonnenrichtung als Shader-Uniform)
+- [x] Transparente Blöcke (Water=5, Glass=6, Ice=7)
+- [x] Two-Pass Rendering (opaque + transparent, DepthMask)
+- [x] Meeresspiegel Y=64 (WorldGenerator.SeaLevel)
+- [x] SampleBlock() — deterministisches Meshing unabhängig von Chunk-Ladereihenfolge
+- [x] NeedsFace() Logik (aOwnsForward, alle 6 Achsen korrekt)
+- [x] Diffuse Beleuchtung (Sonnenrichtung als Shader-Uniform)
 - [ ] Licht/Schatten System
 
 ## Coding-Konventionen

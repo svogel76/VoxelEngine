@@ -97,12 +97,8 @@ public class Engine : IDisposable
         _context.ChunkManager.Update(camX, camZ);
         while (_context.ChunkManager.PendingChunks > 0)
         {
-            _context.ChunkManager.ProcessLoadQueue((x, z) =>
-            {
-                var chunk = _context.World.GetChunk(x, z);
-                if (chunk is not null)
-                    _context.Renderer.BuildChunkMesh(chunk, _context.World, _context.Generator);
-            });
+            _context.Renderer.UploadPendingMeshes(_context.ChunkManager);
+            Thread.Sleep(10);
         }
 
         Console.WriteLine($"Loaded chunks: {world.LoadedChunkCount}");
@@ -188,13 +184,6 @@ public class Engine : IDisposable
         foreach (var (x, z) in _context.ChunkManager.UnloadedThisUpdate)
             _context.Renderer.RemoveChunkMesh(x, z);
 
-        // Neue Chunks laden (maximal MaxChunksLoadedPerFrame pro Frame)
-        _context.ChunkManager.ProcessLoadQueue((x, z) =>
-        {
-            var chunk = _context.World.GetChunk(x, z);
-            if (chunk is not null)
-                _context.Renderer.BuildChunkMesh(chunk, _context.World, _context.Generator);
-        });
     }
 
     private void Render(double frameTime)
@@ -210,6 +199,7 @@ public class Engine : IDisposable
             _frameCount   = 0;
         }
 
+        _context.Renderer.UploadPendingMeshes(_context.ChunkManager);
         _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
     }

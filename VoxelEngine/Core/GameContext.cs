@@ -35,8 +35,12 @@ public class GameContext : IDisposable
         Time         = new WorldTime { TimeScale = settings.TimeScale };
     }
 
+    public bool TryDequeueResult(out ChunkResult result) =>
+        ChunkManager.TryDequeueResult(out result);
+
     public void Dispose()
     {
+        ChunkManager.Dispose();
         Renderer.Dispose();
         Console.Dispose();
         GC.SuppressFinalize(this);

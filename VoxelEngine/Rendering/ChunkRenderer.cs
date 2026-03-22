@@ -8,6 +8,8 @@ namespace VoxelEngine.Rendering;
 
 public class ChunkRenderer : IDisposable
 {
+    private const int MaxUploadsPerFrame = 4;
+
     private readonly GL            _gl;
     private readonly Shader        _shader;
     private readonly ArrayTexture  _atlas;
@@ -33,43 +35,33 @@ public class ChunkRenderer : IDisposable
         FogEndFactor    = settings.FogEndFactor;
     }
 
-    public void BuildMeshes(World.World world, WorldGenerator generator)
+    public void UploadPendingMeshes(ChunkManager chunkManager)
     {
-        foreach (var mesh in _opaqueMeshes.Values)      mesh.Dispose();
-        foreach (var mesh in _transparentMeshes.Values) mesh.Dispose();
-        _opaqueMeshes.Clear();
-        _transparentMeshes.Clear();
+        int uploaded = 0;
 
-        foreach (var chunk in world.GetAllChunks())
+        while (uploaded < MaxUploadsPerFrame &&
+               chunkManager.TryDequeueResult(out var result))
         {
-            var (oVerts, oIdx, tVerts, tIdx) = GreedyMeshBuilder.Build(chunk, world, generator);
-            if (oVerts.Length > 0)
-                _opaqueMeshes[chunk.ChunkPosition] = new Mesh(_gl, oVerts, oIdx);
-            if (tVerts.Length > 0)
-                _transparentMeshes[chunk.ChunkPosition] = new Mesh(_gl, tVerts, tIdx);
-        }
-    }
+            var key = (result.ChunkX, result.ChunkZ);
 
-    public void BuildMesh(Chunk chunk, World.World world, WorldGenerator generator)
-    {
-        var key = chunk.ChunkPosition;
+            if (_opaqueMeshes.TryGetValue(key, out var oldOpaque))
+            {
+                oldOpaque.Dispose();
+                _opaqueMeshes.Remove(key);
+            }
+            if (_transparentMeshes.TryGetValue(key, out var oldTransparent))
+            {
+                oldTransparent.Dispose();
+                _transparentMeshes.Remove(key);
+            }
 
-        if (_opaqueMeshes.TryGetValue(key, out var oldOpaque))
-        {
-            oldOpaque.Dispose();
-            _opaqueMeshes.Remove(key);
-        }
-        if (_transparentMeshes.TryGetValue(key, out var oldTransparent))
-        {
-            oldTransparent.Dispose();
-            _transparentMeshes.Remove(key);
-        }
+            if (result.HasOpaqueMesh)
+                _opaqueMeshes[key] = new Mesh(_gl, result.OpaqueVertices, result.OpaqueIndices);
+            if (result.HasTransparentMesh)
+                _transparentMeshes[key] = new Mesh(_gl, result.TransparentVertices, result.TransparentIndices);
 
-        var (oVerts, oIdx, tVerts, tIdx) = GreedyMeshBuilder.Build(chunk, world, generator);
-        if (oVerts.Length > 0)
-            _opaqueMeshes[key] = new Mesh(_gl, oVerts, oIdx);
-        if (tVerts.Length > 0)
-            _transparentMeshes[key] = new Mesh(_gl, tVerts, tIdx);
+            uploaded++;
+        }
     }
 
     public void RemoveMesh(int chunkX, int chunkZ)

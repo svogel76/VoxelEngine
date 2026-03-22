@@ -44,9 +44,9 @@ public class WorldGenerator
     /// <summary>
     /// Generiert genau einen Chunk an der angegebenen Position.
     /// </summary>
-    public void GenerateChunk(int chunkX, int chunkZ, World world)
+    public Chunk GenerateChunk(int chunkX, int chunkZ)
     {
-        world.GetOrCreateChunk(chunkX, chunkZ);
+        var chunk = new Chunk(chunkX, chunkZ);
 
         for (int x = 0; x < Chunk.Width; x++)
         for (int z = 0; z < Chunk.Depth; z++)
@@ -71,7 +71,7 @@ public class WorldGenerator
                 else
                     blockType = BlockType.Grass;
 
-                world.SetBlock(worldX, y, worldZ, blockType);
+                chunk.SetBlock(x, y, z, blockType);
             }
         }
 
@@ -83,10 +83,12 @@ public class WorldGenerator
             int worldZ = chunkZ * Chunk.Depth + z;
             for (int y = 1; y <= SeaLevel; y++)
             {
-                if (world.GetBlock(worldX, y, worldZ) == BlockType.Air)
-                    world.SetBlock(worldX, y, worldZ, BlockType.Water);
+                if (chunk.GetBlock(x, y, z) == BlockType.Air)
+                    chunk.SetBlock(x, y, z, BlockType.Water);
             }
         }
+
+        return chunk;
     }
 
     public byte SampleBlock(int worldX, int worldY, int worldZ)
@@ -121,6 +123,6 @@ public class WorldGenerator
     {
         for (int cx = fromChunkX; cx <= toChunkX; cx++)
         for (int cz = fromChunkZ; cz <= toChunkZ; cz++)
-            GenerateChunk(cx, cz, world);
+            world.AddChunk(GenerateChunk(cx, cz));
     }
 }

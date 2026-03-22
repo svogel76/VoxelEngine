@@ -46,11 +46,8 @@ public class Renderer : IDisposable
     public int VisibleChunkCount => _chunkRenderer.VisibleChunkCount;
     public int TotalVertexCount  => _chunkRenderer.TotalVertexCount;
 
-    public void BuildWorldMeshes(World.World world, WorldGenerator generator)
-        => _chunkRenderer.BuildMeshes(world, generator);
-
-    public void BuildChunkMesh(World.Chunk chunk, World.World world, WorldGenerator generator)
-        => _chunkRenderer.BuildMesh(chunk, world, generator);
+    public void UploadPendingMeshes(ChunkManager chunkManager)
+        => _chunkRenderer.UploadPendingMeshes(chunkManager);
 
     public void RemoveChunkMesh(int chunkX, int chunkZ)
         => _chunkRenderer.RemoveMesh(chunkX, chunkZ);
