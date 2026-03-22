@@ -4,9 +4,10 @@ namespace VoxelEngine.Rendering;
 
 /// <summary>
 /// Greedy meshing: merges adjacent same-type faces into large quads.
-/// Vertex format: (x, y, z, u, v, tileLayer, ao) — 7 floats per vertex.
+/// Vertex format: (x, y, z, u, v, tileLayer, ao, faceLight) — 8 floats per vertex.
 /// UV coordinates range 0..w × 0..h so the texture tiles across merged rects.
 /// AO: 0 = darkest (30 % brightness), 3 = brightest (100 %).
+/// faceLight: face-direction base brightness (Top=1.0, Bottom=0.4, sides=0.6–0.8).
 /// </summary>
 public static class GreedyMeshBuilder
 {
@@ -257,7 +258,16 @@ public static class GreedyMeshBuilder
             ? new (float, float)[] { (0f, 0f), (0f, w), (h, w), (h, 0f) }
             : new (float, float)[] { (0f, 0f), (w, 0f), (w, h), (0f, h) };
 
-        uint baseIdx = (uint)(vertices.Count / 7);
+        float faceLight = (axis, backFace) switch
+        {
+            (1, false) => 1.00f,  // Top
+            (1, true)  => 0.40f,  // Bottom
+            (2, false) => 0.80f,  // Front
+            (2, true)  => 0.60f,  // Back
+            _          => 0.70f,  // Left / Right
+        };
+
+        uint baseIdx = (uint)(vertices.Count / 8);
 
         void AddVertex((float x, float y, float z) c, (float u, float v) uv, float ao)
         {
@@ -265,6 +275,7 @@ public static class GreedyMeshBuilder
             vertices.Add(uv.u); vertices.Add(uv.v);
             vertices.Add(tileLayer);
             vertices.Add(ao);
+            vertices.Add(faceLight);
         }
 
         AddVertex(c0, uvs[0], ao0);

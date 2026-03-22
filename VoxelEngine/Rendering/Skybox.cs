@@ -25,6 +25,9 @@ public class Skybox : IDisposable
     public Vector3 GroundColor      = new(0.3f, 0.25f, 0.2f);
     public float   HorizonSharpness = 0.4f;
 
+    public float   CurrentAmbientLight { get; private set; } = 1.0f;
+    public Vector3 CurrentSunColor     { get; private set; } = Vector3.One;
+
     public unsafe Skybox(GL gl)
     {
         _gl     = gl;
@@ -78,10 +81,12 @@ public class Skybox : IDisposable
 
     public void UpdateColors(WorldTime time)
     {
-        var frame    = _colorCurve.Evaluate(time.Time);
-        ZenithColor  = frame.Zenith;
-        HorizonColor = frame.Horizon;
-        GroundColor  = frame.Ground;
+        var frame           = _colorCurve.Evaluate(time.Time);
+        ZenithColor         = frame.Zenith;
+        HorizonColor        = frame.Horizon;
+        GroundColor         = frame.Ground;
+        CurrentAmbientLight = frame.AmbientLight;
+        CurrentSunColor     = frame.SunColor;
 
         float sunAngle  = (float)((time.Time / 24.0) * 360.0) - 90f;
         float moonAngle = sunAngle + 180f;

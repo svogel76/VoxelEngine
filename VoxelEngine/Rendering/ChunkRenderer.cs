@@ -65,7 +65,7 @@ public class ChunkRenderer : IDisposable
         }
     }
 
-    public void Render(Shader shader, Camera camera)
+    public void Render(Shader shader, Camera camera, Skybox skybox)
     {
         _gl.Enable(GLEnum.DepthTest);
         _gl.Enable(GLEnum.CullFace);
@@ -76,6 +76,8 @@ public class ChunkRenderer : IDisposable
         shader.SetMatrix4("model",      Matrix4X4<float>.Identity);
         shader.SetMatrix4("view",       camera.ViewMatrix);
         shader.SetMatrix4("projection", camera.ProjectionMatrix);
+        shader.SetFloat("uGlobalLight", skybox.CurrentAmbientLight);
+        shader.SetVector3("uSunColor",  skybox.CurrentSunColor);
 
         _atlas.Bind(TextureUnit.Texture0);
         shader.SetInt("uTexture", 0);

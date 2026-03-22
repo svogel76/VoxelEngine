@@ -48,7 +48,7 @@ public class Renderer : IDisposable
         _gl.ClearColor(0f, 0f, 0f, 1f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         _skybox.Render(camera, time);
-        _chunkRenderer.Render(_shader, camera);
+        _chunkRenderer.Render(_shader, camera, _skybox);
     }
 
     public void Dispose()

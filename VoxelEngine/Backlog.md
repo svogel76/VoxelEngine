@@ -48,7 +48,7 @@
 - ✅ WorldTime (Time, DayCount, MoonPhase, TimeScale)
 - ✅ SkyColorCurve (7 Keyframes, Interpolation)
 - ✅ Sonne + Mond (Billboard Quads, Mondphasen, Opacity-Fade)
-- 🔴 Diffuse Beleuchtung (Sonnenrichtung → Shader-Uniform → Flächen-Helligkeit)
+- ✅ Diffuse Beleuchtung (Sonnenrichtung → Shader-Uniform → Flächen-Helligkeit)
 - 🟡 Transparente Blöcke (Wasser, Glas — eigener Render-Pass)
 - 🟡 Sterne (Nachthimmel — Partikel oder Billboard-Quads)
 - 🟡 Fog (Entfernungs-Nebel an Chunk-Grenzen)
