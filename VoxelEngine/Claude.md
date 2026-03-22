@@ -13,55 +13,67 @@ Implementierung erfolgt in Claude Code.
 - Kamera mit Yaw/Pitch, InvertMouseY-Option in EngineSettings
 - Keine Magic Numbers — alles über EngineSettings konfigurierbar
 - World/ hat keine Silk.NET Abhängigkeiten — pure C# für Portabilität
+- WorldTime ist zentrale Zeitvariable — alle Zeit-abhängigen Systeme bauen darauf auf
 
 ## Projektstruktur
 VoxelEngine/
 ├── Assets/
 │   ├── Fonts/
-│   │   └── font.png              # CP437 Bitmap Font (16×16 ASCII Grid)
+│   │   └── font.png
 │   └── Shaders/
-│       ├── basic.vert            # MVP-Transformation + UV-Koordinaten
-│       ├── basic.frag            # Textur-Sampling
-│       ├── text.vert             # Orthografische 2D Projektion
-│       └── text.frag             # Font-Rendering mit discard
+│       ├── basic.vert
+│       ├── basic.frag
+│       ├── text.vert
+│       ├── text.frag
+│       ├── skybox.vert
+│       ├── skybox.frag
+│       ├── celestial.vert
+│       └── celestial.frag
 ├── Core/
 │   ├── Debug/
 │   │   ├── Commands/
 │   │   │   ├── ChunkInfoCommand.cs
 │   │   │   ├── HelpCommand.cs
 │   │   │   ├── PosCommand.cs
-│   │   │   ├── RenderDistanceCommand.cs  # renderdistance <n>
+│   │   │   ├── RenderDistanceCommand.cs
+│   │   │   ├── SkyboxCommand.cs
 │   │   │   ├── TeleportCommand.cs
+│   │   │   ├── TimeCommand.cs
 │   │   │   └── WireframeCommand.cs
-│   │   ├── DebugConsole.cs       # Command-Registry, History, Output-Log
-│   │   └── ICommand.cs           # Interface: Name, Description, Usage, Execute
-│   ├── Engine.cs                 # Hauptklasse, Silk.NET Window + Loop
-│   ├── EngineSettings.cs         # Zentrale Konfiguration
-│   ├── GameContext.cs            # Container für alle Systeme
+│   │   ├── DebugConsole.cs
+│   │   └── ICommand.cs
+│   ├── Engine.cs
+│   ├── EngineSettings.cs
+│   ├── GameContext.cs
 │   ├── GameLoop.cs
 │   └── InputHandler.cs
 ├── Rendering/
-│   ├── ArrayTexture.cs           # Texture2DArray, 8 Schichten, programmatisch
-│   ├── BitmapFont.cs             # Font-Atlas Textur, UV-Berechnung pro Zeichen
-│   ├── Camera.cs                 # Yaw/Pitch, View/Projection Matrix, WASD+Maus
-│   ├── ChunkRenderer.cs          # Dictionary<(int,int), Mesh>, FrustumCuller
-│   ├── DebugOverlay.cs           # HUD + Konsolen-Overlay, Chunks: X/Y
-│   ├── FrustumCuller.cs          # Gribb-Hartmann, AABB-Test, LastVisibleCount
-│   ├── GreedyMeshBuilder.cs      # 3-Achsen-Sweep, Greedy-Merge, UV-Kachelung
-│   ├── Mesh.cs                   # VAO/VBO/EBO, Stride 6 floats, TileLayer Attrib
-│   ├── Renderer.cs               # Koordiniert ChunkRenderer, Shader, Texture
-│   ├── Shader.cs                 # Kompilierung, Linking, Uniform-Setter
-│   ├── TextRenderer.cs           # DynamicDraw VBO, DrawArrays, 2D Quads
-│   └── Texture.cs                # Laden via StbImageSharp
+│   ├── ArrayTexture.cs           # Texture2DArray, 8 Schichten
+│   ├── BitmapFont.cs
+│   ├── Camera.cs
+│   ├── CelestialBody.cs          # Billboard Quad für Sonne/Mond
+│   ├── CelestialTextures.cs      # Sonne + Mondphasen programmatisch
+│   ├── ChunkRenderer.cs
+│   ├── DebugOverlay.cs           # HUD: FPS, Pos, Chunks, Verts, Time
+│   ├── FrustumCuller.cs
+│   ├── GreedyMeshBuilder.cs      # 3-Achsen-Sweep, AO-korrekter Merge
+│   ├── Mesh.cs                   # VAO/VBO/EBO, Stride 7 floats
+│   ├── Renderer.cs
+│   ├── Shader.cs
+│   ├── Skybox.cs                 # Prozeduraler Himmel + Sonne/Mond
+│   ├── SkyColorCurve.cs          # Keyframe-Interpolation für Tagesfarben
+│   ├── TextRenderer.cs
+│   └── Texture.cs
 └── World/
-    ├── BlockTextures.cs          # Tile-Index pro BlockType + FaceDirection
-    ├── BlockType.cs              # byte-Konstanten: Air=0, Grass=1, Dirt=2, Stone=3, Sand=4
-    ├── Chunk.cs                  # 16×256×16 byte[,,], ChunkPosition, Get/SetBlock
-    ├── ChunkManager.cs           # Update, ProcessLoadQueue, Hysterese
-    ├── FaceDirection.cs          # Enum: Top, Bottom, Front, Back, Left, Right
-    ├── NoiseSettings.cs          # Seed, Frequency, Octaves, Amplitude, BaseHeight
-    ├── World.cs                  # Dictionary<(int,int),Chunk>, Koordinaten-Umrechnung
-    └── WorldGenerator.cs         # GenerateTerrain, GenerateChunk, FastNoiseLite
+    ├── BlockTextures.cs
+    ├── BlockType.cs
+    ├── Chunk.cs
+    ├── ChunkManager.cs
+    ├── FaceDirection.cs
+    ├── NoiseSettings.cs
+    ├── World.cs
+    ├── WorldGenerator.cs
+    └── WorldTime.cs              # Time, DayCount, MoonPhase, TimeScale
 
 ## Koordinaten-System
 - Chunk-Koordinate:  Math.Floor(worldCoord / Chunk.Width)
@@ -74,31 +86,33 @@ VoxelEngine/
 - [x] Kamera mit Maus/Tastatur (WASD + Space/Shift, InvertMouseY)
 - [x] InputHandler mit Raw Mouse Input
 - [x] Shader-System (Shader.cs mit Fehlerprüfung)
-- [x] Mesh-System (VAO/VBO/EBO)
+- [x] Mesh-System (VAO/VBO/EBO, Stride 7 floats)
 - [x] Texture-System (StbImageSharp + CreateFromBytes Fallback)
 - [x] FPS-Anzeige im Fenstertitel
 - [x] MVP-Matrix Pipeline (Model/View/Projection als Uniforms)
 - [x] Chunk-Datenstruktur (BlockType, Chunk, World, WorldGenerator)
 - [x] Perlin Noise Terrain-Generation mit NoiseSettings
-- [x] Naive Culling Meshing (ChunkMeshBuilder)
-- [x] ChunkRenderer — Welt wird gerendert
-- [x] Backface Culling (CCW Winding Order, alle 6 Seiten verifiziert)
-- [x] GameContext (zentraler Container für alle Systeme)
-- [x] Bitmap Font System (CP437, UV-Berechnung, Orthografische Projektion)
-- [x] Debug-Konsole (F1, Command-Registry, ICommand Interface)
-- [x] HUD (FPS + Position + Chunks X/Y, immer sichtbar)
-- [x] Kommandos: help, pos, tp, wireframe, chunk info, renderdistance
-- [x] Chunk-Manager (dynamisches Laden/Entladen, Hysterese, MaxChunksPerFrame)
-- [x] Textur-Atlas (AtlasTexture, programmatisch generiert, Nearest-Filtering)
-- [x] BlockTextures + FaceDirection (Tile-Index pro Block-Typ und Fläche)
-- [x] Frustum Culling (FrustumCuller, Gribb-Hartmann, AABB-Test)
-- [ ] Konsolen-History (Pfeiltasten blättern)
-- [ ] Autocomplete (Tab)
-- [x] Greedy Meshing (GreedyMeshBuilder, 3-Achsen-Sweep, UV-Kachelung)
+- [x] Greedy Meshing (3-Achsen-Sweep, AO-korrekter Merge, UV-Kachelung)
 - [x] ArrayTexture (Texture2DArray, 8 Schichten, Nearest-Filtering)
-- [x] Vertex-Format 6 floats (x,y,z,u,v,tileLayer)
+- [x] ChunkRenderer — Welt wird gerendert
+- [x] Backface Culling (CCW Winding Order)
+- [x] GameContext (zentraler Container für alle Systeme)
+- [x] Bitmap Font System (CP437, Orthografische Projektion)
+- [x] Debug-Konsole (F1, Command-Registry, ICommand Interface)
+- [x] HUD (FPS, Position, Chunks X/Y, Verts, Time)
+- [x] Kommandos: help, pos, tp, wireframe, chunk info, renderdistance, skybox, time
+- [x] Chunk-Manager (dynamisches Laden/Entladen, Hysterese)
+- [x] Frustum Culling (FrustumCuller, Gribb-Hartmann, AABB-Test)
+- [x] Ambient Occlusion (VertexAO, Diagonal-Flip, Z-Fighting Fix)
+- [x] Skybox (prozeduraler Himmel, Gradient Zenith/Horizont/Boden)
+- [x] WorldTime (Time, DayCount, MoonPhase, TimeScale, Paused)
+- [x] SkyColorCurve (Keyframe-Interpolation, 7 Tagesphasen)
+- [x] Sonne (Billboard Quad, Winkel aus WorldTime, Opacity-Fade)
+- [x] Mond (Billboard Quad, Mondphasen 0-7, Helligkeit bei Vollmond)
+- [ ] Konsolen-History + Autocomplete
 - [ ] Transparente Blöcke (Wasser)
-- [x] Ambient Occlusion (Voxel AO, VertexAO(), Diagonal-Flip, Z-Fighting Fix)
+- [ ] Diffuse Beleuchtung (Sonnenrichtung als Shader-Uniform)
+- [ ] Licht/Schatten System
 
 ## Coding-Konventionen
 - IDisposable konsequent implementieren
@@ -106,4 +120,6 @@ VoxelEngine/
 - Keine Magic Numbers — alles über EngineSettings
 - Unsafe-Blöcke nur wo OpenGL es erfordert
 - Shader-Fehler werfen Exceptions mit InfoLog-Text
-- World/ niemals Silk.NET importieren — Portabilität gewährleisten
+- World/ niemals Silk.NET importieren
+- Skybox vor Terrain rendern — Reihenfolge kritisch
+- DepthTest nach Skybox-Render immer wieder aktivieren
