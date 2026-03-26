@@ -25,7 +25,7 @@ VoxelEngine/
 │   │   └── font.png
 │   └── Shaders/
 │       ├── basic.vert            # MVP + UV + TileLayer + AO + FaceLight
-│       ├── basic.frag            # Beleuchtung + Fog + Transparenz
+│       ├── basic.frag            # Beleuchtung + Fog + Alpha-Multiplier
 │       ├── text.vert             # Orthografische 2D Projektion
 │       ├── text.frag             # Font-Rendering mit discard
 │       ├── skybox.vert           # Far Plane (pos.xyww)
@@ -35,7 +35,7 @@ VoxelEngine/
 │       ├── stars.vert            # Instanced Billboards
 │       ├── stars.frag            # Twinkle Effekt
 │       ├── highlight.vert        # Block-Highlight Wireframe
-│       └── highlight.frag        # Block-Highlight + Ghost-Block
+│       └── highlight.frag        # Block-Highlight Farbe
 ├── Core/
 │   ├── Debug/
 │   │   ├── Commands/
@@ -54,17 +54,18 @@ VoxelEngine/
 │   │   └── ICommand.cs
 │   ├── Engine.cs
 │   ├── EngineSettings.cs
+│   ├── FastNoiseLite.cs
 │   ├── GameContext.cs
 │   ├── GameLoop.cs
 │   └── InputHandler.cs
 ├── Rendering/
 │   ├── ArrayTexture.cs           # Texture2DArray, 11 Schichten (inkl. Water/Glass/Ice)
 │   ├── BitmapFont.cs
-│   ├── BlockHighlight.cs         # Wireframe + Ghost-Block, Depth-Test
+│   ├── BlockHighlightRenderer.cs # Wireframe-Highlight mit Depth-Test
 │   ├── Camera.cs
 │   ├── CelestialBody.cs          # Billboard Quad für Sonne/Mond
 │   ├── CelestialTextures.cs      # Sonne + Mondphasen programmatisch
-│   ├── ChunkRenderer.cs          # Two-Pass, UploadPendingMeshes (max 4/Frame)
+│   ├── ChunkRenderer.cs          # Chunk-Meshes + Ghost-Block Rendering
 │   ├── DebugOverlay.cs           # HUD: FPS, Pos, Chunks, Verts, Time, Block, Reach
 │   ├── FrustumCuller.cs
 │   ├── GreedyMeshBuilder.cs      # 3-Achsen-Sweep, NeedsFace, SampleBlock
@@ -77,17 +78,20 @@ VoxelEngine/
 │   ├── TextRenderer.cs
 │   └── Texture.cs
 └── World/
+    ├── BlockRaycaster.cs         # DDA Ray-Casting + PlacementPreview
     ├── BlockTextures.cs          # Tile-Index pro BlockType + FaceDirection
     ├── BlockType.cs              # Air/Grass/Dirt/Stone/Sand/Water/Glass/Ice
     ├── Chunk.cs
-    ├── ChunkJob.cs               # readonly record struct
-    ├── ChunkManager.cs           # Update, EnqueueJob, TryDequeueResult
+    ├── ChunkJob.cs               # Generate/Rebuild Jobs für ChunkWorker
+    ├── ChunkManager.cs           # Laden/Entladen + Rebuild-Queue
     ├── ChunkResult.cs            # Fertige Mesh-Daten für GPU-Upload
     ├── ChunkWorker.cs            # Background ThreadPool, ConcurrentQueues
+    ├── CollisionAndGravity.md    # Konzeptnotiz für Spieler-Physik
     ├── FaceDirection.cs
     ├── NoiseSettings.cs
-    ├── Player.cs                 # Position, Velocity, FlyMode, EyePosition, Kollision
-    ├── Raycast.cs                # DDA Ray-Casting, RaycastResult
+    ├── Player.cs                 # Position, Velocity, FlyMode, Physik, Step-up
+    ├── RayCasting.md             # Konzeptnotiz für Block-Interaktion
+    ├── StepUp.md                 # Konzeptnotiz für Step-up
     ├── World.cs                  # ConcurrentDictionary, AddChunk, SampleBlock
     ├── WorldGenerator.cs         # GenerateChunk() gibt Chunk zurück, SeaLevel=64
     └── WorldTime.cs              # Time, DayCount, MoonPhase, TimeScale
@@ -154,7 +158,9 @@ VoxelEngine/
 - [ ] Inventar-System
 - [ ] Wetter-System
 
-## Coding-Konventionen
+## Anweisungen für Coding Agents
+
+### Coding-Konventionen
 - IDisposable konsequent implementieren
 - Alle Ressourcen unter Assets/
 - Keine Magic Numbers — alles über EngineSettings
@@ -164,6 +170,28 @@ VoxelEngine/
 - GL-Aufrufe NUR im Main Thread (niemals im ChunkWorker)
 - Skybox vor Terrain rendern — DepthTest nach Skybox immer reaktivieren
 - Chunk-Rebuild nach Block-Änderung — Nachbar-Chunks an Grenzen ebenfalls
+
+### Coding-Regeln die immer gelten
+- Keine neuen Abhängigkeiten in `World/` — niemals Silk.NET dort importieren
+- Neue Block-Typen immer in `BlockType.cs` + `BlockTextures.cs` + `ArrayTexture.cs`
+- Neue Debug-Kommandos immer in `Core/Debug/Commands/` als eigene Klasse
+- Physik-Konstanten immer in `EngineSettings` — nie hardcoden
+- GL-Aufrufe niemals im `ChunkWorker` — nur im Main Thread
+- Nach Block-Änderungen immer betroffene Chunks + Nachbar-Chunks rebuilden
+
+### Struktur-Konventionen
+- `World/`      → pure C#, keine Framework-Abhängigkeiten
+- `Rendering/`  → OpenGL + Silk.NET erlaubt
+- `Core/`       → Engine-Infrastruktur, Silk.NET Window/Input
+- `Assets/`     → alle externen Ressourcen (Shader, Fonts, Texturen)
+
+### Nach jeder Implementierung
+Aktualisiere die `CLAUDE.md` automatisch:
+1. **Projektstruktur** — neue Dateien eintragen, gelöschte entfernen,
+   Kommentare aktuell halten
+2. **Aktueller Stand** — erledigte Punkte mit `[x]` markieren,
+   neue Punkte hinzufügen falls nötig
+3. **Nächste Schritte** — abgearbeitete Punkte entfernen
 
 ## Nächste Schritte
 1. Phase 3 — Klimazonen (ClimateSystem, ClimateZone, Interpolation)
