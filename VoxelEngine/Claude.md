@@ -40,6 +40,7 @@ VoxelEngine/
 │   ├── Debug/
 │   │   ├── Commands/
 │   │   │   ├── ChunkInfoCommand.cs
+│   │   │   ├── ClimateCommand.cs     # climate info
 │   │   │   ├── FlyCommand.cs         # fly / fly on / fly off
 │   │   │   ├── FogCommand.cs
 │   │   │   ├── HelpCommand.cs
@@ -59,7 +60,7 @@ VoxelEngine/
 │   ├── GameLoop.cs
 │   └── InputHandler.cs
 ├── Rendering/
-│   ├── ArrayTexture.cs           # Texture2DArray, 11 Schichten (inkl. Water/Glass/Ice)
+│   ├── ArrayTexture.cs           # Texture2DArray, 13 Schichten (inkl. DryGrass/Snow)
 │   ├── BitmapFont.cs
 │   ├── BlockHighlightRenderer.cs # Wireframe-Highlight mit Depth-Test
 │   ├── Camera.cs
@@ -78,9 +79,11 @@ VoxelEngine/
 │   ├── TextRenderer.cs
 │   └── Texture.cs
 └── World/
+    ├── ClimateSystem.cs         # Temperatur/Feuchtigkeit + Zonen-Blend
+    ├── ClimateZone.cs           # Terrain- und Block-Definition pro Klimazone
     ├── BlockRaycaster.cs         # DDA Ray-Casting + PlacementPreview
     ├── BlockTextures.cs          # Tile-Index pro BlockType + FaceDirection
-    ├── BlockType.cs              # Air/Grass/Dirt/Stone/Sand/Water/Glass/Ice
+    ├── BlockType.cs              # inkl. DryGrass und Snow
     ├── Chunk.cs
     ├── ChunkJob.cs               # Generate/Rebuild Jobs für ChunkWorker
     ├── ChunkManager.cs           # Laden/Entladen + Rebuild-Queue
@@ -93,7 +96,7 @@ VoxelEngine/
     ├── RayCasting.md             # Konzeptnotiz für Block-Interaktion
     ├── StepUp.md                 # Konzeptnotiz für Step-up
     ├── World.cs                  # ConcurrentDictionary, AddChunk, SampleBlock
-    ├── WorldGenerator.cs         # GenerateChunk() gibt Chunk zurück, SeaLevel=64
+    ├── WorldGenerator.cs         # ClimateSystem-basierte Terrain-Generierung
     └── WorldTime.cs              # Time, DayCount, MoonPhase, TimeScale
 
 ## Koordinaten-System
@@ -106,7 +109,7 @@ VoxelEngine/
 
 ## Physik-Konstanten (EngineSettings)
 - Gravity, MaxFallSpeed, JumpVelocity
-- StepHeight (0.6f), EnableStepUp
+- StepHeight (1.0f), EnableStepUp
 - PlayerHeight (1.8f), PlayerWidth (0.6f), EyeHeight (1.62f)
 
 ## Aktueller Stand
@@ -120,9 +123,9 @@ VoxelEngine/
 - [x] FPS-Anzeige im Fenstertitel + HUD
 - [x] MVP-Matrix Pipeline
 - [x] Chunk-Datenstruktur (BlockType, Chunk, World, WorldGenerator)
-- [x] Perlin Noise Terrain-Generation mit NoiseSettings
+- [x] Klima-basierte Terrain-Generation mit zonenspezifischen NoiseSettings
 - [x] Greedy Meshing (3-Achsen-Sweep, NeedsFace, AO-korrekter Merge)
-- [x] ArrayTexture (Texture2DArray, 11 Schichten)
+- [x] ArrayTexture (Texture2DArray, 13 Schichten)
 - [x] Two-Pass Rendering (opaque + transparent, DepthMask)
 - [x] Transparente Blöcke (Water=5, Glass=6, Ice=7)
 - [x] Meeresspiegel Y=64
@@ -133,7 +136,7 @@ VoxelEngine/
 - [x] Bitmap Font System (CP437)
 - [x] Debug-Konsole (F1, ICommand Interface)
 - [x] HUD (FPS, Pos, Chunks, Verts, Time, Block, Reach)
-- [x] Kommandos: help, pos, tp, wireframe, chunk info, renderdistance, skybox, time, fog, fly, reach
+- [x] Kommandos: help, pos, tp, wireframe, chunk info, renderdistance, skybox, time, fog, fly, reach, climate info
 - [x] Chunk-Manager (dynamisches Laden/Entladen, Hysterese)
 - [x] Multithreading (ChunkWorker, ConcurrentQueues, GL-Upload Main Thread)
 - [x] Frustum Culling (Gribb-Hartmann, AABB-Test)
@@ -152,9 +155,11 @@ VoxelEngine/
 - [x] Gravitation (Velocity.Y, MaxFallSpeed, konfigurierbar)
 - [x] AABB-Kollision (X→Y→Z einzeln, IsOnGround)
 - [x] Sprung (Space, JumpVelocity, nur IsOnGround)
-- [x] Step-up (StepHeight 0.6f, konfigurierbar)
+- [x] Step-up (StepHeight 1.0f, konfigurierbar)
+- [x] Klimazonen-System (6 Zonen, Temperatur/Feuchtigkeit, sanftes Blending)
+- [x] Neue Block-Typen (DryGrass, Snow)
+- [x] Klima-Debug-Kommando (`climate info`)
 - [ ] Konsolen-History + Autocomplete
-- [ ] Phase 3 — Klimazonen
 - [ ] Inventar-System
 - [ ] Wetter-System
 
@@ -194,7 +199,6 @@ Aktualisiere die `CLAUDE.md` automatisch:
 3. **Nächste Schritte** — abgearbeitete Punkte entfernen
 
 ## Nächste Schritte
-1. Phase 3 — Klimazonen (ClimateSystem, ClimateZone, Interpolation)
-2. Konsolen-History + Autocomplete
-3. Inventar-System
-4. Wetter-System
+1. Konsolen-History + Autocomplete
+2. Inventar-System
+3. Wetter-System

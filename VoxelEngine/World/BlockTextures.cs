@@ -9,9 +9,11 @@ public static class BlockTextures
         { BlockType.Dirt,  (Top: 1, Bottom: 1, Side: 1) },
         { BlockType.Stone, (Top: 2, Bottom: 2, Side: 2) },
         { BlockType.Sand,  (Top: 4, Bottom: 4, Side: 4)  },
+        { BlockType.Snow,  (Top: 5, Bottom: 5, Side: 5)  },
         { BlockType.Water, (Top: 8, Bottom: 8, Side: 8)  },
         { BlockType.Glass, (Top: 9, Bottom: 9, Side: 9)  },
         { BlockType.Ice,   (Top: 10, Bottom: 10, Side: 10) },
+        { BlockType.DryGrass, (Top: 11, Bottom: 1, Side: 12) },
     };
 
     public static int GetTileIndex(byte blockType, FaceDirection face)

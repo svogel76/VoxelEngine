@@ -80,7 +80,7 @@ public class Engine : IDisposable
         var (camX, camY, camZ) = _settings.CameraStartPosition;
         var renderer  = new Renderer(_gl, _settings);
         var world     = new World.World();
-        var generator = new WorldGenerator(_settings.Terrain);
+        var generator = new WorldGenerator(_settings);
         var playerStart = CreatePlayerStartPosition(generator, camX, camY, camZ);
         var player = new Player(playerStart);
         player.SetInteractionReach(_settings.InteractionReach);
@@ -93,6 +93,7 @@ public class Engine : IDisposable
         _context.Console.Register(new TeleportCommand());
         _context.Console.Register(new FlyCommand());
         _context.Console.Register(new ReachCommand());
+        _context.Console.Register(new ClimateCommand());
         _context.Console.Register(new WireframeCommand());
         _context.Console.Register(new ChunkInfoCommand());
         _context.Console.Register(new RenderDistanceCommand());

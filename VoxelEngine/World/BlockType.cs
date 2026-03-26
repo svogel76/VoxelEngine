@@ -10,6 +10,8 @@ public static class BlockType
     public const byte Water = 5;
     public const byte Glass = 6;
     public const byte Ice   = 7;
+    public const byte DryGrass = 8;
+    public const byte Snow = 9;
 
     public static bool IsTransparent(byte blockType) => blockType switch
     {
@@ -32,6 +34,8 @@ public static class BlockType
         Water => "Water",
         Glass => "Glass",
         Ice => "Ice",
+        DryGrass => "DryGrass",
+        Snow => "Snow",
         _ => $"Block {blockType}"
     };
 }

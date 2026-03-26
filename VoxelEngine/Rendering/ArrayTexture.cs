@@ -5,7 +5,7 @@ namespace VoxelEngine.Rendering;
 public class ArrayTexture : IDisposable
 {
     public const int TileSize  = 16;
-    public const int TileCount = 11;
+    public const int TileCount = 13;
 
     private readonly GL   _gl;
     private readonly uint _handle;
@@ -35,12 +35,14 @@ public class ArrayTexture : IDisposable
         UploadLayer(gl, 2, GenerateNoise(0x88, 0x88, 0x88, rng));  // Stein
         UploadLayer(gl, 3, GenerateGrassSide(rng));                 // Gras Side
         UploadLayer(gl, 4, GenerateNoise(0xC8, 0xA8, 0x50, rng));  // Sand
-        UploadLayer(gl, 5, GenerateNoise(0xFF, 0xFF, 0xFF, rng));  // Schnee Top
-        UploadLayer(gl, 6, GenerateWoodSide(rng));                  // Holz Side
-        UploadLayer(gl, 7, GenerateWoodTop(rng));                   // Holz Top
+        UploadLayer(gl, 5, GenerateSnow(rng));                      // Schnee
+        UploadLayer(gl, 6, GenerateWoodSide(rng));                  // Reserviert
+        UploadLayer(gl, 7, GenerateWoodTop(rng));                   // Reserviert
         UploadLayer(gl, 8, GenerateWater(rng));                     // Wasser
         UploadLayer(gl, 9, GenerateGlass(rng));                     // Glas
         UploadLayer(gl, 10, GenerateIce(rng));                      // Eis
+        UploadLayer(gl, 11, GenerateDryGrassTop(rng));              // DryGrass Top
+        UploadLayer(gl, 12, GenerateDryGrassSide(rng));             // DryGrass Side
     }
 
     public void Bind(TextureUnit unit)
@@ -97,6 +99,32 @@ public class ArrayTexture : IDisposable
         }
         return pixels;
     }
+
+    private static byte[] GenerateDryGrassTop(Random rng)
+        => GenerateNoise(0xB8, 0xBF, 0x52, rng);
+
+    private static byte[] GenerateDryGrassSide(Random rng)
+    {
+        var pixels = new byte[TileSize * TileSize * 4];
+        for (int py = 0; py < TileSize; py++)
+        for (int px = 0; px < TileSize; px++)
+        {
+            int noise = rng.Next(-10, 11);
+            bool isTopStrip = py >= TileSize - 4;
+            byte r = isTopStrip ? (byte)0xB8 : (byte)0x8B;
+            byte g = isTopStrip ? (byte)0xBF : (byte)0x69;
+            byte b = isTopStrip ? (byte)0x52 : (byte)0x14;
+            int idx = (py * TileSize + px) * 4;
+            pixels[idx] = Clamp(r + noise);
+            pixels[idx + 1] = Clamp(g + noise);
+            pixels[idx + 2] = Clamp(b + noise);
+            pixels[idx + 3] = 255;
+        }
+        return pixels;
+    }
+
+    private static byte[] GenerateSnow(Random rng)
+        => GenerateNoise(0xF2, 0xF6, 0xFF, rng);
 
     private static byte[] GenerateWoodSide(Random rng)
     {

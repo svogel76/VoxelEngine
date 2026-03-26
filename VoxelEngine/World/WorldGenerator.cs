@@ -4,17 +4,11 @@ public class WorldGenerator
 {
     public const int SeaLevel = 64;
 
-    private readonly NoiseSettings _settings;
-    private readonly FastNoiseLite _noise;
+    private readonly ClimateSystem _climateSystem;
 
-    public WorldGenerator(NoiseSettings settings)
+    public WorldGenerator(VoxelEngine.Core.EngineSettings settings)
     {
-        _settings = settings;
-        _noise = new FastNoiseLite(_settings.Seed);
-        _noise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-        _noise.SetFrequency(_settings.Frequency);
-        _noise.SetFractalType(FastNoiseLite.FractalType.FBm);
-        _noise.SetFractalOctaves(_settings.Octaves);
+        _climateSystem = new ClimateSystem(settings.Terrain);
     }
 
     /// <summary>
@@ -53,23 +47,21 @@ public class WorldGenerator
         {
             int worldX = chunkX * Chunk.Width + x;
             int worldZ = chunkZ * Chunk.Depth + z;
-
-            float noiseValue = _noise.GetNoise(worldX, worldZ);
-            int height = (int)(_settings.BaseHeight + noiseValue * _settings.Amplitude);
-            height = Math.Clamp(height, 1, Chunk.Height - 1);
+            ClimateSample sample = _climateSystem.Sample(worldX, worldZ);
+            int height = sample.SurfaceHeight;
 
             for (int y = 0; y <= height; y++)
             {
                 byte blockType;
 
                 if (y == 0)
-                    blockType = BlockType.Stone;
-                else if (y < height - 2)
-                    blockType = BlockType.Stone;
+                    blockType = sample.StoneBlock;
+                else if (y < height - 3)
+                    blockType = sample.StoneBlock;
                 else if (y < height)
-                    blockType = BlockType.Dirt;
+                    blockType = sample.SubsurfaceBlock;
                 else
-                    blockType = BlockType.Grass;
+                    blockType = sample.SurfaceBlock;
 
                 chunk.SetBlock(x, y, z, blockType);
             }
@@ -81,10 +73,11 @@ public class WorldGenerator
         {
             int worldX = chunkX * Chunk.Width + x;
             int worldZ = chunkZ * Chunk.Depth + z;
+            ClimateSample sample = _climateSystem.Sample(worldX, worldZ);
             for (int y = 1; y <= SeaLevel; y++)
             {
                 if (chunk.GetBlock(x, y, z) == BlockType.Air)
-                    chunk.SetBlock(x, y, z, BlockType.Water);
+                    chunk.SetBlock(x, y, z, sample.SeaBlock);
             }
         }
 
@@ -96,32 +89,32 @@ public class WorldGenerator
         if (worldY < 0 || worldY >= Chunk.Height)
             return BlockType.Air;
 
-        float noiseValue = _noise.GetNoise(worldX, worldZ);
-        int height = (int)(_settings.BaseHeight + noiseValue * _settings.Amplitude);
-        height = Math.Clamp(height, 1, Chunk.Height - 1);
+        ClimateSample sample = _climateSystem.Sample(worldX, worldZ);
+        int height = sample.SurfaceHeight;
 
         if (worldY == 0)
-            return BlockType.Stone;
+            return sample.StoneBlock;
 
         if (worldY <= height)
         {
-            if (worldY < height - 2) return BlockType.Stone;
-            if (worldY < height)     return BlockType.Dirt;
-            return BlockType.Grass;
+            if (worldY < height - 3) return sample.StoneBlock;
+            if (worldY < height)     return sample.SubsurfaceBlock;
+            return sample.SurfaceBlock;
         }
 
         if (worldY <= SeaLevel)
-            return BlockType.Water;
+            return sample.SeaBlock;
 
         return BlockType.Air;
     }
 
     public int GetSurfaceHeight(int worldX, int worldZ)
     {
-        float noiseValue = _noise.GetNoise(worldX, worldZ);
-        int height = (int)(_settings.BaseHeight + noiseValue * _settings.Amplitude);
-        return Math.Clamp(height, 1, Chunk.Height - 1);
+        return _climateSystem.Sample(worldX, worldZ).SurfaceHeight;
     }
+
+    public ClimateSample SampleClimate(int worldX, int worldZ)
+        => _climateSystem.Sample(worldX, worldZ);
 
     /// <summary>
     /// Generiert Terrain basierend auf Perlin Noise Höhenkarte.
