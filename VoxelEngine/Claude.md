@@ -16,6 +16,7 @@ Implementierung erfolgt in Claude Code.
 - WorldTime ist zentrale Zeitvariable — alle Zeit-abhängigen Systeme bauen darauf auf
 - Multithreading: Chunk-Generierung + Mesh-Building im Background, GL-Uploads nur Main Thread
 - SampleBlock(): deterministisches Meshing unabhängig von Chunk-Ladereihenfolge
+- Spieler-Entity trennt Position/Physik von der Kamera
 
 ## Projektstruktur
 VoxelEngine/
@@ -31,14 +32,19 @@ VoxelEngine/
 │       ├── skybox.frag           # Gradient Zenith/Horizont/Boden
 │       ├── celestial.vert        # Billboard Far Plane
 │       ├── celestial.frag        # Sonne/Mond Textur + Opacity
-│       └── stars.vert/frag       # Instanced Billboards + Twinkle
+│       ├── stars.vert            # Instanced Billboards
+│       ├── stars.frag            # Twinkle Effekt
+│       ├── highlight.vert        # Block-Highlight Wireframe
+│       └── highlight.frag        # Block-Highlight + Ghost-Block
 ├── Core/
 │   ├── Debug/
 │   │   ├── Commands/
 │   │   │   ├── ChunkInfoCommand.cs
+│   │   │   ├── FlyCommand.cs         # fly / fly on / fly off
 │   │   │   ├── FogCommand.cs
 │   │   │   ├── HelpCommand.cs
 │   │   │   ├── PosCommand.cs
+│   │   │   ├── ReachCommand.cs       # reach <n>
 │   │   │   ├── RenderDistanceCommand.cs
 │   │   │   ├── SkyboxCommand.cs
 │   │   │   ├── TeleportCommand.cs
@@ -54,11 +60,12 @@ VoxelEngine/
 ├── Rendering/
 │   ├── ArrayTexture.cs           # Texture2DArray, 11 Schichten (inkl. Water/Glass/Ice)
 │   ├── BitmapFont.cs
+│   ├── BlockHighlight.cs         # Wireframe + Ghost-Block, Depth-Test
 │   ├── Camera.cs
 │   ├── CelestialBody.cs          # Billboard Quad für Sonne/Mond
 │   ├── CelestialTextures.cs      # Sonne + Mondphasen programmatisch
 │   ├── ChunkRenderer.cs          # Two-Pass, UploadPendingMeshes (max 4/Frame)
-│   ├── DebugOverlay.cs
+│   ├── DebugOverlay.cs           # HUD: FPS, Pos, Chunks, Verts, Time, Block, Reach
 │   ├── FrustumCuller.cs
 │   ├── GreedyMeshBuilder.cs      # 3-Achsen-Sweep, NeedsFace, SampleBlock
 │   ├── Mesh.cs                   # VAO/VBO/EBO, Stride 8 floats
@@ -79,6 +86,8 @@ VoxelEngine/
     ├── ChunkWorker.cs            # Background ThreadPool, ConcurrentQueues
     ├── FaceDirection.cs
     ├── NoiseSettings.cs
+    ├── Player.cs                 # Position, Velocity, FlyMode, EyePosition, Kollision
+    ├── Raycast.cs                # DDA Ray-Casting, RaycastResult
     ├── World.cs                  # ConcurrentDictionary, AddChunk, SampleBlock
     ├── WorldGenerator.cs         # GenerateChunk() gibt Chunk zurück, SeaLevel=64
     └── WorldTime.cs              # Time, DayCount, MoonPhase, TimeScale
@@ -90,6 +99,11 @@ VoxelEngine/
 
 ## Vertex-Format
 8 floats pro Vertex: x, y, z, u, v, tileLayer, ao, faceLight
+
+## Physik-Konstanten (EngineSettings)
+- Gravity, MaxFallSpeed, JumpVelocity
+- StepHeight (0.6f), EnableStepUp
+- PlayerHeight (1.8f), PlayerWidth (0.6f), EyeHeight (1.62f)
 
 ## Aktueller Stand
 - [x] Engine-Grundstruktur mit Fixed Timestep Game Loop
@@ -114,8 +128,8 @@ VoxelEngine/
 - [x] GameContext (zentraler Container)
 - [x] Bitmap Font System (CP437)
 - [x] Debug-Konsole (F1, ICommand Interface)
-- [x] HUD (FPS, Pos, Chunks, Verts, Time)
-- [x] Kommandos: help, pos, tp, wireframe, chunk info, renderdistance, skybox, time, fog
+- [x] HUD (FPS, Pos, Chunks, Verts, Time, Block, Reach)
+- [x] Kommandos: help, pos, tp, wireframe, chunk info, renderdistance, skybox, time, fog, fly, reach
 - [x] Chunk-Manager (dynamisches Laden/Entladen, Hysterese)
 - [x] Multithreading (ChunkWorker, ConcurrentQueues, GL-Upload Main Thread)
 - [x] Frustum Culling (Gribb-Hartmann, AABB-Test)
@@ -127,10 +141,18 @@ VoxelEngine/
 - [x] Sterne (Instanced Rendering, Twinkle)
 - [x] Diffuse Beleuchtung (FaceLight, uGlobalLight, uSunColor)
 - [x] Fog (linearer Nebel, FogColor aus Skybox, Tag/Nacht)
+- [x] Block-Interaktion (Ray-Casting DDA, Abbauen + Setzen)
+- [x] Block-Highlight (Wireframe, Depth-Test, sichtbare Kanten)
+- [x] Ghost-Block Platzierungs-Vorschau (halbtransparent)
+- [x] Spieler-Entity (Player.cs, EyePosition, Kamera folgt Spieler)
+- [x] Gravitation (Velocity.Y, MaxFallSpeed, konfigurierbar)
+- [x] AABB-Kollision (X→Y→Z einzeln, IsOnGround)
+- [x] Sprung (Space, JumpVelocity, nur IsOnGround)
+- [x] Step-up (StepHeight 0.6f, konfigurierbar)
 - [ ] Konsolen-History + Autocomplete
-- [ ] Block-Interaktion (Blöcke setzen/abbauen)
-- [ ] Spieler-Entity (trennt Kamera von Spieler)
 - [ ] Phase 3 — Klimazonen
+- [ ] Inventar-System
+- [ ] Wetter-System
 
 ## Coding-Konventionen
 - IDisposable konsequent implementieren
@@ -141,3 +163,10 @@ VoxelEngine/
 - World/ niemals Silk.NET importieren
 - GL-Aufrufe NUR im Main Thread (niemals im ChunkWorker)
 - Skybox vor Terrain rendern — DepthTest nach Skybox immer reaktivieren
+- Chunk-Rebuild nach Block-Änderung — Nachbar-Chunks an Grenzen ebenfalls
+
+## Nächste Schritte
+1. Phase 3 — Klimazonen (ClimateSystem, ClimateZone, Interpolation)
+2. Konsolen-History + Autocomplete
+3. Inventar-System
+4. Wetter-System

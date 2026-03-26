@@ -10,6 +10,9 @@ public class InputHandler
     private float _lastX;
     private float _lastY;
     private bool  _firstMove = true;
+    private int _pendingLeftClicks;
+    private int _pendingRightClicks;
+    private int _pendingScrollSteps;
 
     public IKeyboard Keyboard => _keyboard;
 
@@ -19,6 +22,8 @@ public class InputHandler
         _mouse    = input.Mice[0];
 
         _mouse.Cursor.CursorMode = CursorMode.Raw;
+        _mouse.MouseDown += OnMouseDown;
+        _mouse.Scroll += OnScroll;
     }
 
     public (float deltaX, float deltaY) GetMouseDelta()
@@ -44,4 +49,45 @@ public class InputHandler
     }
 
     public bool IsKeyPressed(Key key) => _keyboard.IsKeyPressed(key);
+
+    public int ConsumeLeftClicks()
+    {
+        int value = _pendingLeftClicks;
+        _pendingLeftClicks = 0;
+        return value;
+    }
+
+    public int ConsumeRightClicks()
+    {
+        int value = _pendingRightClicks;
+        _pendingRightClicks = 0;
+        return value;
+    }
+
+    public int ConsumeScrollSteps()
+    {
+        int value = _pendingScrollSteps;
+        _pendingScrollSteps = 0;
+        return value;
+    }
+
+    public void ClearTransientMouseState()
+    {
+        _pendingLeftClicks = 0;
+        _pendingRightClicks = 0;
+        _pendingScrollSteps = 0;
+    }
+
+    private void OnMouseDown(IMouse mouse, MouseButton button)
+    {
+        if (button == MouseButton.Left)
+            _pendingLeftClicks++;
+        else if (button == MouseButton.Right)
+            _pendingRightClicks++;
+    }
+
+    private void OnScroll(IMouse mouse, ScrollWheel wheel)
+    {
+        _pendingScrollSteps += (int)MathF.Round(wheel.Y);
+    }
 }

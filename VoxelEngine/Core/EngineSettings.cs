@@ -26,6 +26,7 @@ public class EngineSettings
 
     // Camera start position
     public (float X, float Y, float Z) CameraStartPosition { get; init; } = (0f, 80f, 30f);
+    public float InteractionReach { get; init; } = 5.0f;
 
     // Terrain
     /// <summary>Wird später durch BiomeDefinitions[] ersetzt</summary>
@@ -46,8 +47,18 @@ public class EngineSettings
     public int MaxChunksLoadedPerFrame { get; init; } = 2;
 
     // Time
+    /// <summary>Startzeit der Welt in Stunden (0.0–24.0)</summary>
+    public double InitialTime { get; init; } = 12.0;
     /// <summary>Zeitbeschleunigung: 72 = ~20min Tag (wie Minecraft), 1 = Echtzeit</summary>
-    public double TimeScale { get; init; } = 72.0;
+    public double TimeScale { get; init; } = 0.0;
+
+    // Player physics
+    public float Gravity      { get; init; } = 28.0f;
+    public float MaxFallSpeed { get; init; } = 50.0f;
+    public float JumpVelocity { get; init; } = 8.0f;
+    public float StepHeight   { get; init; } = 1.0f;
+    public float StepUpSmoothingSpeed { get; init; } = 4.0f;
+    public bool  EnableStepUp { get; init; } = true;
 
     // Fog
     /// <summary>Fog beginnt bei diesem Anteil der Render Distance (0.0–1.0)</summary>

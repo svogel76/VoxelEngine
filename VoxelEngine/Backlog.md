@@ -112,7 +112,7 @@
 - 🔴 Dirty-Flag System (Chunk-Rebuild nur bei Änderung)
        Hinweis: SampleBlock() für prozedurale Welt korrekt —
        bei Block-Änderungen zusätzlich Dirty-Queue nötig
-- 🟡 Spieler-Entity (trennt Kamera von Spieler-Position)
+- ✅ Spieler-Entity (trennt Kamera von Spieler-Position)
 - 🟡 Chunk-Serialisierung (Welt speichern und laden)
 - 🟡 Block-Typen Registry (statt hardcodierter byte-Konstanten)
 - 🟢 Asset-Management System
@@ -122,8 +122,8 @@
 
 ## Phase 6 — Gameplay & Simulation
 
-- 🔴 Spieler-Kollision mit Terrain
-- 🔴 Gravitation und Sprung
+- ✅ Spieler-Kollision mit Terrain
+- ✅ Gravitation und Sprung
 - 🟡 Wasser-Simulation (Cellular Automata, Level-System)
 - 🟡 Inventar-System
 - 🟢 Sound-System (OpenAL via Silk.NET)

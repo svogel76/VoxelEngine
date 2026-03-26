@@ -116,6 +116,13 @@ public class WorldGenerator
         return BlockType.Air;
     }
 
+    public int GetSurfaceHeight(int worldX, int worldZ)
+    {
+        float noiseValue = _noise.GetNoise(worldX, worldZ);
+        int height = (int)(_settings.BaseHeight + noiseValue * _settings.Amplitude);
+        return Math.Clamp(height, 1, Chunk.Height - 1);
+    }
+
     /// <summary>
     /// Generiert Terrain basierend auf Perlin Noise Höhenkarte.
     /// </summary>

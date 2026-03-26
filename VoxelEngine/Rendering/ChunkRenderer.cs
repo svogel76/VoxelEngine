@@ -9,6 +9,7 @@ namespace VoxelEngine.Rendering;
 public class ChunkRenderer : IDisposable
 {
     private const int MaxUploadsPerFrame = 4;
+    private const float GhostScale = 1.002f;
 
     private readonly GL            _gl;
     private readonly Shader        _shader;
@@ -18,6 +19,7 @@ public class ChunkRenderer : IDisposable
     private readonly Dictionary<(int X, int Z), Mesh> _opaqueMeshes      = new();
     private readonly Dictionary<(int X, int Z), Mesh> _transparentMeshes = new();
     private readonly FrustumCuller _frustumCuller = new();
+    private readonly Dictionary<byte, Mesh> _ghostMeshes = new();
 
     public bool  IsWireframe       { get; set; } = false;
     public int   VisibleChunkCount => _frustumCuller.LastVisibleCount;
@@ -33,6 +35,10 @@ public class ChunkRenderer : IDisposable
         _renderDistance = settings.RenderDistance;
         FogStartFactor  = settings.FogStartFactor;
         FogEndFactor    = settings.FogEndFactor;
+        _ghostMeshes[BlockType.Grass] = new Mesh(gl, CreateGhostVertices(BlockType.Grass), CreateGhostIndices());
+        _ghostMeshes[BlockType.Dirt]  = new Mesh(gl, CreateGhostVertices(BlockType.Dirt), CreateGhostIndices());
+        _ghostMeshes[BlockType.Stone] = new Mesh(gl, CreateGhostVertices(BlockType.Stone), CreateGhostIndices());
+        _ghostMeshes[BlockType.Sand]  = new Mesh(gl, CreateGhostVertices(BlockType.Sand), CreateGhostIndices());
     }
 
     public void UploadPendingMeshes(ChunkManager chunkManager)
@@ -107,6 +113,7 @@ public class ChunkRenderer : IDisposable
         shader.SetVector3("uFogColor",  skybox.FogColor);
         shader.SetFloat("uFogStart",    fogStart);
         shader.SetFloat("uFogEnd",      fogEnd);
+        shader.SetFloat("uAlphaMultiplier", 1f);
 
         _atlas.Bind(TextureUnit.Texture0);
         shader.SetInt("uTexture", 0);
@@ -160,12 +167,159 @@ public class ChunkRenderer : IDisposable
         _gl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
     }
 
+    public void RenderGhostBlock(Shader shader, Camera camera, Skybox skybox, WorldTime time, BlockPlacementPreview? preview)
+    {
+        if (preview is null)
+            return;
+
+        float renderDist = _renderDistance * (float)Chunk.Width;
+        float t = (float)time.Time;
+        bool isNight = t < 6.0f || t > 20.0f;
+        float startFactor = FogEndFactor <= 0f ? FogStartFactor
+                          : isNight ? MathF.Max(FogStartFactor, 0.7f)
+                          : FogStartFactor;
+
+        float fogStart = FogEndFactor <= 0f ? float.MaxValue / 2f : renderDist * startFactor;
+        float fogEnd   = FogEndFactor <= 0f ? float.MaxValue      : renderDist * FogEndFactor;
+
+        var ghost = preview.Value;
+        var pos = ghost.Position;
+
+        if (!_ghostMeshes.TryGetValue(ghost.BlockType, out var ghostMesh))
+            return;
+
+        var model = Matrix4X4.CreateScale(GhostScale)
+                  * Matrix4X4.CreateTranslation(new Vector3D<float>(
+                        pos.X - (GhostScale - 1f) * 0.5f,
+                        pos.Y - (GhostScale - 1f) * 0.5f,
+                        pos.Z - (GhostScale - 1f) * 0.5f));
+
+        _gl.Enable(GLEnum.DepthTest);
+        _gl.Enable(GLEnum.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        _gl.DepthMask(false);
+        _gl.Enable(GLEnum.CullFace);
+        _gl.CullFace(GLEnum.Back);
+
+        shader.Use();
+        shader.SetMatrix4("model", model);
+        shader.SetMatrix4("view", camera.ViewMatrix);
+        shader.SetMatrix4("projection", camera.ProjectionMatrix);
+        shader.SetFloat("uGlobalLight", skybox.CurrentAmbientLight);
+        shader.SetVector3("uSunColor", skybox.CurrentSunColor);
+        shader.SetVector3("uFogColor", skybox.FogColor);
+        shader.SetFloat("uFogStart", fogStart);
+        shader.SetFloat("uFogEnd", fogEnd);
+        shader.SetFloat("uAlphaMultiplier", 0.4f);
+
+        _atlas.Bind(TextureUnit.Texture0);
+        shader.SetInt("uTexture", 0);
+
+        ghostMesh.Draw();
+
+        shader.SetFloat("uAlphaMultiplier", 1f);
+        _gl.DepthMask(true);
+        _gl.Disable(GLEnum.Blend);
+    }
+
+    private static float[] CreateGhostVertices(byte blockType)
+    {
+        var vertices = new List<float>(6 * 4 * 8);
+
+        AddFace(vertices,
+            (0f, 1f, 0f), (0f, 1f, 1f), (1f, 1f, 1f), (1f, 1f, 0f),
+            BlockTextures.GetTileIndex(blockType, FaceDirection.Top),
+            3f, 1f);
+
+        AddFace(vertices,
+            (0f, 0f, 0f), (1f, 0f, 0f), (1f, 0f, 1f), (0f, 0f, 1f),
+            BlockTextures.GetTileIndex(blockType, FaceDirection.Bottom),
+            3f, 0.4f);
+
+        AddFace(vertices,
+            (0f, 0f, 1f), (1f, 0f, 1f), (1f, 1f, 1f), (0f, 1f, 1f),
+            BlockTextures.GetTileIndex(blockType, FaceDirection.Front),
+            3f, 0.8f);
+
+        AddFace(vertices,
+            (1f, 0f, 0f), (0f, 0f, 0f), (0f, 1f, 0f), (1f, 1f, 0f),
+            BlockTextures.GetTileIndex(blockType, FaceDirection.Back),
+            3f, 0.6f);
+
+        AddFace(vertices,
+            (0f, 0f, 0f), (0f, 0f, 1f), (0f, 1f, 1f), (0f, 1f, 0f),
+            BlockTextures.GetTileIndex(blockType, FaceDirection.Left),
+            3f, 0.7f);
+
+        AddFace(vertices,
+            (1f, 0f, 1f), (1f, 0f, 0f), (1f, 1f, 0f), (1f, 1f, 1f),
+            BlockTextures.GetTileIndex(blockType, FaceDirection.Right),
+            3f, 0.7f);
+
+        return vertices.ToArray();
+    }
+
+    private static uint[] CreateGhostIndices()
+    {
+        var indices = new List<uint>(6 * 6);
+
+        for (uint face = 0; face < 6; face++)
+        {
+            uint baseIndex = face * 4;
+            indices.Add(baseIndex + 0);
+            indices.Add(baseIndex + 1);
+            indices.Add(baseIndex + 2);
+            indices.Add(baseIndex + 0);
+            indices.Add(baseIndex + 2);
+            indices.Add(baseIndex + 3);
+        }
+
+        return indices.ToArray();
+    }
+
+    private static void AddFace(
+        List<float> vertices,
+        (float X, float Y, float Z) v0,
+        (float X, float Y, float Z) v1,
+        (float X, float Y, float Z) v2,
+        (float X, float Y, float Z) v3,
+        int tileLayer,
+        float ao,
+        float faceLight)
+    {
+        AddVertex(vertices, v0, 0f, 0f, tileLayer, ao, faceLight);
+        AddVertex(vertices, v1, 1f, 0f, tileLayer, ao, faceLight);
+        AddVertex(vertices, v2, 1f, 1f, tileLayer, ao, faceLight);
+        AddVertex(vertices, v3, 0f, 1f, tileLayer, ao, faceLight);
+    }
+
+    private static void AddVertex(
+        List<float> vertices,
+        (float X, float Y, float Z) position,
+        float u,
+        float v,
+        int tileLayer,
+        float ao,
+        float faceLight)
+    {
+        vertices.Add(position.X);
+        vertices.Add(position.Y);
+        vertices.Add(position.Z);
+        vertices.Add(u);
+        vertices.Add(v);
+        vertices.Add(tileLayer);
+        vertices.Add(ao);
+        vertices.Add(faceLight);
+    }
+
     public void Dispose()
     {
         foreach (var mesh in _opaqueMeshes.Values)      mesh.Dispose();
         foreach (var mesh in _transparentMeshes.Values) mesh.Dispose();
+        foreach (var mesh in _ghostMeshes.Values)       mesh.Dispose();
         _opaqueMeshes.Clear();
         _transparentMeshes.Clear();
+        _ghostMeshes.Clear();
         _atlas.Dispose();
         GC.SuppressFinalize(this);
     }

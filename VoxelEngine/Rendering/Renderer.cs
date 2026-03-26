@@ -11,6 +11,7 @@ public class Renderer : IDisposable
     private Shader        _shader        = null!;
     private ChunkRenderer _chunkRenderer = null!;
     private Skybox        _skybox        = null!;
+    private BlockHighlightRenderer _blockHighlight = null!;
 
     public Skybox Skybox => _skybox;
 
@@ -26,6 +27,7 @@ public class Renderer : IDisposable
         _shader        = new Shader(_gl, "Assets/Shaders/basic.vert", "Assets/Shaders/basic.frag");
         _chunkRenderer = new ChunkRenderer(_gl, _shader, _settings);
         _skybox        = new Skybox(_gl);
+        _blockHighlight = new BlockHighlightRenderer(_gl);
     }
 
     public float FogStartFactor => _chunkRenderer.FogStartFactor;
@@ -52,17 +54,20 @@ public class Renderer : IDisposable
     public void RemoveChunkMesh(int chunkX, int chunkZ)
         => _chunkRenderer.RemoveMesh(chunkX, chunkZ);
 
-    public void Render(Camera camera, WorldTime time, float deltaTime)
+    public void Render(Camera camera, WorldTime time, float deltaTime, BlockRaycastHit? targetedBlock, BlockPlacementPreview? placementPreview)
     {
         _gl.ClearColor(0f, 0f, 0f, 1f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         _skybox.Render(camera, time, deltaTime);
         _chunkRenderer.Render(_shader, camera, _skybox, time);
+        _chunkRenderer.RenderGhostBlock(_shader, camera, _skybox, time, placementPreview);
+        _blockHighlight.Render(camera, targetedBlock);
     }
 
     public void Dispose()
     {
         _skybox.Dispose();
+        _blockHighlight.Dispose();
         _chunkRenderer.Dispose();
         _shader.Dispose();
         GC.SuppressFinalize(this);

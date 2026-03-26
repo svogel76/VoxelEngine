@@ -12,6 +12,7 @@ uniform vec3  uSunColor;
 uniform vec3  uFogColor;
 uniform float uFogStart;
 uniform float uFogEnd;
+uniform float uAlphaMultiplier;
 
 void main()
 {
@@ -26,5 +27,5 @@ void main()
         (uFogEnd - FragDistance) / (uFogEnd - uFogStart),
         0.0, 1.0);
     vec3 finalColor = mix(litColor.rgb, uFogColor, fogFactor);
-    FragColor = vec4(finalColor, litColor.a);
+    FragColor = vec4(finalColor, litColor.a * uAlphaMultiplier);
 }

@@ -8,10 +8,10 @@ public class World
 
     public int LoadedChunkCount => _chunks.Count;
 
-    private static int WorldToChunk(int worldCoord)
+    public static int WorldToChunk(int worldCoord)
         => (int)Math.Floor(worldCoord / (float)Chunk.Width);
 
-    private static int WorldToLocal(int worldCoord)
+    public static int WorldToLocal(int worldCoord)
         => ((worldCoord % Chunk.Width) + Chunk.Width) % Chunk.Width;
 
     public Chunk? GetChunk(int chunkX, int chunkZ)

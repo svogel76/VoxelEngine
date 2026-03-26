@@ -21,4 +21,17 @@ public static class BlockType
 
     public static bool IsSolid(byte blockType) =>
         blockType != Air && !IsTransparent(blockType);
+
+    public static string GetName(byte blockType) => blockType switch
+    {
+        Air => "Air",
+        Grass => "Grass",
+        Dirt => "Dirt",
+        Stone => "Stone",
+        Sand => "Sand",
+        Water => "Water",
+        Glass => "Glass",
+        Ice => "Ice",
+        _ => $"Block {blockType}"
+    };
 }

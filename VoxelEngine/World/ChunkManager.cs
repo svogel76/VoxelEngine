@@ -14,6 +14,7 @@ public sealed class ChunkManager : IDisposable
     private readonly HashSet<(int X, int Z)> _enqueuedChunks = new();
     private readonly HashSet<(int X, int Z)> _discardedChunks = new();
     private readonly List<(int, int)> _unloadedThisUpdate = new();
+    private bool _disposed;
 
     public int RenderDistance { get; set; }
     public int UnloadDistance => _settings.UnloadDistance;
@@ -26,6 +27,37 @@ public sealed class ChunkManager : IDisposable
         _settings = settings;
         _worker = new ChunkWorker(world, generator);
         RenderDistance = settings.RenderDistance;
+    }
+
+    public void EnqueueChunkRebuild(int chunkX, int chunkZ)
+    {
+        var key = (chunkX, chunkZ);
+        if (_world.GetChunk(chunkX, chunkZ) is null || _enqueuedChunks.Contains(key))
+            return;
+
+        _discardedChunks.Remove(key);
+        _worker.EnqueueRebuild(chunkX, chunkZ);
+        _enqueuedChunks.Add(key);
+    }
+
+    public void EnqueueBlockUpdate(int worldX, int worldZ)
+    {
+        int chunkX = World.WorldToChunk(worldX);
+        int chunkZ = World.WorldToChunk(worldZ);
+        int localX = World.WorldToLocal(worldX);
+        int localZ = World.WorldToLocal(worldZ);
+
+        EnqueueChunkRebuild(chunkX, chunkZ);
+
+        if (localX == 0)
+            EnqueueChunkRebuild(chunkX - 1, chunkZ);
+        else if (localX == Chunk.Width - 1)
+            EnqueueChunkRebuild(chunkX + 1, chunkZ);
+
+        if (localZ == 0)
+            EnqueueChunkRebuild(chunkX, chunkZ - 1);
+        else if (localZ == Chunk.Depth - 1)
+            EnqueueChunkRebuild(chunkX, chunkZ + 1);
     }
 
     public void Update(float playerWorldX, float playerWorldZ)
@@ -116,6 +148,10 @@ public sealed class ChunkManager : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+
+        _disposed = true;
         _worker.Dispose();
         GC.SuppressFinalize(this);
     }

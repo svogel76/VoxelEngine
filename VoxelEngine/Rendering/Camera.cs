@@ -17,6 +17,9 @@ public class Camera
     public float NearPlane        { get; }
     public float FarPlane         { get; }
     public bool  InvertMouseY     { get; }
+    public Vector3D<float> Front  => _front;
+    public Vector3D<float> Right  => _right;
+    public Vector3D<float> Up     => _up;
 
     private Vector3D<float> _front;
     private Vector3D<float> _right;
@@ -51,18 +54,6 @@ public class Camera
         => Matrix4X4.CreatePerspectiveFieldOfView(Fov * Deg2Rad, _aspectRatio, NearPlane, FarPlane);
 
     public void UpdateAspectRatio(float ratio) => _aspectRatio = ratio;
-
-    public void ProcessKeyboard(IKeyboard keyboard, double deltaTime)
-    {
-        float velocity = MovementSpeed * (float)deltaTime;
-
-        if (keyboard.IsKeyPressed(Key.W))          Position += _front * velocity;
-        if (keyboard.IsKeyPressed(Key.S))          Position -= _front * velocity;
-        if (keyboard.IsKeyPressed(Key.A))          Position -= _right * velocity;
-        if (keyboard.IsKeyPressed(Key.D))          Position += _right * velocity;
-        if (keyboard.IsKeyPressed(Key.Space))      Position += _up    * velocity;
-        if (keyboard.IsKeyPressed(Key.ShiftLeft))  Position -= _up    * velocity;
-    }
 
     public void ProcessMouseMovement(float deltaX, float deltaY)
     {

@@ -3,7 +3,7 @@ namespace VoxelEngine.Core.Debug.Commands;
 public class PosCommand : ICommand
 {
     public string Name        => "pos";
-    public string Description => "Zeigt aktuelle Kamera-Position";
+    public string Description => "Zeigt aktuelle Spieler-Augposition";
     public string Usage       => "pos";
 
     public void Execute(string[] args, GameContext context)

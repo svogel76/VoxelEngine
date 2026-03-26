@@ -1,11 +1,12 @@
 using Silk.NET.Maths;
+using VoxelEngine.World;
 
 namespace VoxelEngine.Core.Debug.Commands;
 
 public class TeleportCommand : ICommand
 {
     public string Name        => "tp";
-    public string Description => "Teleportiert die Kamera";
+    public string Description => "Teleportiert den Spieler zur Ziel-Augposition";
     public string Usage       => "tp <x> <y> <z>";
 
     public void Execute(string[] args, GameContext context)
@@ -24,6 +25,7 @@ public class TeleportCommand : ICommand
             return;
         }
 
+        context.Player.Teleport(new System.Numerics.Vector3(x, y - Player.EyeHeight, z));
         context.Camera.Position = new Vector3D<float>(x, y, z);
         context.Console.Log($"Teleportiert nach ({x:F2}, {y:F2}, {z:F2})");
     }

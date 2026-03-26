@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Numerics;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -26,6 +27,7 @@ public class Engine : IDisposable
     private double _fpsTimer    = 0.0;
     private double _fps         = 0.0;
     private int    _frameCount  = 0;
+    private bool   _closed;
 
     // Edge detection
     private bool _prevF1        = false;
@@ -76,16 +78,21 @@ public class Engine : IDisposable
 
         float aspectRatio      = (float)_settings.WindowWidth / _settings.WindowHeight;
         var (camX, camY, camZ) = _settings.CameraStartPosition;
-        var camera    = new Camera(new Vector3D<float>(camX, camY, camZ), aspectRatio, _settings);
         var renderer  = new Renderer(_gl, _settings);
         var world     = new World.World();
         var generator = new WorldGenerator(_settings.Terrain);
+        var playerStart = CreatePlayerStartPosition(generator, camX, camY, camZ);
+        var player = new Player(playerStart);
+        player.SetInteractionReach(_settings.InteractionReach);
+        var camera = new Camera(ToSilk(player.EyePosition), aspectRatio, _settings);
 
-        _context = new GameContext(_settings, world, camera, renderer, input, generator);
+        _context = new GameContext(_settings, world, player, camera, renderer, input, generator);
 
         _context.Console.Register(new HelpCommand(_context.Console));
         _context.Console.Register(new PosCommand());
         _context.Console.Register(new TeleportCommand());
+        _context.Console.Register(new FlyCommand());
+        _context.Console.Register(new ReachCommand());
         _context.Console.Register(new WireframeCommand());
         _context.Console.Register(new ChunkInfoCommand());
         _context.Console.Register(new RenderDistanceCommand());
@@ -94,7 +101,7 @@ public class Engine : IDisposable
         _context.Console.Register(new FogCommand());
 
         // Initiales Laden: alle Chunks im RenderDistance sofort generieren
-        _context.ChunkManager.Update(camX, camZ);
+        _context.ChunkManager.Update(player.Position.X, player.Position.Z);
         while (_context.ChunkManager.PendingChunks > 0)
         {
             _context.Renderer.UploadPendingMeshes(_context.ChunkManager);
@@ -134,6 +141,8 @@ public class Engine : IDisposable
 
         if (_context.Console.IsOpen)
         {
+            _context.Input.ClearTransientMouseState();
+
             // Escape — Konsole schließen
             bool escNow = _context.Input.IsKeyPressed(Key.Escape);
             if (escNow && !_prevEscape)
@@ -172,13 +181,41 @@ public class Engine : IDisposable
         }
 
         _context.Time.Update(fixedDelta);
-        _context.Camera.ProcessKeyboard(_context.Input.Keyboard, fixedDelta);
 
         var (deltaX, deltaY) = _context.Input.GetMouseDelta();
         _context.Camera.ProcessMouseMovement(deltaX, deltaY);
+        _context.Player.ProcessInput(
+            ReadPlayerInput(),
+            ToNumerics(_context.Camera.Front),
+            ToNumerics(_context.Camera.Right),
+            ToNumerics(_context.Camera.Up),
+            _context.Camera.MovementSpeed,
+            BuildPhysicsSettings(),
+            _context.World,
+            fixedDelta);
+        _context.Camera.Position = ToSilk(_context.Player.EyePosition);
+        _context.TargetedBlock = BlockRaycaster.Raycast(
+            _context.World,
+            _context.Player.EyePosition,
+            ToNumerics(_context.Camera.Front),
+            _context.Player.InteractionReach);
+        _context.PlacementPreview = null;
+
+        int scrollSteps = _context.Input.ConsumeScrollSteps();
+        if (scrollSteps != 0)
+            _context.Player.CycleSelectedBlock(scrollSteps);
+
+        if (_context.Input.ConsumeLeftClicks() > 0)
+            TryBreakTargetedBlock();
+
+        int rightClicks = _context.Input.ConsumeRightClicks();
+        if (rightClicks > 0)
+            TryPlaceSelectedBlock();
+        else
+            _context.PlacementPreview = GetPlacementPreview();
 
         // Chunk-Manager: Laden/Entladen
-        _context.ChunkManager.Update(_context.Camera.Position.X, _context.Camera.Position.Z);
+        _context.ChunkManager.Update(_context.Player.Position.X, _context.Player.Position.Z);
 
         // Meshes für entladene Chunks entfernen
         foreach (var (x, z) in _context.ChunkManager.UnloadedThisUpdate)
@@ -200,12 +237,16 @@ public class Engine : IDisposable
         }
 
         _context.Renderer.UploadPendingMeshes(_context.ChunkManager);
-        _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime);
+        _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime, _context.TargetedBlock, _context.PlacementPreview);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
     }
 
     private void Close()
     {
+        if (_closed)
+            return;
+
+        _closed = true;
         // GL-Kontext ist hier noch aktiv — alle OpenGL-Ressourcen hier freigeben
         // _inputContext wird von Silk.NET/GLFW intern disposed wenn das Fenster schließt —
         // manuelles Dispose hier würde eine ObjectDisposedException auslösen.
@@ -220,5 +261,111 @@ public class Engine : IDisposable
         _window.Closing -= Close;
         _window.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private PlayerInput ReadPlayerInput()
+    {
+        float forward = 0f;
+        float right = 0f;
+        float up = 0f;
+
+        if (_context.Input.IsKeyPressed(Key.W))
+            forward += 1f;
+        if (_context.Input.IsKeyPressed(Key.S))
+            forward -= 1f;
+        if (_context.Input.IsKeyPressed(Key.D))
+            right += 1f;
+        if (_context.Input.IsKeyPressed(Key.A))
+            right -= 1f;
+        bool jump = _context.Input.IsKeyPressed(Key.Space);
+        if (_context.Player.FlyMode && jump)
+            up += 1f;
+        if (_context.Input.IsKeyPressed(Key.ShiftLeft))
+            up -= 1f;
+
+        return new PlayerInput(forward, right, up, jump);
+    }
+
+    private static Vector3 CreatePlayerStartPosition(WorldGenerator generator, float startX, float startEyeY, float startZ)
+    {
+        int surfaceHeight = generator.GetSurfaceHeight((int)MathF.Floor(startX), (int)MathF.Floor(startZ));
+        float minFeetY = surfaceHeight + Player.SpawnClearance;
+        float configuredFeetY = startEyeY - Player.EyeHeight;
+        return new Vector3(startX, MathF.Max(configuredFeetY, minFeetY), startZ);
+    }
+
+    private static Vector3 ToNumerics(Vector3D<float> vector)
+        => new(vector.X, vector.Y, vector.Z);
+
+    private static Vector3D<float> ToSilk(Vector3 vector)
+        => new(vector.X, vector.Y, vector.Z);
+
+    private PlayerPhysicsSettings BuildPhysicsSettings()
+        => new(
+            _settings.Gravity,
+            _settings.MaxFallSpeed,
+            _settings.JumpVelocity,
+            _settings.StepHeight,
+            _settings.StepUpSmoothingSpeed,
+            _settings.EnableStepUp);
+
+    private void TryBreakTargetedBlock()
+    {
+        if (_context.TargetedBlock is not { } hit)
+            return;
+
+        if (hit.BlockType == BlockType.Water)
+            return;
+
+        _context.World.SetBlock(hit.BlockPosition.X, hit.BlockPosition.Y, hit.BlockPosition.Z, BlockType.Air);
+        _context.ChunkManager.EnqueueBlockUpdate(hit.BlockPosition.X, hit.BlockPosition.Z);
+        _context.TargetedBlock = BlockRaycaster.Raycast(
+            _context.World,
+            _context.Player.EyePosition,
+            ToNumerics(_context.Camera.Front),
+            _context.Player.InteractionReach);
+    }
+
+    private void TryPlaceSelectedBlock()
+    {
+        if (_context.TargetedBlock is not { } hit)
+            return;
+
+        BlockPosition placement = hit.PlacementPosition;
+        if (placement.Y < 0 || placement.Y >= Chunk.Height)
+            return;
+
+        if (_context.Player.WouldIntersectBlock(placement))
+            return;
+
+        if (_context.World.GetBlock(placement.X, placement.Y, placement.Z) != BlockType.Air)
+            return;
+
+        _context.World.SetBlock(placement.X, placement.Y, placement.Z, _context.Player.SelectedBlock);
+        _context.ChunkManager.EnqueueBlockUpdate(placement.X, placement.Z);
+        _context.TargetedBlock = BlockRaycaster.Raycast(
+            _context.World,
+            _context.Player.EyePosition,
+            ToNumerics(_context.Camera.Front),
+            _context.Player.InteractionReach);
+        _context.PlacementPreview = null;
+    }
+
+    private BlockPlacementPreview? GetPlacementPreview()
+    {
+        if (_context.TargetedBlock is not { } hit)
+            return null;
+
+        BlockPosition placement = hit.PlacementPosition;
+        if (placement.Y < 0 || placement.Y >= Chunk.Height)
+            return null;
+
+        if (_context.Player.WouldIntersectBlock(placement))
+            return null;
+
+        if (_context.World.GetBlock(placement.X, placement.Y, placement.Z) != BlockType.Air)
+            return null;
+
+        return new BlockPlacementPreview(placement, _context.Player.SelectedBlock);
     }
 }

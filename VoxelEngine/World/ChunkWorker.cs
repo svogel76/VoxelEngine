@@ -13,6 +13,7 @@ public sealed class ChunkWorker : IDisposable
     private readonly Task[] _workers;
 
     private int _activeJobs;
+    private bool _disposed;
 
     public ChunkWorker(World world, WorldGenerator generator, int? workerCount = null)
     {
@@ -29,7 +30,10 @@ public sealed class ChunkWorker : IDisposable
     public int PendingResultCount => _resultQueue.Count;
 
     public void EnqueueJob(int chunkX, int chunkZ)
-        => _jobQueue.Enqueue(new ChunkJob(chunkX, chunkZ));
+        => _jobQueue.Enqueue(new ChunkJob(chunkX, chunkZ, ChunkJobKind.Generate));
+
+    public void EnqueueRebuild(int chunkX, int chunkZ)
+        => _jobQueue.Enqueue(new ChunkJob(chunkX, chunkZ, ChunkJobKind.Rebuild));
 
     public bool TryDequeueResult(out ChunkResult result)
         => _resultQueue.TryDequeue(out result!);
@@ -43,8 +47,15 @@ public sealed class ChunkWorker : IDisposable
                 Interlocked.Increment(ref _activeJobs);
                 try
                 {
-                    var chunk = _generator.GenerateChunk(job.ChunkX, job.ChunkZ);
-                    _world.AddChunk(chunk);
+                    Chunk? chunk = job.Kind switch
+                    {
+                        ChunkJobKind.Generate => GenerateChunk(job.ChunkX, job.ChunkZ),
+                        ChunkJobKind.Rebuild => _world.GetChunk(job.ChunkX, job.ChunkZ),
+                        _ => null
+                    };
+
+                    if (chunk is null)
+                        continue;
 
                     var (ov, oi, tv, ti) = GreedyMeshBuilder.Build(chunk, _world, _generator);
                     _resultQueue.Enqueue(new ChunkResult(job.ChunkX, job.ChunkZ, chunk, ov, oi, tv, ti));
@@ -61,8 +72,19 @@ public sealed class ChunkWorker : IDisposable
         }
     }
 
+    private Chunk GenerateChunk(int chunkX, int chunkZ)
+    {
+        var chunk = _generator.GenerateChunk(chunkX, chunkZ);
+        _world.AddChunk(chunk);
+        return chunk;
+    }
+
     public void Dispose()
     {
+        if (_disposed)
+            return;
+
+        _disposed = true;
         _cts.Cancel();
         Task.WaitAll(_workers, TimeSpan.FromSeconds(5));
         _cts.Dispose();
