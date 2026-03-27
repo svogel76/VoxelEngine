@@ -340,6 +340,7 @@ Langfristig: Phase 8 — Multiplayer (optional)
 - Entity-System in World/ (pure C#) → später Multiplayer-fähig
 - GL-Calls nur im Main Thread — ChunkWorker produziert nur float[] Arrays
 - Inventar vor Entity-System — Items sind Voraussetzung für Drops
+
 ---
 
 ## Erweiterbarkeits-Architektur (Querschnittsthema)
@@ -397,10 +398,85 @@ Langfristig: Phase 8 — Multiplayer (optional)
 
 ### Empfohlene Einführungsreihenfolge
 ```
-Jetzt:      BlockRegistry (ersetzt byte-Konstanten)
-            → direkt nützlich für Inventar
+Jetzt:        BlockRegistry (ersetzt byte-Konstanten)
+              → direkt nützlich für Inventar
 Mit Inventar: ItemRegistry
 Mit Entity-System: Component System + EntityRegistry
-Später:     Data-Driven JSON Loading
-Viel später: Mod-Support
+Später:       Data-Driven JSON Loading
+Viel später:  Mod-Support
 ```
+
+---
+
+## Content Pipeline & Asset Management
+> Wie Artefakte aus Tools (Blender, Aseprite, Audacity) ins Spiel kommen
+
+### Workflow
+```
+Tool → Raw Asset → (Build Script) → Game Asset → JSON referenziert Asset
+```
+
+Das JSON ist der Klebstoff zwischen Inhalt und Ressourcen:
+```json
+// Content/Entities/sheep.json
+{
+  "model":      "sheep",       // → Content/Models/sheep.vox
+  "texture":    "sheep_white", // → Texture Atlas
+  "sound_idle": "sheep_baa"    // → Content/Sounds/sheep_baa.ogg
+}
+```
+
+### Empfohlene Tools
+```
+Texturen:      Aseprite (~$20, Pixel-Art) oder LibreSprite (kostenlos)
+Voxel-Modelle: MagicaVoxel (kostenlos) → .vox direkt verwendbar
+               → passt perfekt: dasselbe Greedy-Meshing wie Chunks!
+3D-Modelle:    Blender (kostenlos) → .obj/.gltf Export
+Sound-Effekte: Audacity (kostenlos) + Bfxr (prozedurale Sounds)
+Musik:         LMMS oder BeepBox (beide kostenlos)
+JSON-Editing:  VS Code + JSON Schema (sofortige Fehlerprüfung)
+```
+
+### Ordner-Struktur (Ziel)
+```
+VoxelEngine/
+├── Content/              ← Game-Ready Assets (in Git)
+│   ├── Blocks/           ← *.json Block-Definitionen
+│   ├── Entities/         ← *.json Entity-Definitionen
+│   ├── Biomes/           ← *.json Klimazonen-Definitionen
+│   ├── Items/            ← *.json Item-Definitionen
+│   ├── Recipes/          ← *.json Crafting-Rezepte
+│   ├── Models/           ← *.vox Voxel-Modelle
+│   ├── Textures/         ← *.png Texturen (→ Atlas)
+│   └── Sounds/           ← *.ogg Audio
+├── RawAssets/            ← Quelldateien der Künstler (in Git)
+│   ├── Models/           ← *.blend Blender-Quelldateien
+│   ├── Textures/         ← *.aseprite Quelldateien
+│   └── Sounds/           ← *.wav unkomprimierte Quelldateien
+└── Schemas/              ← JSON Schema für VS Code Validierung
+    ├── block.schema.json
+    ├── entity.schema.json
+    └── biome.schema.json
+```
+
+### Stufe 1 — Jetzt (manuell, kein Build-Step)
+- 🟡 Content/ Ordnerstruktur anlegen
+- 🟡 ContentLoader (liest JSON + Assets beim Spielstart)
+- 🟡 JSON Schema Dateien (VS Code Validierung)
+
+### Stufe 2 — Später (einfaches Build-Script)
+- 🟢 Texture Packer Script (einzelne PNGs → Texture Atlas)
+- 🟢 JSON Validator Script (Schema-Check vor Build)
+- 🟢 Audio Converter (.wav → .ogg via ffmpeg)
+
+### Stufe 3 — Viel später (vollständige Pipeline)
+- 🟢 MagicaVoxel .vox Parser
+       VoxModel → Greedy Meshing (Wiederverwendung des Chunk-Systems)
+- 🟢 Asset-Hashing (nur geänderte Assets neu verarbeiten)
+- 🟢 Hot-Reload (Assets während Laufzeit neu laden)
+- 🟢 Binäre .pak Pakete (schnelleres Laden)
+
+### Mod-Support (Konsequenz aus Data-Driven)
+- 🟢 Mods/ Ordner automatisch beim Start laden
+- 🟢 Mod-Manifest (mod.json: Name, Version, Abhängigkeiten)
+- 🟢 Load-Order (Mods überschreiben Basis-Inhalte kontrolliert)
