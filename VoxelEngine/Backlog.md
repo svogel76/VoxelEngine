@@ -340,3 +340,67 @@ Langfristig: Phase 8 — Multiplayer (optional)
 - Entity-System in World/ (pure C#) → später Multiplayer-fähig
 - GL-Calls nur im Main Thread — ChunkWorker produziert nur float[] Arrays
 - Inventar vor Entity-System — Items sind Voraussetzung für Drops
+---
+
+## Erweiterbarkeits-Architektur (Querschnittsthema)
+> Betrifft alle Phasen — schrittweise einführen, nicht alles auf einmal
+
+### Säule 1: Registry Pattern
+> Zentrale Registrierung aller Inhalte — Lookup per ID statt Konstanten
+
+- 🔴 BlockRegistry (ersetzt hardcodierte byte-Konstanten)
+       BlockDefinition: Id, Name, Textures, Solid, Transparent,
+       Luminance, Tags, Damage, Replaceable
+       Lookup: string "grass" ↔ byte ID (intern weiterhin byte für Performance)
+       Voraussetzung für: Inventar, Data-Driven Blocks, Modding
+- 🟡 ItemRegistry (Items als eigene Definitionen, nicht nur Blöcke)
+- 🟡 EntityRegistry (Entity-Typen zentral registriert)
+- 🟡 BiomeRegistry (Klimazonen als registrierte Definitionen)
+- 🟢 RecipeRegistry (Crafting-Rezepte zentral)
+
+### Säule 2: Data-Driven Content
+> Inhalte aus JSON-Dateien statt aus Code — neue Inhalte ohne Kompilierung
+
+- 🟡 Content/Blocks/*.json (BlockDefinition aus JSON laden)
+       Neuer Block = neue JSON-Datei, kein Code nötig
+- 🟡 Content/Entities/*.json (EntityDefinition aus JSON)
+- 🟡 Content/Biomes/*.json (ClimateZone aus JSON)
+- 🟢 Content/Items/*.json
+- 🟢 Content/Recipes/*.json
+- 🟢 Hot-Reload (Dateien während Laufzeit neu laden)
+
+### Säule 3: Component System für Entities
+> Verhalten als austauschbare Teile — neue Entity-Typen durch Kombination
+
+- 🟡 IComponent Interface (Update, Init, Dispose)
+- 🟡 Basis-Komponenten:
+       MovementComponent  → WASD-ähnliche Bewegung
+       HealthComponent    → HP, Schaden, Tod
+       PhysicsComponent   → Gravitation, Kollision
+       AIComponent        → State Machine (Idle/Move/Flee/Attack)
+       DropComponent      → Items beim Tod fallen lassen
+       SpriteComponent    → Billboard-Sprite Rendering
+- 🟡 Entity = Id + List<IComponent>
+       Wolf:  [Physics] + [Movement] + [Health] + [AI_Hostile] + [Drops]
+       Schaf: [Physics] + [Movement] + [Health] + [AI_Passive] + [Drops]
+       Baum:  [Static]  + [Health]   + [Drops]  + [Choppable]
+- 🟢 Komponenten aus JSON definierbar
+       "components": ["physics", "hostile_ai", "drops"]
+
+### Bonus: Mod-Fähigkeit
+> Natürliche Konsequenz von Data-Driven + Registry
+
+- 🟢 Mods/[ModName]/Blocks/ → automatisch beim Start geladen
+- 🟢 Mods/[ModName]/Entities/ → neue Entities ohne Engine-Zugriff
+- 🟢 Mods/[ModName]/Biomes/ → neue Klimazonen
+- 🟢 Mod-Manifest (mod.json: Name, Version, Abhängigkeiten)
+
+### Empfohlene Einführungsreihenfolge
+```
+Jetzt:      BlockRegistry (ersetzt byte-Konstanten)
+            → direkt nützlich für Inventar
+Mit Inventar: ItemRegistry
+Mit Entity-System: Component System + EntityRegistry
+Später:     Data-Driven JSON Loading
+Viel später: Mod-Support
+```
