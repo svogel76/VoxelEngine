@@ -96,7 +96,7 @@ public static class GreedyMeshBuilder
                         // Transparent(A) neben Solid(B): blockB besitzt die Rückseite —
                         // sichtbar durch blockA hindurch, keine Wasser-Seite gegen Terrain.
                         bool aOwnsForward = blockA != BlockType.Air
-                                         && !(BlockType.IsTransparent(blockA) && BlockType.IsSolid(blockB));
+                                         && !(BlockRegistry.IsTransparent(blockA) && BlockRegistry.IsSolid(blockB));
 
                         if (aOwnsForward)
                         {
@@ -109,7 +109,7 @@ public static class GreedyMeshBuilder
                                            aoSlice, baseWX, baseWZ, world,
                                            out int ao0, out int ao1, out int ao2, out int ao3, blockA);
                                 mask[n] = new MaskEntry(blockA,
-                                                        BlockTextures.GetTileIndex(blockA, forwardDir),
+                                                        BlockRegistry.Get(blockA).GetTile(forwardDir),
                                                         false, ao0, ao1, ao2, ao3);
                             }
                             // else: blockA liegt im Nachbar-Chunk → überspringen
@@ -125,7 +125,7 @@ public static class GreedyMeshBuilder
                                            aoSlice, baseWX, baseWZ, world,
                                            out int ao0, out int ao1, out int ao2, out int ao3, blockB);
                                 mask[n] = new MaskEntry(blockB,
-                                                        BlockTextures.GetTileIndex(blockB, backDir),
+                                                        BlockRegistry.Get(blockB).GetTile(backDir),
                                                         true, ao0, ao1, ao2, ao3);
                             }
                             // else: blockB liegt im Nachbar-Chunk → überspringen
@@ -169,7 +169,7 @@ public static class GreedyMeshBuilder
                     int[] du = new int[3]; du[uAxis] = w;
                     int[] dv = new int[3]; dv[vAxis] = h;
 
-                    bool isTransparentFace = BlockType.IsTransparent(entry.Block);
+                    bool isTransparentFace = BlockRegistry.IsTransparent(entry.Block);
                     var  faceVerts = isTransparentFace ? transparentVerts : opaqueVerts;
                     var  faceInds  = isTransparentFace ? transparentInds  : opaqueInds;
 
@@ -203,7 +203,7 @@ public static class GreedyMeshBuilder
         if (blockA == blockB) return false;  // gleicher Typ (Wasser-Wasser, Luft-Luft)
         if (blockA == BlockType.Air || blockB == BlockType.Air) return true;  // Luft-Grenze
         // Beide nicht-Luft, verschiedene Typen
-        if (!BlockType.IsTransparent(blockA) && !BlockType.IsTransparent(blockB)) return false; // Opak-Opak: kein Interface
+        if (!BlockRegistry.IsTransparent(blockA) && !BlockRegistry.IsTransparent(blockB)) return false; // Opak-Opak: kein Interface
         return true;  // Opak-Transparent, Transparent-Opak oder zwei verschiedene transparente Typen
     }
 
@@ -223,7 +223,7 @@ public static class GreedyMeshBuilder
         // Kein AO für transparente Blöcke oder wenn irgendein AO-Nachbar transparent ist.
         // Verhindert dunkle Artefakte an Wasser-Grenzen: Terrain-Blöcke im Wasser würden
         // sonst als AO-Okkluder wirken und benachbarte Flächen dunkel einfärben.
-        if (BlockType.IsTransparent(ownerBlock) ||
+        if (BlockRegistry.IsTransparent(ownerBlock) ||
             HasTransparentAONeighbor(bi, bj, axis, uAxis, vAxis, aoSlice, baseWX, baseWZ, world))
         {
             ao0 = ao1 = ao2 = ao3 = 3;
@@ -257,7 +257,7 @@ public static class GreedyMeshBuilder
             int wy = lp[1];
             if (wy < 0 || wy >= Chunk.Height) continue;
 
-            if (BlockType.IsTransparent(world.GetBlock(baseWX + lp[0], wy, baseWZ + lp[2])))
+            if (BlockRegistry.IsTransparent(world.GetBlock(baseWX + lp[0], wy, baseWZ + lp[2])))
                 return true;
         }
         return false;
@@ -295,7 +295,7 @@ public static class GreedyMeshBuilder
 
         int wx = baseWX + lp[0];
         int wz = baseWZ + lp[2];
-        return BlockType.IsSolid(world.GetBlock(wx, wy, wz));
+        return BlockRegistry.IsSolid(world.GetBlock(wx, wy, wz));
     }
 
     private static int VertexAO(bool side1, bool side2, bool corner)

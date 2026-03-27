@@ -199,7 +199,8 @@ public class Engine : IDisposable
             _context.World,
             _context.Player.EyePosition,
             ToNumerics(_context.Camera.Front),
-            _context.Player.InteractionReach);
+            _context.Player.InteractionReach,
+            ShouldIgnoreWaterForRaycast());
         _context.PlacementPreview = null;
 
         int scrollSteps = _context.Input.ConsumeScrollSteps();
@@ -324,7 +325,8 @@ public class Engine : IDisposable
             _context.World,
             _context.Player.EyePosition,
             ToNumerics(_context.Camera.Front),
-            _context.Player.InteractionReach);
+            _context.Player.InteractionReach,
+            ShouldIgnoreWaterForRaycast());
     }
 
     private void TryPlaceSelectedBlock()
@@ -332,14 +334,14 @@ public class Engine : IDisposable
         if (_context.TargetedBlock is not { } hit)
             return;
 
-        BlockPosition placement = hit.PlacementPosition;
+        BlockPosition placement = GetPlacementTarget(hit);
         if (placement.Y < 0 || placement.Y >= Chunk.Height)
             return;
 
         if (_context.Player.WouldIntersectBlock(placement))
             return;
 
-        if (_context.World.GetBlock(placement.X, placement.Y, placement.Z) != BlockType.Air)
+        if (!BlockRegistry.IsReplaceable(_context.World.GetBlock(placement.X, placement.Y, placement.Z)))
             return;
 
         _context.World.SetBlock(placement.X, placement.Y, placement.Z, _context.Player.SelectedBlock);
@@ -348,7 +350,8 @@ public class Engine : IDisposable
             _context.World,
             _context.Player.EyePosition,
             ToNumerics(_context.Camera.Front),
-            _context.Player.InteractionReach);
+            _context.Player.InteractionReach,
+            ShouldIgnoreWaterForRaycast());
         _context.PlacementPreview = null;
     }
 
@@ -357,16 +360,30 @@ public class Engine : IDisposable
         if (_context.TargetedBlock is not { } hit)
             return null;
 
-        BlockPosition placement = hit.PlacementPosition;
+        BlockPosition placement = GetPlacementTarget(hit);
         if (placement.Y < 0 || placement.Y >= Chunk.Height)
             return null;
 
         if (_context.Player.WouldIntersectBlock(placement))
             return null;
 
-        if (_context.World.GetBlock(placement.X, placement.Y, placement.Z) != BlockType.Air)
+        if (!BlockRegistry.IsReplaceable(_context.World.GetBlock(placement.X, placement.Y, placement.Z)))
             return null;
 
         return new BlockPlacementPreview(placement, _context.Player.SelectedBlock);
+    }
+
+    private static BlockPosition GetPlacementTarget(BlockRaycastHit hit) =>
+        BlockRegistry.IsReplaceable(hit.BlockType)
+            ? hit.BlockPosition
+            : hit.PlacementPosition;
+
+    private bool ShouldIgnoreWaterForRaycast()
+    {
+        var eyePosition = _context.Player.EyePosition;
+        int x = (int)MathF.Floor(eyePosition.X);
+        int y = (int)MathF.Floor(eyePosition.Y);
+        int z = (int)MathF.Floor(eyePosition.Z);
+        return _context.World.GetBlock(x, y, z) == BlockType.Water;
     }
 }

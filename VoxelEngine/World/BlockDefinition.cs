@@ -1,0 +1,22 @@
+namespace VoxelEngine.World;
+
+public sealed record BlockDefinition
+{
+    public required byte Id { get; init; }
+    public required string Name { get; init; }
+    public required int TopTextureIndex { get; init; }
+    public required int SideTextureIndex { get; init; }
+    public required int BottomTextureIndex { get; init; }
+    public required bool Solid { get; init; }
+    public required bool Transparent { get; init; }
+    public required bool Replaceable { get; init; }
+    public int Luminance { get; init; }
+    public string[] Tags { get; init; } = [];
+
+    public int GetTile(FaceDirection face) => face switch
+    {
+        FaceDirection.Top => TopTextureIndex,
+        FaceDirection.Bottom => BottomTextureIndex,
+        _ => SideTextureIndex,
+    };
+}

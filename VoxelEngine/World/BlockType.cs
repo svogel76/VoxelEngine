@@ -13,29 +13,15 @@ public static class BlockType
     public const byte DryGrass = 8;
     public const byte Snow = 9;
 
-    public static bool IsTransparent(byte blockType) => blockType switch
-    {
-        Water => true,
-        Glass => true,
-        Ice   => true,
-        _     => false,
-    };
+    public static bool IsTransparent(byte blockType) =>
+        BlockRegistry.IsTransparent(blockType);
 
     public static bool IsSolid(byte blockType) =>
-        blockType != Air && !IsTransparent(blockType);
+        BlockRegistry.IsSolid(blockType);
 
-    public static string GetName(byte blockType) => blockType switch
-    {
-        Air => "Air",
-        Grass => "Grass",
-        Dirt => "Dirt",
-        Stone => "Stone",
-        Sand => "Sand",
-        Water => "Water",
-        Glass => "Glass",
-        Ice => "Ice",
-        DryGrass => "DryGrass",
-        Snow => "Snow",
-        _ => $"Block {blockType}"
-    };
+    public static bool IsReplaceable(byte blockType) =>
+        BlockRegistry.IsReplaceable(blockType);
+
+    public static string GetName(byte blockType) =>
+        BlockRegistry.Get(blockType).Name;
 }

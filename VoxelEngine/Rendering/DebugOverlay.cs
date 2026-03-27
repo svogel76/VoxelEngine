@@ -1,5 +1,6 @@
 using Silk.NET.OpenGL;
 using VoxelEngine.Core;
+using VoxelEngine.World;
 
 namespace VoxelEngine.Rendering;
 
@@ -31,7 +32,7 @@ public class DebugOverlay : IDisposable
         int verts       = _context.Renderer.TotalVertexCount;
         var worldTime   = _context.Time;
         string timeStr  = $"{(int)worldTime.Time:D2}:{(int)(worldTime.Time % 1 * 60):D2}";
-        string selectedBlock = VoxelEngine.World.BlockType.GetName(_context.Player.SelectedBlock);
+        string selectedBlock = BlockRegistry.Get(_context.Player.SelectedBlock).Name;
         string hud      = $"FPS: {fps:F0}  X:{pos.X:F1} Y:{pos.Y:F1} Z:{pos.Z:F1}  Chunks: {visible}/{loaded}  Verts: {verts:N0}  Time: {timeStr}  Block: {selectedBlock}  Reach: {_context.Player.InteractionReach:F1}";
         _textRenderer.DrawText(hud, 8f, 8f, r: 1f, g: 1f, b: 0f);
 

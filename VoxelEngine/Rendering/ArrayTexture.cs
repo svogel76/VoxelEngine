@@ -1,26 +1,28 @@
 using Silk.NET.OpenGL;
+using VoxelEngine.World;
 
 namespace VoxelEngine.Rendering;
 
 public class ArrayTexture : IDisposable
 {
     public const int TileSize  = 16;
-    public const int TileCount = 13;
 
     private readonly GL   _gl;
     private readonly uint _handle;
+    private readonly int _tileCount;
 
     public unsafe ArrayTexture(GL gl)
     {
         _gl = gl;
+        _tileCount = BlockRegistry.GetRequiredTextureLayerCount();
 
         _handle = gl.GenTexture();
         gl.BindTexture(GLEnum.Texture2DArray, _handle);
 
         // Allocate all layers at once
-        gl.TexImage3D(GLEnum.Texture2DArray, 0, InternalFormat.Rgba8,
-                      TileSize, TileSize, TileCount, 0,
-                      PixelFormat.Rgba, PixelType.UnsignedByte, null);
+        gl.TexImage3D(GLEnum.Texture2DArray, 0, (int)InternalFormat.Rgba8,
+                      (uint)TileSize, (uint)TileSize, (uint)_tileCount, 0,
+                      GLEnum.Rgba, GLEnum.UnsignedByte, null);
 
         // Nearest-filtering — no blurring between tiles
         gl.TexParameter(GLEnum.Texture2DArray, GLEnum.TextureMinFilter, (int)GLEnum.Nearest);
@@ -29,20 +31,15 @@ public class ArrayTexture : IDisposable
         gl.TexParameter(GLEnum.Texture2DArray, GLEnum.TextureWrapT,     (int)GLEnum.Repeat);
 
         var rng = new Random(42);
+        var layerFactories = CreateLayerFactories();
 
-        UploadLayer(gl, 0, GenerateNoise(0x7E, 0xC8, 0x50, rng));  // Gras Top
-        UploadLayer(gl, 1, GenerateNoise(0x8B, 0x69, 0x14, rng));  // Erde
-        UploadLayer(gl, 2, GenerateNoise(0x88, 0x88, 0x88, rng));  // Stein
-        UploadLayer(gl, 3, GenerateGrassSide(rng));                 // Gras Side
-        UploadLayer(gl, 4, GenerateNoise(0xC8, 0xA8, 0x50, rng));  // Sand
-        UploadLayer(gl, 5, GenerateSnow(rng));                      // Schnee
-        UploadLayer(gl, 6, GenerateWoodSide(rng));                  // Reserviert
-        UploadLayer(gl, 7, GenerateWoodTop(rng));                   // Reserviert
-        UploadLayer(gl, 8, GenerateWater(rng));                     // Wasser
-        UploadLayer(gl, 9, GenerateGlass(rng));                     // Glas
-        UploadLayer(gl, 10, GenerateIce(rng));                      // Eis
-        UploadLayer(gl, 11, GenerateDryGrassTop(rng));              // DryGrass Top
-        UploadLayer(gl, 12, GenerateDryGrassSide(rng));             // DryGrass Side
+        foreach (int layer in BlockRegistry.GetUsedTextureLayers())
+        {
+            if (!layerFactories.TryGetValue(layer, out var factory))
+                factory = static random => GenerateNoise(0x88, 0x88, 0x88, random);
+
+            UploadLayer(gl, layer, factory(rng));
+        }
     }
 
     public void Bind(TextureUnit unit)
@@ -52,6 +49,23 @@ public class ArrayTexture : IDisposable
     }
 
     public void Dispose() => _gl.DeleteTexture(_handle);
+
+    private static Dictionary<int, Func<Random, byte[]>> CreateLayerFactories() => new()
+    {
+        [0] = static rng => GenerateNoise(0x7E, 0xC8, 0x50, rng),
+        [1] = static rng => GenerateNoise(0x8B, 0x69, 0x14, rng),
+        [2] = static rng => GenerateNoise(0x88, 0x88, 0x88, rng),
+        [3] = static rng => GenerateGrassSide(rng),
+        [4] = static rng => GenerateNoise(0xC8, 0xA8, 0x50, rng),
+        [5] = static rng => GenerateSnow(rng),
+        [6] = static rng => GenerateWoodSide(rng),
+        [7] = static rng => GenerateWoodTop(rng),
+        [8] = static rng => GenerateWater(rng),
+        [9] = static rng => GenerateGlass(rng),
+        [10] = static rng => GenerateIce(rng),
+        [11] = static rng => GenerateDryGrassTop(rng),
+        [12] = static rng => GenerateDryGrassSide(rng),
+    };
 
     // ─── Upload ──────────────────────────────────────────────────────────────
 

@@ -6,7 +6,12 @@ public static class BlockRaycaster
 {
     private const float Epsilon = 0.0001f;
 
-    public static BlockRaycastHit? Raycast(World world, Vector3 origin, Vector3 direction, float maxDistance)
+    public static BlockRaycastHit? Raycast(
+        World world,
+        Vector3 origin,
+        Vector3 direction,
+        float maxDistance,
+        bool ignoreWater = false)
     {
         if (direction.LengthSquared() <= 0f)
             return null;
@@ -37,7 +42,8 @@ public static class BlockRaycaster
             if (y >= 0 && y < Chunk.Height)
             {
                 byte blockType = world.GetBlock(x, y, z);
-                if (blockType != BlockType.Air)
+                bool isIgnoredWater = ignoreWater && blockType == BlockType.Water;
+                if (blockType != BlockType.Air && !isIgnoredWater)
                 {
                     var blockPosition = new BlockPosition(x, y, z);
                     return new BlockRaycastHit(

@@ -228,32 +228,32 @@ public class ChunkRenderer : IDisposable
 
         AddFace(vertices,
             (0f, 1f, 0f), (0f, 1f, 1f), (1f, 1f, 1f), (1f, 1f, 0f),
-            BlockTextures.GetTileIndex(blockType, FaceDirection.Top),
+            BlockRegistry.Get(blockType).GetTile(FaceDirection.Top),
             3f, 1f);
 
         AddFace(vertices,
             (0f, 0f, 0f), (1f, 0f, 0f), (1f, 0f, 1f), (0f, 0f, 1f),
-            BlockTextures.GetTileIndex(blockType, FaceDirection.Bottom),
+            BlockRegistry.Get(blockType).GetTile(FaceDirection.Bottom),
             3f, 0.4f);
 
         AddFace(vertices,
             (0f, 0f, 1f), (1f, 0f, 1f), (1f, 1f, 1f), (0f, 1f, 1f),
-            BlockTextures.GetTileIndex(blockType, FaceDirection.Front),
+            BlockRegistry.Get(blockType).GetTile(FaceDirection.Front),
             3f, 0.8f);
 
         AddFace(vertices,
             (1f, 0f, 0f), (0f, 0f, 0f), (0f, 1f, 0f), (1f, 1f, 0f),
-            BlockTextures.GetTileIndex(blockType, FaceDirection.Back),
+            BlockRegistry.Get(blockType).GetTile(FaceDirection.Back),
             3f, 0.6f);
 
         AddFace(vertices,
             (0f, 0f, 0f), (0f, 0f, 1f), (0f, 1f, 1f), (0f, 1f, 0f),
-            BlockTextures.GetTileIndex(blockType, FaceDirection.Left),
+            BlockRegistry.Get(blockType).GetTile(FaceDirection.Left),
             3f, 0.7f);
 
         AddFace(vertices,
             (1f, 0f, 1f), (1f, 0f, 0f), (1f, 1f, 0f), (1f, 1f, 1f),
-            BlockTextures.GetTileIndex(blockType, FaceDirection.Right),
+            BlockRegistry.Get(blockType).GetTile(FaceDirection.Right),
             3f, 0.7f);
 
         return vertices.ToArray();
