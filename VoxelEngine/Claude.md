@@ -25,8 +25,8 @@ VoxelEngine/
 |   |-- Fonts/
 |   |   `-- font.png
 |   `-- Shaders/
-|       |-- basic.vert            # MVP + UV + TileLayer + AO + FaceLight
-|       |-- basic.frag            # Beleuchtung + Fog + Alpha-Multiplier
+|       |-- basic.vert            # MVP + UV + TileLayer + AO + FaceLight + Cutout
+|       |-- basic.frag            # Beleuchtung + Fog + Alpha-Multiplier + Alpha-Cutout
 |       |-- text.vert             # Orthografische 2D Projektion
 |       |-- text.frag             # Font-Rendering mit discard
 |       |-- skybox.vert           # Far Plane (pos.xyww)
@@ -67,11 +67,11 @@ VoxelEngine/
 |   |-- Camera.cs
 |   |-- CelestialBody.cs          # Billboard Quad fuer Sonne/Mond
 |   |-- CelestialTextures.cs      # Sonne + Mondphasen programmatisch
-|   |-- ChunkRenderer.cs          # Chunk-Meshes + Ghost-Block Rendering
+|   |-- ChunkRenderer.cs          # Chunk-Meshes + Ghost-Block Rendering (opaque/cutout/transparent)
 |   |-- DebugOverlay.cs           # HUD: FPS, Pos, Chunks, Verts, Time, Block, Reach
 |   |-- FrustumCuller.cs
 |   |-- GreedyMeshBuilder.cs      # 3-Achsen-Sweep, NeedsFace, SampleBlock
-|   |-- Mesh.cs                   # VAO/VBO/EBO, Stride 8 floats
+|   |-- Mesh.cs                   # VAO/VBO/EBO, Stride 9 floats
 |   |-- Renderer.cs
 |   |-- Shader.cs
 |   |-- Skybox.cs                 # Gradient + Sonne/Mond + Sterne
@@ -80,7 +80,7 @@ VoxelEngine/
 |   |-- TextRenderer.cs
 |   `-- Texture.cs
 `-- World/
-    |-- BlockDefinition.cs        # Zentrale Block-Eigenschaften inkl. Tiles, Flags, Tags
+    |-- BlockDefinition.cs        # Zentrale Block-Eigenschaften inkl. Tiles, Render-/Kollisions-Flags, Tags
     |-- BlockRaycaster.cs         # DDA Ray-Casting + PlacementPreview
     |-- BlockRegistry.cs          # Zentrale Registry aller BlockDefinitionen
     |-- BlockTextures.cs          # Kompatibilitaets-Shim fuer Tile-Lookups via Registry
@@ -88,7 +88,7 @@ VoxelEngine/
     |-- Chunk.cs
     |-- ChunkJob.cs               # Generate/Rebuild Jobs fuer ChunkWorker
     |-- ChunkManager.cs           # Laden/Entladen + Rebuild-Queue
-    |-- ChunkResult.cs            # Fertige Mesh-Daten fuer GPU-Upload
+    |-- ChunkResult.cs            # Fertige Mesh-Daten fuer GPU-Upload (opaque/cutout/transparent)
     |-- ChunkWorker.cs            # Background ThreadPool, ConcurrentQueues
     |-- ClimateSystem.cs          # Temperatur/Feuchtigkeit + Zonen-Blend
     |-- ClimateZone.cs            # Terrain- und Block-Definition pro Klimazone
@@ -98,8 +98,9 @@ VoxelEngine/
     |-- Player.cs                 # Position, Velocity, FlyMode, Physik, Step-up
     |-- RayCasting.md             # Konzeptnotiz fuer Block-Interaktion
     |-- StepUp.md                 # Konzeptnotiz fuer Step-up
+    |-- TreeTemplate.cs           # Baum-Schablonen als 3D Block-Arrays mit Pivot
     |-- World.cs                  # ConcurrentDictionary, AddChunk, SampleBlock
-    |-- WorldGenerator.cs         # ClimateSystem-basierte Terrain-Generierung
+    |-- WorldGenerator.cs         # ClimateSystem-basierte Terrain- und Baum-Generierung mit Tree-Cache
     `-- WorldTime.cs              # Time, DayCount, MoonPhase, TimeScale
 
 ## Koordinaten-System
@@ -108,7 +109,7 @@ VoxelEngine/
 - Y hat keine Chunk-Unterteilung - Chunks gehen von Y=0 bis Y=255
 
 ## Vertex-Format
-8 floats pro Vertex: x, y, z, u, v, tileLayer, ao, faceLight
+9 floats pro Vertex: x, y, z, u, v, tileLayer, ao, faceLight, cutout
 
 ## Physik-Konstanten (EngineSettings)
 - Gravity, MaxFallSpeed, JumpVelocity
@@ -121,7 +122,7 @@ VoxelEngine/
 - [x] Kamera mit Maus/Tastatur (WASD + Space/Shift, InvertMouseY)
 - [x] InputHandler mit Raw Mouse Input
 - [x] Shader-System (Shader.cs mit Fehlerpruefung)
-- [x] Mesh-System (VAO/VBO/EBO, Stride 8 floats)
+- [x] Mesh-System (VAO/VBO/EBO, Stride 9 floats)
 - [x] Texture-System (StbImageSharp)
 - [x] FPS-Anzeige im Fenstertitel + HUD
 - [x] MVP-Matrix Pipeline
@@ -158,11 +159,20 @@ VoxelEngine/
 - [x] Spieler-Entity (Player.cs, EyePosition, Kamera folgt Spieler)
 - [x] Gravitation (Velocity.Y, MaxFallSpeed, konfigurierbar)
 - [x] AABB-Kollision (X->Y->Z einzeln, IsOnGround)
+- [x] Spieler-Kollision mit symmetrischer AABB, exakter Penetration und Sub-Steps
 - [x] Sprung (Space, JumpVelocity, nur IsOnGround)
 - [x] Step-up (StepHeight 1.0f, konfigurierbar)
 - [x] Klimazonen-System (6 Zonen, Temperatur/Feuchtigkeit, sanftes Blending)
-- [x] Neue Block-Typen (DryGrass, Snow)
+- [x] Neue Block-Typen (DryGrass, Snow, Wood, Leaves)
 - [x] BlockRegistry als zentrale Quelle der Wahrheit fuer Block-Eigenschaften
+- [x] Deterministische Baum-Generierung mit Templates pro Klimazone
+- [x] Progressives Initial-Laden mit sichtbarem Fenster statt Blockieren im Load
+- [x] Aggressiveres Initial-Laden mit mehr Uploads pro Frame und groesserem Start-Radius
+- [x] Baum-Generierung ueber gecachte Startpositionen beschleunigt
+- [x] Blaetter als Alpha-Cutout im separaten Cutout-Pass statt klassischem Transparent-Blend
+- [x] Leaves kollidieren mit dem Spieler ueber separates CollidesWithPlayer-Flag
+- [x] Wasser und Leaves rendern Innenseiten ohne Backface-Culling im Transparent-/Cutout-Pass
+- [x] ChunkWorker-Dispose mit schnellerem Cancellation-Exit
 - [x] Klima-Debug-Kommando (`climate info`)
 - [ ] Konsolen-History + Autocomplete
 - [ ] Inventar-System

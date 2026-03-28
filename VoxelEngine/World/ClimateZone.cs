@@ -2,13 +2,15 @@ namespace VoxelEngine.World;
 
 public sealed class ClimateZone
 {
-    public string Name           { get; }
+    public string Name { get; }
     public NoiseSettings Terrain { get; }
-    public byte SurfaceBlock     { get; }
-    public byte SubsurfaceBlock  { get; }
-    public byte StoneBlock       { get; }
-    public byte SeaBlock         { get; }
-    public int SnowLine          { get; }
+    public byte SurfaceBlock { get; }
+    public byte SubsurfaceBlock { get; }
+    public byte StoneBlock { get; }
+    public byte SeaBlock { get; }
+    public int SnowLine { get; }
+    public float TreeDensity { get; }
+    public TreeTemplate TreeTemplate { get; }
 
     public ClimateZone(
         string name,
@@ -17,7 +19,9 @@ public sealed class ClimateZone
         byte subsurfaceBlock,
         byte stoneBlock,
         byte seaBlock,
-        int snowLine)
+        int snowLine,
+        float treeDensity,
+        TreeTemplate treeTemplate)
     {
         Name = name;
         Terrain = terrain;
@@ -26,5 +30,7 @@ public sealed class ClimateZone
         StoneBlock = stoneBlock;
         SeaBlock = seaBlock;
         SnowLine = snowLine;
+        TreeDensity = treeDensity;
+        TreeTemplate = treeTemplate;
     }
 }

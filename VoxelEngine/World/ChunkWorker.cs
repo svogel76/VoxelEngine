@@ -20,7 +20,7 @@ public sealed class ChunkWorker : IDisposable
         _world = world;
         _generator = generator;
 
-        int count = workerCount ?? Math.Max(1, Environment.ProcessorCount - 2);
+        int count = workerCount ?? Math.Max(2, Environment.ProcessorCount - 1);
         _workers = Enumerable.Range(0, count)
             .Select(_ => Task.Run(() => WorkerLoop(_cts.Token)))
             .ToArray();
@@ -44,6 +44,9 @@ public sealed class ChunkWorker : IDisposable
         {
             if (_jobQueue.TryDequeue(out var job))
             {
+                if (ct.IsCancellationRequested)
+                    break;
+
                 Interlocked.Increment(ref _activeJobs);
                 try
                 {
@@ -56,9 +59,13 @@ public sealed class ChunkWorker : IDisposable
 
                     if (chunk is null)
                         continue;
+                    if (ct.IsCancellationRequested)
+                        continue;
 
-                    var (ov, oi, tv, ti) = GreedyMeshBuilder.Build(chunk, _world, _generator);
-                    _resultQueue.Enqueue(new ChunkResult(job.ChunkX, job.ChunkZ, chunk, ov, oi, tv, ti));
+                    var (ov, oi, cv, ci, tv, ti) = GreedyMeshBuilder.Build(chunk, _world, _generator);
+                    if (ct.IsCancellationRequested)
+                        continue;
+                    _resultQueue.Enqueue(new ChunkResult(job.ChunkX, job.ChunkZ, chunk, ov, oi, cv, ci, tv, ti));
                 }
                 finally
                 {
@@ -67,7 +74,7 @@ public sealed class ChunkWorker : IDisposable
             }
             else
             {
-                Thread.Sleep(1);
+                ct.WaitHandle.WaitOne(1);
             }
         }
     }
@@ -86,7 +93,13 @@ public sealed class ChunkWorker : IDisposable
 
         _disposed = true;
         _cts.Cancel();
-        Task.WaitAll(_workers, TimeSpan.FromSeconds(5));
+        try
+        {
+            Task.WaitAll(_workers, TimeSpan.FromSeconds(1));
+        }
+        catch (AggregateException)
+        {
+        }
         _cts.Dispose();
         GC.SuppressFinalize(this);
     }

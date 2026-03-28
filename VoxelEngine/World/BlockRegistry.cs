@@ -19,6 +19,7 @@ public static class BlockRegistry
             BottomTextureIndex = 2,
             Solid = false,
             Transparent = false,
+            CollidesWithPlayer = false,
             Replaceable = true,
             Luminance = 0,
             Tags = ["empty"]
@@ -89,6 +90,8 @@ public static class BlockRegistry
             BottomTextureIndex = 8,
             Solid = false,
             Transparent = true,
+            CollidesWithPlayer = false,
+            RenderBackfaces = true,
             Replaceable = true,
             Luminance = 0,
             Tags = ["natural", "liquid"]
@@ -103,6 +106,7 @@ public static class BlockRegistry
             BottomTextureIndex = 9,
             Solid = false,
             Transparent = true,
+            CollidesWithPlayer = false,
             Replaceable = false,
             Luminance = 0,
             Tags = ["crafted", "transparent"]
@@ -117,6 +121,7 @@ public static class BlockRegistry
             BottomTextureIndex = 10,
             Solid = false,
             Transparent = true,
+            CollidesWithPlayer = false,
             Replaceable = false,
             Luminance = 0,
             Tags = ["natural", "frozen"]
@@ -148,6 +153,37 @@ public static class BlockRegistry
             Replaceable = false,
             Luminance = 0,
             Tags = ["natural", "cold"]
+        });
+
+        Register(new BlockDefinition
+        {
+            Id = BlockType.Wood,
+            Name = "wood",
+            TopTextureIndex = 13,
+            SideTextureIndex = 13,
+            BottomTextureIndex = 13,
+            Solid = true,
+            Transparent = false,
+            Replaceable = false,
+            Luminance = 0,
+            Tags = ["natural", "wood"]
+        });
+
+        Register(new BlockDefinition
+        {
+            Id = BlockType.Leaves,
+            Name = "leaves",
+            TopTextureIndex = 14,
+            SideTextureIndex = 14,
+            BottomTextureIndex = 14,
+            Solid = false,
+            Transparent = false,
+            Cutout = true,
+            CollidesWithPlayer = true,
+            RenderBackfaces = true,
+            Replaceable = false,
+            Luminance = 0,
+            Tags = ["natural", "foliage"]
         });
     }
 
@@ -183,6 +219,12 @@ public static class BlockRegistry
     public static bool IsTransparent(byte id) => Get(id).Transparent;
 
     public static bool IsSolid(byte id) => Get(id).Solid;
+
+    public static bool IsCutout(byte id) => Get(id).Cutout;
+
+    public static bool CollidesWithPlayer(byte id) => Get(id).CollidesWithPlayer;
+
+    public static bool RendersBackfaces(byte id) => Get(id).RenderBackfaces;
 
     public static bool IsReplaceable(byte id) => Get(id).Replaceable;
 

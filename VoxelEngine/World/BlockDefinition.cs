@@ -9,6 +9,9 @@ public sealed record BlockDefinition
     public required int BottomTextureIndex { get; init; }
     public required bool Solid { get; init; }
     public required bool Transparent { get; init; }
+    public bool Cutout { get; init; }
+    public bool CollidesWithPlayer { get; init; } = true;
+    public bool RenderBackfaces { get; init; }
     public required bool Replaceable { get; init; }
     public int Luminance { get; init; }
     public string[] Tags { get; init; } = [];

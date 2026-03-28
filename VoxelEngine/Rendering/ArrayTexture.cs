@@ -65,6 +65,8 @@ public class ArrayTexture : IDisposable
         [10] = static rng => GenerateIce(rng),
         [11] = static rng => GenerateDryGrassTop(rng),
         [12] = static rng => GenerateDryGrassSide(rng),
+        [13] = static rng => GenerateTreeWood(rng),
+        [14] = static rng => GenerateLeaves(rng),
     };
 
     // ─── Upload ──────────────────────────────────────────────────────────────
@@ -234,6 +236,29 @@ public class ArrayTexture : IDisposable
             pixels[idx + 1] = isCrack ? (byte)255 : Clamp(0xD4 + noise);
             pixels[idx + 2] = isCrack ? (byte)255 : Clamp(0xF0 + noise);
             pixels[idx + 3] = 160;
+        }
+        return pixels;
+    }
+
+    private static byte[] GenerateTreeWood(Random rng)
+        => GenerateNoise(0x7A, 0x54, 0x2F, rng);
+
+    private static byte[] GenerateLeaves(Random rng)
+    {
+        var pixels = new byte[TileSize * TileSize * 4];
+        for (int py = 0; py < TileSize; py++)
+        for (int px = 0; px < TileSize; px++)
+        {
+            bool isVein = px == TileSize / 2 || py == TileSize / 2 || (px + py) % 7 == 0;
+            int noise = rng.Next(-12, 13);
+            int idx = (py * TileSize + px) * 4;
+            byte baseR = isVein ? (byte)0x4D : (byte)0x5E;
+            byte baseG = isVein ? (byte)0x98 : (byte)0xB2;
+            byte baseB = isVein ? (byte)0x38 : (byte)0x4B;
+            pixels[idx] = Clamp(baseR + noise);
+            pixels[idx + 1] = Clamp(baseG + noise);
+            pixels[idx + 2] = Clamp(baseB + noise);
+            pixels[idx + 3] = (byte)(isVein ? 240 : 236);
         }
         return pixels;
     }

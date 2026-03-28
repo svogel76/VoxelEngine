@@ -44,7 +44,13 @@ public class EngineSettings
     public int UnloadDistance { get; init; } = 7;
 
     /// <summary>Maximale Anzahl neu geladener Chunks pro Update-Schritt</summary>
-    public int MaxChunksLoadedPerFrame { get; init; } = 2;
+    public int MaxChunksLoadedPerFrame { get; init; } = 8;
+
+    /// <summary>Radius in Chunks fuer priorisierte Start-Chunks direkt nach dem Laden</summary>
+    public int InitialChunkLoadRadius { get; init; } = 3;
+
+    /// <summary>Maximale Baum-Ausdehnung in Bloecken fuer Chunk- und Sample-Queries</summary>
+    public int TreeInfluenceRadius { get; init; } = 8;
 
     // Time
     /// <summary>Startzeit der Welt in Stunden (0.0–24.0)</summary>

@@ -81,15 +81,16 @@
 - 🟢 Dungeons, Katakomben, Verlorene Städte
 
 ### Oberflächen-Strukturen
+- ✅ Baum-Generierung (TreeTemplate, 6 Typen, deterministisch)
 - 🟢 Ruinen, Dörfer, Burgen pro Klimazone
-- 🟢 Structure Seeds (Chunk-Grenzen übergreifend)
+- 🟢 Structure Seeds (weitere Strukturen Chunk-übergreifend)
 - 🟢 Schablonen-Format (externe Datei)
 
 ---
 
 ## Phase 4 — Rendering & Visuals
 
-- ✅ ArrayTexture (Texture2DArray, 13 Schichten inkl. DryGrass/Snow)
+- ✅ ArrayTexture (Texture2DArray, inkl. Wood/Leaves/DryGrass/Snow)
 - ✅ Greedy Meshing
 - ✅ Frustum Culling
 - ✅ Ambient Occlusion (VertexAO, Diagonal-Flip)
@@ -100,6 +101,8 @@
 - ✅ Diffuse Beleuchtung (FaceLight, GlobalLight, SunColor)
 - ✅ Fog (linear, FogColor aus Skybox, Tag/Nacht)
 - ✅ Transparente Blöcke (Two-Pass, DepthMask)
+- ✅ Alpha-Cutout Rendering (Blätter — discard statt Blending)
+- ✅ Backface Rendering für Transparent/Cutout (Wasser/Blätter von innen)
 - 🟡 Jahreszeiten (Farb-Tint, Tageslänge — DayCount vorhanden)
 - 🟡 Wetter-Zustandsautomat (Sonnig→Bewölkt→Regen/Schnee)
 - 🟡 Regen/Schnee Partikel
@@ -117,11 +120,19 @@
 - ✅ Block-Interaktion (Blöcke setzen und abbauen)
 - ✅ Spieler-Entity (trennt Kamera von Spieler-Position)
 - ✅ AABB-Kollision + Gravitation + Sprung + Step-up
+- ✅ AABB-Kollision symmetrisch (exakte Penetrationstiefe, Sub-Steps)
+- ✅ Block-Typen Registry (BlockRegistry, BlockDefinition)
+       Flags: Solid, Transparent, Cutout, Replaceable,
+       CollidesWithPlayer, RenderBackfaces, Luminance, Tags
+- ✅ Replaceable-Logik (Blöcke ins Wasser setzen)
+- ✅ ignoreWater Ray-Cast (Unterwasser bauen automatisch)
+- ✅ Progressives Chunk-Laden (Fenster sofort sichtbar)
+- ✅ Baum-Cache (TreeInfluenceRadius, konfigurierbar)
+- ✅ ChunkWorker Cancellation (schnelles Beenden)
 - 🔴 Dirty-Flag System (Chunk-Rebuild bei Block-Änderungen)
        SampleBlock() korrekt für prozedurale Welt —
        bei Spieler-Änderungen zusätzlich Dirty-Queue nötig
 - 🟡 Chunk-Serialisierung (Welt speichern und laden)
-- 🟡 Block-Typen Registry (statt hardcodierter byte-Konstanten)
 - 🟢 Asset-Management System
 - 🟢 LOD (entfernte Chunks vereinfacht)
 
@@ -185,16 +196,11 @@
 - 🟢 LOD für Entities (weit entfernte seltener updaten)
 
 ### Vegetation (Stufe 1 — statisch, keine KI)
-> Größter visueller Effekt, geringste Komplexität
-
-- 🔴 Baum-Generierung im WorldGenerator
-       Schablonen pro Klimazone:
-       Gemäßigt:  Eiche (runder Blätter-Kopf)
-       Taiga:     Fichte (spitz, Schnee auf Ästen)
-       Wüste:     Kaktus (einfache Geometrie)
-       Tropen:    Palme (langer Stamm, Fächer-Blätter)
-       Savanne:   Akazie (flacher Schirm)
-- 🟡 Structure Seeds (Bäume Chunk-Grenzen übergreifend)
+- ✅ Baum-Generierung (TreeTemplate: Eiche, Fichte, Kaktus, Palme, Akazie, Strauch)
+- ✅ Wood + Leaves Block-Typen (Cutout, CollidesWithPlayer, RenderBackfaces)
+- ✅ Chunk-Grenzen übergreifende Baumkronen (TreeInfluenceRadius)
+- ✅ Bäume nicht unter Wasser (SeaLevel-Check)
+- ✅ Baum-Cache für Performance
 - 🟡 Gras + Blumen als Billboard-Sprites
 - 🟢 Büsche, Pilze, Farne pro Klimazone
 - 🟢 Gefällte Bäume droppen Holz-Items
@@ -315,18 +321,15 @@ Erst testen:
 
 ## Empfohlene Gesamtreihenfolge
 ```
-Aktuell:     Phase 3 abschließen (Klimazonen feintunen)
-Nächste:     Phase 6 — Inventar (Hotbar + Aufsammeln)
-Danach:      Phase 7 — Bäume + Vegetation (größter
-             visueller Effekt bei geringstem Aufwand)
+Aktuell:     Phase 6 — Inventar (Hotbar + Aufsammeln)
+Danach:      Phase 7 — Tiere mit einfacher KI
 Dann:        Phase 5 — Chunk-Serialisierung (Welt speichern)
-             Phase 7 — Tiere mit einfacher KI
 Langfristig: Phase 8 — Multiplayer (optional)
 ```
 
-> Faustregel: Inventar → Bäume → Tiere.
-> Das sind die drei Schritte die die Welt von
-> "leere Engine" zu "echtem Spiel" machen.
+> Faustregel: Inventar → Tiere → Serialisierung.
+> Bäume ✅ sind erledigt — die Welt lebt bereits.
+> Inventar ist der nächste wichtige Schritt.
 
 ---
 
@@ -340,6 +343,8 @@ Langfristig: Phase 8 — Multiplayer (optional)
 - Entity-System in World/ (pure C#) → später Multiplayer-fähig
 - GL-Calls nur im Main Thread — ChunkWorker produziert nur float[] Arrays
 - Inventar vor Entity-System — Items sind Voraussetzung für Drops
+- BlockDefinition Flags: Solid, Transparent, Cutout, Replaceable,
+  CollidesWithPlayer, RenderBackfaces — sauber getrennte Konzepte
 
 ---
 
@@ -349,11 +354,9 @@ Langfristig: Phase 8 — Multiplayer (optional)
 ### Säule 1: Registry Pattern
 > Zentrale Registrierung aller Inhalte — Lookup per ID statt Konstanten
 
-- 🔴 BlockRegistry (ersetzt hardcodierte byte-Konstanten)
-       BlockDefinition: Id, Name, Textures, Solid, Transparent,
-       Luminance, Tags, Damage, Replaceable
-       Lookup: string "grass" ↔ byte ID (intern weiterhin byte für Performance)
-       Voraussetzung für: Inventar, Data-Driven Blocks, Modding
+- ✅ BlockRegistry (BlockDefinition, Lookup per ID/Name)
+       Flags: Solid, Transparent, Cutout, Replaceable,
+       CollidesWithPlayer, RenderBackfaces, Luminance, Tags
 - 🟡 ItemRegistry (Items als eigene Definitionen, nicht nur Blöcke)
 - 🟡 EntityRegistry (Entity-Typen zentral registriert)
 - 🟡 BiomeRegistry (Klimazonen als registrierte Definitionen)
@@ -398,8 +401,7 @@ Langfristig: Phase 8 — Multiplayer (optional)
 
 ### Empfohlene Einführungsreihenfolge
 ```
-Jetzt:        BlockRegistry (ersetzt byte-Konstanten)
-              → direkt nützlich für Inventar
+✅ BlockRegistry (erledigt)
 Mit Inventar: ItemRegistry
 Mit Entity-System: Component System + EntityRegistry
 Später:       Data-Driven JSON Loading

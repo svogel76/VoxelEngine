@@ -101,17 +101,8 @@ public class Engine : IDisposable
         _context.Console.Register(new TimeCommand());
         _context.Console.Register(new FogCommand());
 
-        // Initiales Laden: alle Chunks im RenderDistance sofort generieren
-        _context.ChunkManager.Update(player.Position.X, player.Position.Z);
-        while (_context.ChunkManager.PendingChunks > 0)
-        {
-            _context.Renderer.UploadPendingMeshes(_context.ChunkManager);
-            Thread.Sleep(10);
-        }
-
-        Console.WriteLine($"Loaded chunks: {world.LoadedChunkCount}");
-
         _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight);
+        _context.ChunkManager.PrimeInitialChunks(player.Position.X, player.Position.Z, _settings.InitialChunkLoadRadius);
 
         _frameTimer.Start();
     }

@@ -12,6 +12,8 @@ public static class BlockType
     public const byte Ice   = 7;
     public const byte DryGrass = 8;
     public const byte Snow = 9;
+    public const byte Wood = 10;
+    public const byte Leaves = 11;
 
     public static bool IsTransparent(byte blockType) =>
         BlockRegistry.IsTransparent(blockType);

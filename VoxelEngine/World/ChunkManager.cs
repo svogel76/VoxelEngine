@@ -29,6 +29,23 @@ public sealed class ChunkManager : IDisposable
         RenderDistance = settings.RenderDistance;
     }
 
+    public void PrimeInitialChunks(float playerWorldX, float playerWorldZ, int radius)
+    {
+        int playerChunkX = (int)Math.Floor(playerWorldX / Chunk.Width);
+        int playerChunkZ = (int)Math.Floor(playerWorldZ / Chunk.Depth);
+
+        foreach (var key in EnumerateChunkCoords(playerChunkX, playerChunkZ, radius))
+        {
+            _discardedChunks.Remove(key);
+
+            if (_world.GetChunk(key.X, key.Z) is not null || _enqueuedChunks.Contains(key))
+                continue;
+
+            _worker.EnqueueJob(key.X, key.Z);
+            _enqueuedChunks.Add(key);
+        }
+    }
+
     public void EnqueueChunkRebuild(int chunkX, int chunkZ)
     {
         var key = (chunkX, chunkZ);
@@ -100,24 +117,20 @@ public sealed class ChunkManager : IDisposable
         _lastPlayerChunkX = playerChunkX;
         _lastPlayerChunkZ = playerChunkZ;
 
-        for (int dx = -RenderDistance; dx <= RenderDistance; dx++)
-        for (int dz = -RenderDistance; dz <= RenderDistance; dz++)
+        int enqueuedThisUpdate = 0;
+        foreach (var key in EnumerateChunkCoords(playerChunkX, playerChunkZ, RenderDistance))
         {
-            int dist = Math.Max(Math.Abs(dx), Math.Abs(dz));
-            if (dist > RenderDistance)
-                continue;
-
-            int cx = playerChunkX + dx;
-            int cz = playerChunkZ + dz;
-            var key = (cx, cz);
+            if (enqueuedThisUpdate >= _settings.MaxChunksLoadedPerFrame)
+                break;
 
             _discardedChunks.Remove(key);
 
-            if (_world.GetChunk(cx, cz) is not null || _enqueuedChunks.Contains(key))
+            if (_world.GetChunk(key.X, key.Z) is not null || _enqueuedChunks.Contains(key))
                 continue;
 
-            _worker.EnqueueJob(cx, cz);
+            _worker.EnqueueJob(key.X, key.Z);
             _enqueuedChunks.Add(key);
+            enqueuedThisUpdate++;
         }
     }
 
@@ -154,5 +167,16 @@ public sealed class ChunkManager : IDisposable
         _disposed = true;
         _worker.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private static IEnumerable<(int X, int Z)> EnumerateChunkCoords(int centerChunkX, int centerChunkZ, int radius)
+    {
+        return Enumerable.Range(-radius, radius * 2 + 1)
+            .SelectMany(dx => Enumerable.Range(-radius, radius * 2 + 1)
+                .Select(dz => (X: centerChunkX + dx, Z: centerChunkZ + dz, Dist: Math.Max(Math.Abs(dx), Math.Abs(dz)))))
+            .Where(entry => entry.Dist <= radius)
+            .OrderBy(entry => entry.Dist)
+            .ThenBy(entry => Math.Abs(entry.X - centerChunkX) + Math.Abs(entry.Z - centerChunkZ))
+            .Select(entry => (entry.X, entry.Z));
     }
 }

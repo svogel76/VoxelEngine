@@ -15,33 +15,38 @@ public static class GreedyMeshBuilder
     {
         public readonly byte Block;
         public readonly int  TileLayer;
+        public readonly bool IsCutout;
         public readonly bool IsBackFace;
         public readonly int  AO0, AO1, AO2, AO3;
 
         public bool IsEmpty => Block == BlockType.Air;
 
-        public MaskEntry(byte block, int tileLayer, bool isBackFace,
+        public MaskEntry(byte block, int tileLayer, bool isCutout, bool isBackFace,
                          int ao0, int ao1, int ao2, int ao3)
         {
             Block      = block;
             TileLayer  = tileLayer;
+            IsCutout   = isCutout;
             IsBackFace = isBackFace;
             AO0 = ao0; AO1 = ao1; AO2 = ao2; AO3 = ao3;
         }
 
         public bool Matches(MaskEntry o) =>
-            Block == o.Block && TileLayer == o.TileLayer && IsBackFace == o.IsBackFace &&
+            Block == o.Block && TileLayer == o.TileLayer && IsCutout == o.IsCutout && IsBackFace == o.IsBackFace &&
             AO0 == o.AO0 && AO1 == o.AO1 && AO2 == o.AO2 && AO3 == o.AO3;
     }
 
     private static readonly int[] Dims = { Chunk.Width, Chunk.Height, Chunk.Depth };
 
     public static (float[] opaqueVerts, uint[] opaqueIdx,
+                   float[] cutoutVerts, uint[] cutoutIdx,
                    float[] transparentVerts, uint[] transparentIdx)
         Build(Chunk chunk, World.World world, WorldGenerator generator)
     {
         var opaqueVerts      = new List<float>();
         var opaqueInds       = new List<uint>();
+        var cutoutVerts      = new List<float>();
+        var cutoutInds       = new List<uint>();
         var transparentVerts = new List<float>();
         var transparentInds  = new List<uint>();
 
@@ -110,6 +115,7 @@ public static class GreedyMeshBuilder
                                            out int ao0, out int ao1, out int ao2, out int ao3, blockA);
                                 mask[n] = new MaskEntry(blockA,
                                                         BlockRegistry.Get(blockA).GetTile(forwardDir),
+                                                        BlockRegistry.IsCutout(blockA),
                                                         false, ao0, ao1, ao2, ao3);
                             }
                             // else: blockA liegt im Nachbar-Chunk → überspringen
@@ -126,6 +132,7 @@ public static class GreedyMeshBuilder
                                            out int ao0, out int ao1, out int ao2, out int ao3, blockB);
                                 mask[n] = new MaskEntry(blockB,
                                                         BlockRegistry.Get(blockB).GetTile(backDir),
+                                                        BlockRegistry.IsCutout(blockB),
                                                         true, ao0, ao1, ao2, ao3);
                             }
                             // else: blockB liegt im Nachbar-Chunk → überspringen
@@ -170,11 +177,20 @@ public static class GreedyMeshBuilder
                     int[] dv = new int[3]; dv[vAxis] = h;
 
                     bool isTransparentFace = BlockRegistry.IsTransparent(entry.Block);
-                    var  faceVerts = isTransparentFace ? transparentVerts : opaqueVerts;
-                    var  faceInds  = isTransparentFace ? transparentInds  : opaqueInds;
+                    bool isCutoutFace = BlockRegistry.IsCutout(entry.Block);
+                    var faceVerts = isTransparentFace
+                        ? transparentVerts
+                        : isCutoutFace
+                            ? cutoutVerts
+                            : opaqueVerts;
+                    var faceInds = isTransparentFace
+                        ? transparentInds
+                        : isCutoutFace
+                            ? cutoutInds
+                            : opaqueInds;
 
                     AddQuad(faceVerts, faceInds, v0, du, dv, w, h,
-                            entry.TileLayer, entry.IsBackFace,
+                            entry.TileLayer, entry.IsCutout, entry.IsBackFace,
                             entry.AO0, entry.AO1, entry.AO2, entry.AO3,
                             baseWX, baseWZ, axis);
 
@@ -191,6 +207,8 @@ public static class GreedyMeshBuilder
         return (
             opaqueVerts.Count > 0      ? opaqueVerts.ToArray()      : Array.Empty<float>(),
             opaqueInds.Count > 0       ? opaqueInds.ToArray()       : Array.Empty<uint>(),
+            cutoutVerts.Count > 0      ? cutoutVerts.ToArray()      : Array.Empty<float>(),
+            cutoutInds.Count > 0       ? cutoutInds.ToArray()       : Array.Empty<uint>(),
             transparentVerts.Count > 0 ? transparentVerts.ToArray() : Array.Empty<float>(),
             transparentInds.Count > 0  ? transparentInds.ToArray()  : Array.Empty<uint>()
         );
@@ -309,7 +327,7 @@ public static class GreedyMeshBuilder
     private static void AddQuad(
         List<float> vertices, List<uint> indices,
         int[] v0, int[] du, int[] dv,
-        int w, int h, int tileLayer, bool backFace,
+        int w, int h, int tileLayer, bool isCutout, bool backFace,
         int ao0, int ao1, int ao2, int ao3,
         int baseWX, int baseWZ, int axis)
     {
@@ -332,7 +350,7 @@ public static class GreedyMeshBuilder
             _          => 0.70f,  // Left / Right
         };
 
-        uint baseIdx = (uint)(vertices.Count / 8);
+        uint baseIdx = (uint)(vertices.Count / 9);
 
         void AddVertex((float x, float y, float z) c, (float u, float v) uv, float ao)
         {
@@ -341,6 +359,7 @@ public static class GreedyMeshBuilder
             vertices.Add(tileLayer);
             vertices.Add(ao);
             vertices.Add(faceLight);
+            vertices.Add(isCutout ? 1f : 0f);
         }
 
         AddVertex(c0, uvs[0], ao0);

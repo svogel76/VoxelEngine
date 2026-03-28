@@ -3,6 +3,7 @@ in vec2 TexCoord;
 flat in float TileLayer;
 in float AO;
 flat in float FaceLight;
+flat in float Cutout;
 in float FragDistance;
 out vec4 FragColor;
 
@@ -21,6 +22,8 @@ void main()
     float light    = FaceLight * uGlobalLight;
     light          = max(light, 0.03);
     vec4 texColor  = texture(uTexture, vec3(TexCoord, TileLayer));
+    if (Cutout > 0.5 && texColor.a < 0.5)
+        discard;
     vec4 litColor  = vec4(texColor.rgb * uSunColor * light * aoFactor, texColor.a);
 
     float fogFactor = 1.0 - clamp(

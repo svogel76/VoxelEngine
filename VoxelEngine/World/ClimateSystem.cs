@@ -169,7 +169,9 @@ public sealed class ClimateSystem
             BlockType.Dirt,
             BlockType.Stone,
             BlockType.Water,
-            int.MaxValue);
+            int.MaxValue,
+            0.005f,
+            TreeTemplate.Shrub());
 
         var savanna = new ClimateZone(
             "Savanne",
@@ -178,16 +180,20 @@ public sealed class ClimateSystem
             BlockType.Dirt,
             BlockType.Stone,
             BlockType.Water,
-            int.MaxValue);
+            int.MaxValue,
+            0.008f,
+            TreeTemplate.Acacia());
 
         var desert = new ClimateZone(
-            "Wüste",
+            "Wueste",
             new NoiseSettings { Seed = temperateDefaults.Seed + 103, BaseHeight = 62f, Amplitude = 10f, Frequency = 0.0060f, Octaves = 3 },
             BlockType.Sand,
             BlockType.Sand,
             BlockType.Stone,
             BlockType.Water,
-            int.MaxValue);
+            int.MaxValue,
+            0.003f,
+            TreeTemplate.Cactus());
 
         var taiga = new ClimateZone(
             "Taiga",
@@ -196,10 +202,12 @@ public sealed class ClimateSystem
             BlockType.Dirt,
             BlockType.Stone,
             BlockType.Water,
-            100);
+            100,
+            0.020f,
+            TreeTemplate.Spruce());
 
         var temperate = new ClimateZone(
-            "Gemäßigt",
+            "Gemaessigt",
             new NoiseSettings
             {
                 Seed = temperateDefaults.Seed + 105,
@@ -212,7 +220,9 @@ public sealed class ClimateSystem
             BlockType.Dirt,
             BlockType.Stone,
             BlockType.Water,
-            int.MaxValue);
+            int.MaxValue,
+            0.015f,
+            TreeTemplate.Oak());
 
         var tropics = new ClimateZone(
             "Tropen",
@@ -221,7 +231,9 @@ public sealed class ClimateSystem
             BlockType.Dirt,
             BlockType.Stone,
             BlockType.Water,
-            int.MaxValue);
+            int.MaxValue,
+            0.025f,
+            TreeTemplate.Palm());
 
         return new[,]
         {

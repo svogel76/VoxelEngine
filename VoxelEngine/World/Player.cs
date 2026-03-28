@@ -10,6 +10,8 @@ public sealed class Player
     public const float SpawnClearance = 2f;
     private const float CollisionEpsilon = 0.001f;
     private const float GroundProbeDistance = 0.05f;
+    private const float MaxCollisionSubStep = 0.5f;
+
     private static readonly byte[] SelectableBlocks =
     {
         BlockType.Grass,
@@ -28,7 +30,7 @@ public sealed class Player
 
     public Vector3 Size => new(Width, Height, Width);
     public Vector3 EyePosition => Position + new Vector3(0f, EyeHeight + _stepVisualOffsetY, 0f);
-    public BoundingBox BoundingBox => new(Position, Position + Size);
+    public BoundingBox BoundingBox => CreateBoundingBox(Position);
 
     public Player(Vector3 startPosition, bool flyMode = false)
     {
@@ -71,7 +73,7 @@ public sealed class Player
             return;
         }
 
-        ResolvePenetrationUp(world);
+        ResolvePenetration(world);
 
         Vector3 horizontalForward = new(lookForward.X, 0f, lookForward.Z);
         if (horizontalForward.LengthSquared() > 0f)
@@ -86,14 +88,14 @@ public sealed class Player
             horizontalMovement = Vector3.Normalize(horizontalMovement);
 
         float verticalVelocity = Velocity.Y;
-        bool wasOnGround = IsOnGround || HasGroundSupport(Position, world);
+        bool hadGroundSupport = IsOnGround || HasGroundSupport(Position, world);
 
-        if (input.Jump && wasOnGround)
+        if (input.Jump && hadGroundSupport)
         {
             verticalVelocity = physics.JumpVelocity;
-            wasOnGround = false;
+            hadGroundSupport = false;
         }
-        else if (!wasOnGround)
+        else if (!hadGroundSupport)
         {
             verticalVelocity = MathF.Max(verticalVelocity - physics.Gravity * dt, -physics.MaxFallSpeed);
         }
@@ -104,15 +106,27 @@ public sealed class Player
 
         Vector3 desiredVelocity = new(horizontalMovement.X * moveSpeed, verticalVelocity, horizontalMovement.Z * moveSpeed);
         Vector3 nextPosition = Position;
-        bool isGrounded = false;
+        bool groundedDuringMove = false;
 
-        ResolveHorizontalAxis(ref nextPosition, desiredVelocity.X * dt, Axis.X, physics, world, wasOnGround);
-        ResolveAxis(ref nextPosition, desiredVelocity.Y * dt, Axis.Y, world, ref desiredVelocity, ref isGrounded);
-        ResolveHorizontalAxis(ref nextPosition, desiredVelocity.Z * dt, Axis.Z, physics, world, wasOnGround);
+        int steps = Math.Max(1, (int)MathF.Ceiling(desiredVelocity.Length() * dt / MaxCollisionSubStep));
+        float subDelta = dt / steps;
+
+        for (int i = 0; i < steps; i++)
+        {
+            bool canStepUp = groundedDuringMove || hadGroundSupport || HasGroundSupport(nextPosition, world);
+            ResolveMovementStep(
+                ref nextPosition,
+                new Vector3(desiredVelocity.X * subDelta, desiredVelocity.Y * subDelta, desiredVelocity.Z * subDelta),
+                physics,
+                world,
+                canStepUp,
+                ref desiredVelocity,
+                ref groundedDuringMove);
+        }
 
         Position = nextPosition;
         Velocity = desiredVelocity;
-        IsOnGround = isGrounded || HasGroundSupport(Position, world);
+        IsOnGround = groundedDuringMove || HasGroundSupport(Position, world);
         UpdateStepVisualOffset(dt, physics.StepUpSmoothingSpeed);
 
         if (IsOnGround && Velocity.Y < 0f)
@@ -158,9 +172,7 @@ public sealed class Player
 
     public bool WouldIntersectBlock(BlockPosition blockPosition)
     {
-        var blockBounds = new BoundingBox(
-            new Vector3(blockPosition.X, blockPosition.Y, blockPosition.Z),
-            new Vector3(blockPosition.X + 1f, blockPosition.Y + 1f, blockPosition.Z + 1f));
+        var blockBounds = CreateBlockBoundingBox(blockPosition.X, blockPosition.Y, blockPosition.Z);
         return BoundingBox.Intersects(blockBounds);
     }
 
@@ -174,11 +186,52 @@ public sealed class Player
         }
 
         Velocity = new Vector3(Velocity.X, 0f, Velocity.Z);
-        ResolvePenetrationUp(world);
+        ResolvePenetration(world);
         IsOnGround = HasGroundSupport(Position, world);
         _stepVisualOffsetY = 0f;
         if (IsOnGround)
             Velocity = new Vector3(Velocity.X, 0f, Velocity.Z);
+    }
+
+    private void ResolveMovementStep(
+        ref Vector3 position,
+        Vector3 stepDelta,
+        PlayerPhysicsSettings physics,
+        World world,
+        bool canStepUp,
+        ref Vector3 velocity,
+        ref bool isGrounded)
+    {
+        Span<AxisMove> axisMoves = stackalloc AxisMove[3];
+        int count = 0;
+
+        if (MathF.Abs(stepDelta.X) > float.Epsilon)
+            axisMoves[count++] = new AxisMove(Axis.X, stepDelta.X, EstimateAxisPenetration(position, stepDelta.X, Axis.X, world));
+        if (MathF.Abs(stepDelta.Y) > float.Epsilon)
+            axisMoves[count++] = new AxisMove(Axis.Y, stepDelta.Y, EstimateAxisPenetration(position, stepDelta.Y, Axis.Y, world));
+        if (MathF.Abs(stepDelta.Z) > float.Epsilon)
+            axisMoves[count++] = new AxisMove(Axis.Z, stepDelta.Z, EstimateAxisPenetration(position, stepDelta.Z, Axis.Z, world));
+
+        for (int i = 0; i < count - 1; i++)
+        for (int j = i + 1; j < count; j++)
+        {
+            if (axisMoves[j].Penetration < axisMoves[i].Penetration)
+                (axisMoves[i], axisMoves[j]) = (axisMoves[j], axisMoves[i]);
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            var move = axisMoves[i];
+            if (move.Axis == Axis.Y)
+            {
+                ResolveAxis(ref position, move.Delta, Axis.Y, world, ref velocity, ref isGrounded);
+            }
+            else
+            {
+                bool stepAllowed = physics.EnableStepUp && canStepUp && (isGrounded || HasGroundSupport(position, world));
+                ResolveHorizontalAxis(ref position, move.Delta, move.Axis, physics, world, stepAllowed, ref velocity);
+            }
+        }
     }
 
     private void ResolveHorizontalAxis(
@@ -187,7 +240,8 @@ public sealed class Player
         Axis axis,
         PlayerPhysicsSettings physics,
         World world,
-        bool canStepUp)
+        bool canStepUp,
+        ref Vector3 velocity)
     {
         if (MathF.Abs(delta) <= float.Epsilon)
             return;
@@ -206,6 +260,7 @@ public sealed class Player
 
         float resolved = ResolveAxisPosition(position, candidate, axis, world);
         SetAxis(ref position, axis, resolved);
+        ZeroVelocityAxis(ref velocity, axis);
     }
 
     private void ResolveAxis(
@@ -231,21 +286,10 @@ public sealed class Player
         float resolved = ResolveAxisPosition(position, candidate, axis, world);
         SetAxis(ref position, axis, resolved);
 
-        if (axis == Axis.Y)
-        {
-            if (delta < 0f)
-                isGrounded = true;
+        if (axis == Axis.Y && delta < 0f)
+            isGrounded = true;
 
-            velocity = new Vector3(velocity.X, 0f, velocity.Z);
-        }
-        else if (axis == Axis.X)
-        {
-            velocity = new Vector3(0f, velocity.Y, velocity.Z);
-        }
-        else
-        {
-            velocity = new Vector3(velocity.X, velocity.Y, 0f);
-        }
+        ZeroVelocityAxis(ref velocity, axis);
     }
 
     private bool TryStepUp(ref Vector3 position, float delta, Axis axis, float stepHeight, World world)
@@ -294,16 +338,72 @@ public sealed class Player
         _stepVisualOffsetY = MathF.Min(0f, _stepVisualOffsetY + recover);
     }
 
-    private void ResolvePenetrationUp(World world)
+    private void ResolvePenetration(World world)
     {
-        if (!Collides(world, Position))
-            return;
+        const int maxIterations = 8;
 
-        float resolvedY = Position.Y;
-        foreach (var block in GetIntersectingSolidBlocks(world, BoundingBox))
-            resolvedY = MathF.Max(resolvedY, block.Y + 1f);
+        for (int i = 0; i < maxIterations; i++)
+        {
+            BoundingBox playerBox = CreateBoundingBox(Position);
+            PenetrationResolution? smallest = null;
 
-        Position = new Vector3(Position.X, resolvedY, Position.Z);
+            foreach (var block in GetIntersectingSolidBlocks(world, playerBox))
+            {
+                BoundingBox blockBox = CreateBlockBoundingBox(block.X, block.Y, block.Z);
+                foreach (var resolution in GetPenetrationResolutions(playerBox, blockBox))
+                {
+                    if (smallest is null || resolution.Distance < smallest.Value.Distance)
+                        smallest = resolution;
+                }
+            }
+
+            if (smallest is null)
+                return;
+
+            Position += smallest.Value.Offset;
+        }
+    }
+
+    private IEnumerable<PenetrationResolution> GetPenetrationResolutions(BoundingBox playerBox, BoundingBox blockBox)
+    {
+        float overlapLeft = playerBox.Max.X - blockBox.Min.X;
+        float overlapRight = blockBox.Max.X - playerBox.Min.X;
+        float overlapDown = playerBox.Max.Y - blockBox.Min.Y;
+        float overlapUp = blockBox.Max.Y - playerBox.Min.Y;
+        float overlapBack = playerBox.Max.Z - blockBox.Min.Z;
+        float overlapFront = blockBox.Max.Z - playerBox.Min.Z;
+
+        yield return overlapLeft < overlapRight
+            ? new PenetrationResolution(new Vector3(-overlapLeft, 0f, 0f), overlapLeft)
+            : new PenetrationResolution(new Vector3(overlapRight, 0f, 0f), overlapRight);
+
+        yield return overlapDown < overlapUp
+            ? new PenetrationResolution(new Vector3(0f, -overlapDown, 0f), overlapDown)
+            : new PenetrationResolution(new Vector3(0f, overlapUp, 0f), overlapUp);
+
+        yield return overlapBack < overlapFront
+            ? new PenetrationResolution(new Vector3(0f, 0f, -overlapBack), overlapBack)
+            : new PenetrationResolution(new Vector3(0f, 0f, overlapFront), overlapFront);
+    }
+
+    private float EstimateAxisPenetration(Vector3 position, float delta, Axis axis, World world)
+    {
+        Vector3 candidate = position;
+        SetAxis(ref candidate, axis, GetAxis(candidate, axis) + delta);
+        BoundingBox candidateBox = CreateBoundingBox(candidate);
+
+        float penetration = 0f;
+        bool collided = false;
+
+        foreach (var block in GetIntersectingSolidBlocks(world, candidateBox))
+        {
+            collided = true;
+            BoundingBox blockBox = CreateBlockBoundingBox(block.X, block.Y, block.Z);
+            float overlap = GetAxisPenetration(candidateBox, blockBox, axis, delta > 0f);
+            penetration = penetration <= 0f ? overlap : MathF.Min(penetration, overlap);
+        }
+
+        return collided ? penetration : 0f;
     }
 
     private bool HasGroundSupport(Vector3 position, World world)
@@ -319,6 +419,7 @@ public sealed class Player
     {
         foreach (var _ in GetIntersectingSolidBlocks(world, box))
             return true;
+
         return false;
     }
 
@@ -335,7 +436,7 @@ public sealed class Player
         for (int y = minY; y <= maxY; y++)
         for (int z = minZ; z <= maxZ; z++)
         {
-            if (!BlockType.IsSolid(world.GetBlock(x, y, z)))
+            if (!BlockRegistry.CollidesWithPlayer(world.GetBlock(x, y, z)))
                 continue;
 
             yield return (x, y, z);
@@ -346,26 +447,43 @@ public sealed class Player
     {
         BoundingBox candidateBox = CreateBoundingBox(candidate);
         float resolved = GetAxis(candidate, axis);
+        bool movingPositive = GetAxis(candidate, axis) > GetAxis(current, axis);
 
         foreach (var block in GetIntersectingSolidBlocks(world, candidateBox))
         {
-            resolved = axis switch
-            {
-                Axis.X when GetAxis(candidate, axis) > GetAxis(current, axis) => MathF.Min(resolved, block.X - Width),
-                Axis.X => MathF.Max(resolved, block.X + 1f),
-                Axis.Y when GetAxis(candidate, axis) > GetAxis(current, axis) => MathF.Min(resolved, block.Y - Height),
-                Axis.Y => MathF.Max(resolved, block.Y + 1f),
-                Axis.Z when GetAxis(candidate, axis) > GetAxis(current, axis) => MathF.Min(resolved, block.Z - Width),
-                Axis.Z => MathF.Max(resolved, block.Z + 1f),
-                _ => resolved
-            };
+            BoundingBox blockBox = CreateBlockBoundingBox(block.X, block.Y, block.Z);
+            float penetration = GetAxisPenetration(candidateBox, blockBox, axis, movingPositive);
+            resolved = movingPositive
+                ? MathF.Min(resolved, GetAxis(candidate, axis) - penetration)
+                : MathF.Max(resolved, GetAxis(candidate, axis) + penetration);
         }
 
         return resolved;
     }
 
+    private static float GetAxisPenetration(BoundingBox playerBox, BoundingBox blockBox, Axis axis, bool movingPositive) => axis switch
+    {
+        Axis.X => movingPositive
+            ? playerBox.Max.X - blockBox.Min.X
+            : blockBox.Max.X - playerBox.Min.X,
+        Axis.Y => movingPositive
+            ? playerBox.Max.Y - blockBox.Min.Y
+            : blockBox.Max.Y - playerBox.Min.Y,
+        _ => movingPositive
+            ? playerBox.Max.Z - blockBox.Min.Z
+            : blockBox.Max.Z - playerBox.Min.Z
+    };
+
     private BoundingBox CreateBoundingBox(Vector3 feetPosition)
-        => new(feetPosition, feetPosition + Size);
+    {
+        float halfWidth = Width * 0.5f;
+        return new(
+            new Vector3(feetPosition.X - halfWidth, feetPosition.Y, feetPosition.Z - halfWidth),
+            new Vector3(feetPosition.X + halfWidth, feetPosition.Y + Height, feetPosition.Z + halfWidth));
+    }
+
+    private static BoundingBox CreateBlockBoundingBox(int x, int y, int z)
+        => new(new Vector3(x, y, z), new Vector3(x + 1f, y + 1f, z + 1f));
 
     private static float GetAxis(Vector3 vector, Axis axis) => axis switch
     {
@@ -383,6 +501,20 @@ public sealed class Player
             _ => vector with { Z = value }
         };
     }
+
+    private static void ZeroVelocityAxis(ref Vector3 velocity, Axis axis)
+    {
+        velocity = axis switch
+        {
+            Axis.X => velocity with { X = 0f },
+            Axis.Y => velocity with { Y = 0f },
+            _ => velocity with { Z = 0f }
+        };
+    }
+
+    private readonly record struct AxisMove(Axis Axis, float Delta, float Penetration);
+
+    private readonly record struct PenetrationResolution(Vector3 Offset, float Distance);
 
     private enum Axis
     {
