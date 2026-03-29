@@ -18,6 +18,7 @@ Implementierung erfolgt in Claude Code.
 - SampleBlock(): deterministisches Meshing unabhaengig von Chunk-Ladereihenfolge
 - Spieler-Entity trennt Position/Physik von der Kamera
 - BlockRegistry ist die zentrale Quelle der Wahrheit fuer alle Block-Eigenschaften
+- Dirty-Flag System: Chunk.PlayerEdits + IsDirty; World.PersistedEdits ueberlebt Unload/Reload (Grundlage Phase-5-Serialisierung)
 
 ## Projektstruktur
 VoxelEngine/
@@ -175,6 +176,7 @@ VoxelEngine/
 - [x] ChunkWorker-Dispose mit schnellerem Cancellation-Exit
 - [x] Klima-Debug-Kommando (`climate info`)
 - [x] Konsolen-History (Pfeiltasten) + Autocomplete (Tab)
+- [x] Dirty-Flag System: PlayerEdits + IsDirty in Chunk, PersistedEdits in World, Unload/Reload-Überleben
 - [ ] Inventar-System
 - [ ] Wetter-System
 

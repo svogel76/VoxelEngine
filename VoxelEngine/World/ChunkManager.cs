@@ -92,6 +92,8 @@ public sealed class ChunkManager : IDisposable
 
             if (dist > UnloadDistance)
             {
+                if (chunk.IsDirty)
+                    _world.SavePersistedEdits(chunk.ChunkPosition.X, chunk.ChunkPosition.Z, chunk.PlayerEdits);
                 _world.RemoveChunk(chunk.ChunkPosition.X, chunk.ChunkPosition.Z);
                 if (_enqueuedChunks.Contains(chunk.ChunkPosition))
                     _discardedChunks.Add(chunk.ChunkPosition);
@@ -142,6 +144,8 @@ public sealed class ChunkManager : IDisposable
             if (_discardedChunks.Remove(key))
             {
                 _enqueuedChunks.Remove(key);
+                if (result.Chunk.IsDirty)
+                    _world.SavePersistedEdits(result.ChunkX, result.ChunkZ, result.Chunk.PlayerEdits);
                 _world.RemoveChunk(result.ChunkX, result.ChunkZ);
                 continue;
             }

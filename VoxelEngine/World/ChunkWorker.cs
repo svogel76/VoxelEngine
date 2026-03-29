@@ -82,6 +82,14 @@ public sealed class ChunkWorker : IDisposable
     private Chunk GenerateChunk(int chunkX, int chunkZ)
     {
         var chunk = _generator.GenerateChunk(chunkX, chunkZ);
+
+        var edits = _world.TakePersistedEdits(chunkX, chunkZ);
+        if (edits is not null)
+        {
+            chunk.LoadEdits(edits);
+            chunk.ApplyPlayerEdits();
+        }
+
         _world.AddChunk(chunk);
         return chunk;
     }
