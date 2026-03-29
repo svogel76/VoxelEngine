@@ -34,6 +34,9 @@ public class Engine : IDisposable
     private bool _prevEnter     = false;
     private bool _prevBackspace = false;
     private bool _prevEscape    = false;
+    private bool _prevUp        = false;
+    private bool _prevDown      = false;
+    private bool _prevTab       = false;
 
     // Eingabe-Buffer für Debug-Konsole (Silk.NET-spezifisch)
     private string _consoleInput = "";
@@ -159,12 +162,45 @@ public class Engine : IDisposable
             }
             _prevEnter = enterNow;
 
+            // Pfeil hoch — History rückwärts
+            bool upNow = _context.Input.IsKeyPressed(Key.Up);
+            if (upNow && !_prevUp)
+            {
+                var result = _context.Console.NavigateHistoryUp(_consoleInput);
+                if (result is not null)
+                    _consoleInput = result;
+            }
+            _prevUp = upNow;
+
+            // Pfeil runter — History vorwärts
+            bool downNow = _context.Input.IsKeyPressed(Key.Down);
+            if (downNow && !_prevDown)
+            {
+                var result = _context.Console.NavigateHistoryDown();
+                if (result is not null)
+                    _consoleInput = result;
+            }
+            _prevDown = downNow;
+
+            // Tab — Autocomplete
+            bool tabNow = _context.Input.IsKeyPressed(Key.Tab);
+            if (tabNow && !_prevTab)
+            {
+                var result = _context.Console.Autocomplete(_consoleInput);
+                if (result is not null)
+                    _consoleInput = result;
+            }
+            _prevTab = tabNow;
+
             return;
         }
 
         _prevEscape    = false;
         _prevBackspace = false;
         _prevEnter     = false;
+        _prevUp        = false;
+        _prevDown      = false;
+        _prevTab       = false;
 
         if (_context.Input.IsKeyPressed(Key.Escape))
         {

@@ -71,4 +71,8 @@ public class EngineSettings
     public float FogStartFactor { get; init; } = 0.5f;
     /// <summary>Fog endet (vollständig) bei diesem Anteil der Render Distance (0.0–1.0)</summary>
     public float FogEndFactor   { get; init; } = 0.9f;
+
+    // Debug Console
+    /// <summary>Maximale Anzahl der gespeicherten Einträge in der Konsolen-History</summary>
+    public int ConsoleHistorySize { get; init; } = 50;
 }
