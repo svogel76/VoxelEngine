@@ -12,19 +12,12 @@ public sealed class Player
     private const float GroundProbeDistance = 0.05f;
     private const float MaxCollisionSubStep = 0.5f;
 
-    private static readonly byte[] SelectableBlocks =
-    {
-        BlockType.Grass,
-        BlockType.Dirt,
-        BlockType.Stone,
-        BlockType.Sand
-    };
-
     public Vector3 Position { get; private set; }
     public Vector3 Velocity { get; private set; }
     public bool IsOnGround { get; private set; }
     public bool FlyMode { get; private set; } = false;
-    public byte SelectedBlock { get; private set; } = BlockType.Grass;
+    public Inventory Inventory { get; }
+    public byte SelectedBlock => Inventory.Hotbar[Inventory.SelectedSlot]?.BlockType ?? BlockType.Air;
     public float InteractionReach { get; private set; } = 5f;
     private float _stepVisualOffsetY;
 
@@ -36,6 +29,12 @@ public sealed class Player
     {
         Position = startPosition;
         FlyMode = flyMode;
+        Inventory = new Inventory();
+        // Startzustand: ein paar Blöcke vorbefüllen
+        Inventory.SetSlot(0, new ItemStack(BlockType.Grass, 10));
+        Inventory.SetSlot(1, new ItemStack(BlockType.Dirt,  10));
+        Inventory.SetSlot(2, new ItemStack(BlockType.Stone, 10));
+        Inventory.SetSlot(3, new ItemStack(BlockType.Sand,  10));
     }
 
     public void ProcessInput(
@@ -154,15 +153,12 @@ public sealed class Player
         if (steps == 0)
             return;
 
-        int currentIndex = Array.IndexOf(SelectableBlocks, SelectedBlock);
-        if (currentIndex < 0)
-            currentIndex = 0;
-
-        int nextIndex = (currentIndex + steps) % SelectableBlocks.Length;
-        if (nextIndex < 0)
-            nextIndex += SelectableBlocks.Length;
-
-        SelectedBlock = SelectableBlocks[nextIndex];
+        if (steps > 0)
+            for (int i = 0; i < steps; i++)
+                Inventory.SelectNext();
+        else
+            for (int i = 0; i < -steps; i++)
+                Inventory.SelectPrevious();
     }
 
     public void SetInteractionReach(float reach)

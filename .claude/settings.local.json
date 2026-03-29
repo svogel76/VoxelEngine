@@ -10,7 +10,8 @@
       "WebFetch(domain:github.com)",
       "Bash(dotnet new:*)",
       "Bash(dotnet sln:*)",
-      "Bash(dotnet test:*)"
+      "Bash(dotnet test:*)",
+      "Bash(git fetch:*)"
     ]
   }
 }

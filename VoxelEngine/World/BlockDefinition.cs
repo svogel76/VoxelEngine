@@ -15,6 +15,7 @@ public sealed record BlockDefinition
     public required bool Replaceable { get; init; }
     public int Luminance { get; init; }
     public string[] Tags { get; init; } = [];
+    public int MaxStackSize { get; init; } = 64;
 
     public int GetTile(FaceDirection face) => face switch
     {

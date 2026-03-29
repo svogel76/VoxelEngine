@@ -1,0 +1,22 @@
+{
+  "elements": [
+    {
+      "id": "debug",
+      "anchor": "TopLeft",
+      "offsetX": 0.003,
+      "offsetY": 0.005,
+      "scale": 1.0,
+      "visible": true,
+      "zOrder": 10
+    },
+    {
+      "id": "hotbar",
+      "anchor": "BottomCenter",
+      "offsetX": 0.0,
+      "offsetY": 0.02,
+      "scale": 1.0,
+      "visible": true,
+      "zOrder": 20
+    }
+  ]
+}
