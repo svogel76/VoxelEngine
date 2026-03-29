@@ -251,7 +251,7 @@ public sealed class Player
             return;
         }
 
-        if (physics.EnableStepUp && canStepUp && TryStepUp(ref position, delta, axis, physics.StepHeight, world))
+        if (physics.EnableStepUp && canStepUp && TryStepUp(ref position, delta, axis, physics.StepHeight, physics.StepUpMaxVisualDrop, world))
             return;
 
         float resolved = ResolveAxisPosition(position, candidate, axis, world);
@@ -288,7 +288,7 @@ public sealed class Player
         ZeroVelocityAxis(ref velocity, axis);
     }
 
-    private bool TryStepUp(ref Vector3 position, float delta, Axis axis, float stepHeight, World world)
+    private bool TryStepUp(ref Vector3 position, float delta, Axis axis, float stepHeight, float maxVisualDrop, World world)
     {
         if (stepHeight <= 0f)
             return false;
@@ -310,16 +310,17 @@ public sealed class Player
 
         float stepAmount = advanced.Y - position.Y;
         position = advanced;
-        ApplyStepVisualOffset(stepAmount);
+        ApplyStepVisualOffset(stepAmount, maxVisualDrop);
         return true;
     }
 
-    private void ApplyStepVisualOffset(float stepAmount)
+    private void ApplyStepVisualOffset(float stepAmount, float maxVisualDrop)
     {
-        if (stepAmount <= 0f)
+        if (stepAmount <= 0f || maxVisualDrop <= 0f)
             return;
 
-        _stepVisualOffsetY -= stepAmount;
+        float appliedDrop = MathF.Min(stepAmount, maxVisualDrop);
+        _stepVisualOffsetY = MathF.Min(_stepVisualOffsetY, -appliedDrop);
     }
 
     private void UpdateStepVisualOffset(float deltaTime, float smoothingSpeed)
@@ -527,6 +528,7 @@ public readonly record struct PlayerPhysicsSettings(
     float MaxFallSpeed,
     float JumpVelocity,
     float StepHeight,
+    float StepUpMaxVisualDrop,
     float StepUpSmoothingSpeed,
     bool EnableStepUp);
 

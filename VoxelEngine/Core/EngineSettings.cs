@@ -63,6 +63,7 @@ public class EngineSettings
     public float MaxFallSpeed { get; init; } = 50.0f;
     public float JumpVelocity { get; init; } = 8.0f;
     public float StepHeight   { get; init; } = 1.0f;
+    public float StepUpMaxVisualDrop { get; init; } = 0.5f;
     public float StepUpSmoothingSpeed { get; init; } = 4.0f;
     public bool  EnableStepUp { get; init; } = true;
 

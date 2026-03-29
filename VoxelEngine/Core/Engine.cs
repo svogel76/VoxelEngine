@@ -400,6 +400,7 @@ public class Engine : IDisposable
             _settings.MaxFallSpeed,
             _settings.JumpVelocity,
             _settings.StepHeight,
+            _settings.StepUpMaxVisualDrop,
             _settings.StepUpSmoothingSpeed,
             _settings.EnableStepUp);
 
