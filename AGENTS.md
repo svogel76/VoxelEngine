@@ -24,6 +24,9 @@ Dieses Dokument beschreibt das Projekt kurz für KI-Assistenten (z. B. Codex, Cl
 
 ## Für KI-Agenten
 
+- **Vor jeder Aufgabe zuerst `git pull`** auf dem main Branch ausführen
+- Dann neuen Feature-Branch erstellen
+- Niemals auf einem veralteten Stand arbeiten
 - **Immer zuerst `VoxelEngine/Claude.md` lesen** – dort stehen Konventionen, die eingehalten werden müssen
 - Änderungen **nicht direkt auf `main` pushen** – immer als Pull Request
 - Nach Code-Änderungen: **Build prüfen** mit `dotnet build VoxelEngine/VoxelEngine.csproj`
