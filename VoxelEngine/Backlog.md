@@ -68,7 +68,6 @@
 
 ## Phase 5 — Engine & Architektur
 
-- 🟡 Chunk-Serialisierung (Welt speichern und laden — PlayerEdits-Grundlage vorhanden)
 - 🟢 Asset-Management System
 - 🟢 LOD (entfernte Chunks vereinfacht)
 
