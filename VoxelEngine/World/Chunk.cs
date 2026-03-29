@@ -7,8 +7,11 @@ public class Chunk
     public const int Depth  = 16;
 
     private readonly byte[,,] _blocks = new byte[Width, Height, Depth];
+    private readonly Dictionary<(byte x, byte y, byte z), byte> _playerEdits = new();
 
     public (int X, int Z) ChunkPosition { get; }
+    public bool IsDirty { get; private set; }
+    public IReadOnlyDictionary<(byte x, byte y, byte z), byte> PlayerEdits => _playerEdits;
 
     public Chunk(int x, int z)
     {
@@ -27,6 +30,39 @@ public class Chunk
         if (x < 0 || x >= Width || y < 0 || y >= Height || z < 0 || z >= Depth)
             return;
         _blocks[x, y, z] = type;
+    }
+
+    /// <summary>
+    /// Zeichnet eine Spieler-Änderung auf und setzt IsDirty. Nur über World.SetBlock() aufrufen.
+    /// </summary>
+    public void RecordEdit(int x, int y, int z, byte blockType)
+    {
+        if (x < 0 || x >= Width || y < 0 || y >= Height || z < 0 || z >= Depth)
+            return;
+        _playerEdits[((byte)x, (byte)y, (byte)z)] = blockType;
+        IsDirty = true;
+    }
+
+    /// <summary>
+    /// Überträgt gespeicherte Edits eines entladenen Chunks in diesen neu generierten Chunk.
+    /// Wird von ChunkWorker aufgerufen, bevor der Chunk der Welt hinzugefügt wird.
+    /// </summary>
+    public void LoadEdits(Dictionary<(byte x, byte y, byte z), byte> edits)
+    {
+        foreach (var (key, value) in edits)
+            _playerEdits[key] = value;
+        if (_playerEdits.Count > 0)
+            IsDirty = true;
+    }
+
+    /// <summary>
+    /// Wendet alle gespeicherten Spieler-Edits auf das Blocks-Array an.
+    /// Nach prozeduraler Terrain-Generierung aufrufen, damit Änderungen Reload überleben.
+    /// </summary>
+    public void ApplyPlayerEdits()
+    {
+        foreach (var (pos, type) in _playerEdits)
+            _blocks[pos.x, pos.y, pos.z] = type;
     }
 
     public bool IsEmpty()
