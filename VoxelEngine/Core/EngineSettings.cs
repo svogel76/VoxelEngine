@@ -71,4 +71,14 @@ public class EngineSettings
     public float FogStartFactor { get; init; } = 0.5f;
     /// <summary>Fog endet (vollständig) bei diesem Anteil der Render Distance (0.0–1.0)</summary>
     public float FogEndFactor   { get; init; } = 0.9f;
+
+    // Debug Console
+    /// <summary>Maximale Anzahl der gespeicherten Einträge in der Konsolen-History</summary>
+    public int ConsoleHistorySize { get; init; } = 50;
+
+    // HUD / Hotbar
+    /// <summary>Größe eines Hotbar-Slots in Pixeln</summary>
+    public int  HotbarSlotSize         { get; init; } = 40;
+    /// <summary>Zifferntasten 1-9 wählen Hotbar-Slot direkt an</summary>
+    public bool EnableHotbarNumberKeys { get; init; } = true;
 }

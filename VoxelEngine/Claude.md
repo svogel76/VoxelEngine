@@ -24,6 +24,8 @@ VoxelEngine/
 |-- Assets/
 |   |-- Fonts/
 |   |   `-- font.png
+|   |-- Hud/
+|   |   `-- hud.json              # Externe HUD-Konfiguration (Anchor, Offset, ZOrder)
 |   `-- Shaders/
 |       |-- basic.vert            # MVP + UV + TileLayer + AO + FaceLight + Cutout
 |       |-- basic.frag            # Beleuchtung + Fog + Alpha-Multiplier + Alpha-Cutout
@@ -38,6 +40,11 @@ VoxelEngine/
 |       |-- highlight.vert        # Block-Highlight Wireframe
 |       `-- highlight.frag        # Block-Highlight Farbe
 |-- Core/
+|   |-- Hud/
+|   |   |-- HudAnchor.cs
+|   |   |-- HudElementConfig.cs
+|   |   |-- IHudElement.cs
+|   |   `-- HudRegistry.cs
 |   |-- Debug/
 |   |   |-- Commands/
 |   |   |   |-- ChunkInfoCommand.cs
@@ -51,7 +58,8 @@ VoxelEngine/
 |   |   |   |-- SkyboxCommand.cs
 |   |   |   |-- TeleportCommand.cs
 |   |   |   |-- TimeCommand.cs
-|   |   |   `-- WireframeCommand.cs
+|   |   |   |-- WireframeCommand.cs
+|   |   |   `-- HudCommand.cs            # hud reload / toggle / list
 |   |   |-- DebugConsole.cs
 |   |   `-- ICommand.cs
 |   |-- Engine.cs
@@ -61,6 +69,14 @@ VoxelEngine/
 |   |-- GameLoop.cs
 |   `-- InputHandler.cs
 |-- Rendering/
+|   |-- Hud/
+|   |   |-- DebugHudElement.cs    # IHudElement fuer Debug-Overlay + Konsole
+|   |   |-- DebugHudRenderer.cs   # IHudRenderer fuer Debug-Overlay
+|   |   |-- HotbarHudElement.cs   # IHudElement fuer Hotbar-Snapshot
+|   |   |-- HotbarHudRenderer.cs  # IHudRenderer fuer 9-Slot-Hotbar
+|   |   |-- HudManager.cs         # Rendert alle HUD-Elemente nach ZOrder
+|   |   |-- HudUtils.cs           # ResolveAnchor() Pixel-Berechnung
+|   |   `-- IHudRenderer.cs       # Interface fuer HUD-Renderer
 |   |-- ArrayTexture.cs           # Texture2DArray, Schichten aus BlockRegistry
 |   |-- BitmapFont.cs
 |   |-- BlockHighlightRenderer.cs # Wireframe-Highlight mit Depth-Test
@@ -68,7 +84,7 @@ VoxelEngine/
 |   |-- CelestialBody.cs          # Billboard Quad fuer Sonne/Mond
 |   |-- CelestialTextures.cs      # Sonne + Mondphasen programmatisch
 |   |-- ChunkRenderer.cs          # Chunk-Meshes + Ghost-Block Rendering (opaque/cutout/transparent)
-|   |-- DebugOverlay.cs           # HUD: FPS, Pos, Chunks, Verts, Time, Block, Reach
+|   |-- DebugOverlay.cs           # Duenner Wrapper um HudManager + DebugHudElement
 |   |-- FrustumCuller.cs
 |   |-- GreedyMeshBuilder.cs      # 3-Achsen-Sweep, NeedsFace, SampleBlock
 |   |-- Mesh.cs                   # VAO/VBO/EBO, Stride 9 floats
@@ -80,7 +96,7 @@ VoxelEngine/
 |   |-- TextRenderer.cs
 |   `-- Texture.cs
 `-- World/
-    |-- BlockDefinition.cs        # Zentrale Block-Eigenschaften inkl. Tiles, Render-/Kollisions-Flags, Tags
+    |-- BlockDefinition.cs        # Zentrale Block-Eigenschaften inkl. Tiles, Render-/Kollisions-Flags, Tags, MaxStackSize
     |-- BlockRaycaster.cs         # DDA Ray-Casting + PlacementPreview
     |-- BlockRegistry.cs          # Zentrale Registry aller BlockDefinitionen
     |-- BlockTextures.cs          # Kompatibilitaets-Shim fuer Tile-Lookups via Registry
@@ -95,7 +111,8 @@ VoxelEngine/
     |-- CollisionAndGravity.md    # Konzeptnotiz fuer Spieler-Physik
     |-- FaceDirection.cs
     |-- NoiseSettings.cs
-    |-- Player.cs                 # Position, Velocity, FlyMode, Physik, Step-up
+    |-- Inventory.cs              # ItemStack, Hotbar[9], TryAdd/Remove, SelectNext/Previous/Slot
+    |-- Player.cs                 # Position, Velocity, FlyMode, Physik, Step-up, Inventory
     |-- RayCasting.md             # Konzeptnotiz fuer Block-Interaktion
     |-- StepUp.md                 # Konzeptnotiz fuer Step-up
     |-- TreeTemplate.cs           # Baum-Schablonen als 3D Block-Arrays mit Pivot
@@ -174,8 +191,10 @@ VoxelEngine/
 - [x] Wasser und Leaves rendern Innenseiten ohne Backface-Culling im Transparent-/Cutout-Pass
 - [x] ChunkWorker-Dispose mit schnellerem Cancellation-Exit
 - [x] Klima-Debug-Kommando (`climate info`)
-- [ ] Konsolen-History + Autocomplete
-- [ ] Inventar-System
+- [x] Konsolen-History (Pfeiltasten) + Autocomplete (Tab)
+- [x] Inventar-System (Hotbar, ItemStack, TryAdd/Remove, SelectNext/Previous/Slot)
+- [x] HUD-Framework (HudRegistry, Anchor-System, hud.json, ZOrder-Rendering)
+- [x] Hotbar-UI (9 Slots, Mausrad, Zifferntasten 1-9, HotbarHudRenderer)
 - [ ] Wetter-System
 
 ## Anweisungen fuer Coding Agents
@@ -213,6 +232,6 @@ Aktualisiere die `CLAUDE.md` automatisch:
 3. **Naechste Schritte** - abgearbeitete Punkte entfernen
 
 ## Naechste Schritte
-1. Konsolen-History + Autocomplete
-2. Inventar-System
-3. Wetter-System
+1. Wetter-System
+2. Block-Icons in Hotbar (ArrayTexture-Integration)
+3. Chunk-Serialisierung (Speichern/Laden)

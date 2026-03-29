@@ -5,7 +5,9 @@ using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using VoxelEngine.Core.Debug.Commands;
+using VoxelEngine.Core.Hud;
 using VoxelEngine.Rendering;
+using VoxelEngine.Rendering.Hud;
 using VoxelEngine.World;
 
 namespace VoxelEngine.Core;
@@ -34,6 +36,7 @@ public class Engine : IDisposable
     private bool _prevEnter     = false;
     private bool _prevBackspace = false;
     private bool _prevEscape    = false;
+    private readonly bool[] _prevNum = new bool[9];
 
     // Eingabe-Buffer für Debug-Konsole (Silk.NET-spezifisch)
     private string _consoleInput = "";
@@ -100,8 +103,19 @@ public class Engine : IDisposable
         _context.Console.Register(new SkyboxCommand());
         _context.Console.Register(new TimeCommand());
         _context.Console.Register(new FogCommand());
+        _context.Console.Register(new HudCommand(_context.HudRegistry));
 
         _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight);
+
+        // Hotbar-Element im HudRegistry registrieren + Renderer einbinden
+        var hotbarElement  = new HotbarHudElement();
+        _context.HudRegistry.Register(hotbarElement);
+        var hotbarRenderer = new HotbarHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
+        _debugOverlay.HudManager.RegisterRenderer("hotbar", hotbarRenderer);
+
+        // hud.json laden (nach allen Registrierungen)
+        _context.HudRegistry.LoadConfig("Assets/Hud/hud.json");
+
         _context.ChunkManager.PrimeInitialChunks(player.Position.X, player.Position.Z, _settings.InitialChunkLoadRadius);
 
         _frameTimer.Start();
@@ -197,6 +211,20 @@ public class Engine : IDisposable
         int scrollSteps = _context.Input.ConsumeScrollSteps();
         if (scrollSteps != 0)
             _context.Player.CycleSelectedBlock(scrollSteps);
+
+        // Zifferntasten 1-9 für direkten Hotbar-Slot-Auswahl
+        if (_settings.EnableHotbarNumberKeys)
+        {
+            Key[] numKeys = [Key.Number1, Key.Number2, Key.Number3, Key.Number4, Key.Number5,
+                             Key.Number6, Key.Number7, Key.Number8, Key.Number9];
+            for (int i = 0; i < 9; i++)
+            {
+                bool numNow = _context.Input.IsKeyPressed(numKeys[i]);
+                if (numNow && !_prevNum[i])
+                    _context.Player.Inventory.SelectSlot(i);
+                _prevNum[i] = numNow;
+            }
+        }
 
         if (_context.Input.ConsumeLeftClicks() > 0)
             TryBreakTargetedBlock();

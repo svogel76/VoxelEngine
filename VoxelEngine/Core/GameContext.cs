@@ -1,4 +1,5 @@
 using VoxelEngine.Core.Debug;
+using VoxelEngine.Core.Hud;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
 
@@ -16,6 +17,7 @@ public class GameContext : IDisposable
     public WorldGenerator Generator     { get; }
     public ChunkManager   ChunkManager  { get; }
     public WorldTime      Time          { get; }
+    public HudRegistry    HudRegistry   { get; } = new HudRegistry();
     public BlockRaycastHit? TargetedBlock { get; set; }
     public BlockPlacementPreview? PlacementPreview { get; set; }
     private bool _disposed;
