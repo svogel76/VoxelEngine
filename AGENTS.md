@@ -34,15 +34,30 @@ Dieses Dokument beschreibt das Projekt kurz für KI-Assistenten (z. B. Codex, Cl
 - Wenn der Build nach 2 Versuchen nicht grün wird → stoppen und melden
 - Keine bestehenden Tests löschen oder deaktivieren
 - Keine Abhängigkeiten (NuGet Packages) ohne Rückfrage hinzufügen
+- Keine bestehenden Tests löschen oder deaktivieren  ← bereits vorhanden, bleibt
+- Wenn Tests nach dem Fix noch rot sind → stoppen und melden (nicht weiter patchen)
 
 ### Pull Request Regeln
 - Branch-Name: feature/kurze-beschreibung oder fix/kurze-beschreibung
 - PR-Titel auf Deutsch
 - PR-Beschreibung enthält: Was wurde geändert, warum, welche Dateien
 - Build muss grün sein bevor PR geöffnet wird
+- `dotnet test` muss grün sein (zusätzlich zu `dotnet build`)
 
 ### Kritische Architekturregeln
 - World/ Verzeichnis darf NIEMALS Silk.NET importieren
 - GL-Calls nur im Hauptthread
 - Keine Magic Numbers – alle Konfiguration über EngineSettings
 - Nach Block-Änderungen: Nachbar-Chunks an Borders neu aufbauen
+
+### Unit Tests
+- Test-Projekt: `VoxelEngine.Tests/` (xUnit + FluentAssertions)
+- Tests ausführen: `dotnet test VoxelEngine.Tests/VoxelEngine.Tests.csproj`
+- **Nach jeder Implementierung Tests ausführen** — kein PR ohne grüne Tests
+- **Neue Logik in `World/` bekommt immer Tests** – insbesondere:
+  - Neue Block-Eigenschaften in BlockRegistry
+  - Neue Gameplay-Mechaniken (Physik, Kollision, Zeitlogik)
+  - Neue Chunk-Operationen (Dirty-Flag, Serialisierung, Edits)
+- Tests strukturieren nach AAA-Muster (Arrange / Act / Assert)
+- Keine Magic Numbers in Tests — Konstanten aus den echten Klassen verwenden
+- Kein Mocking nötig — World/ ist pure C# ohne Framework-Abhängigkeiten

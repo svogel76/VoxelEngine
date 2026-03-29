@@ -21,6 +21,12 @@ Implementierung erfolgt in Claude Code.
 - Dirty-Flag System: Chunk.PlayerEdits + IsDirty; World.PersistedEdits ueberlebt Unload/Reload (Grundlage Phase-5-Serialisierung)
 
 ## Projektstruktur
+VoxelEngine.Tests/
+|-- World/
+|   |-- BlockRegistryTests.cs   # GetById, Solid, Transparent, Replaceable, CollidesWithPlayer, Grenzfall
+|   |-- ChunkDirtyFlagTests.cs  # IsDirty, RecordEdit, ApplyPlayerEdits, LoadEdits
+|   `-- WorldTimeTests.cs       # Advance, Wrap, MoonPhase, TimeScale, Paused
+`-- VoxelEngine.Tests.csproj    # xUnit 2.9, FluentAssertions 6.12, net10.0
 VoxelEngine/
 |-- Assets/
 |   |-- Fonts/
@@ -177,6 +183,7 @@ VoxelEngine/
 - [x] Klima-Debug-Kommando (`climate info`)
 - [x] Konsolen-History (Pfeiltasten) + Autocomplete (Tab)
 - [x] Dirty-Flag System: PlayerEdits + IsDirty in Chunk, PersistedEdits in World, Unload/Reload-Überleben
+- [x] Unit-Test-Projekt (xUnit, BlockRegistry, Dirty-Flag, WorldTime) — 24 Tests, alle grün
 - [ ] Inventar-System
 - [ ] Wetter-System
 

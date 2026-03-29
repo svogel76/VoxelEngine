@@ -7,7 +7,10 @@
       "Bash(curl -s \"https://archive.org/wayback/available?url=dwarffortresswiki.org/images/b/be/Curses_square_16x16.png\")",
       "Bash(curl -s \"https://archive.org/wayback/available?url=dwarffortresswiki.org/images/b/be/Curses_square_16x16.png&timestamp=20230101\")",
       "Bash(curl -s -L -o \"c:/projects/VoxelEngine/VoxelEngine/Assets/Fonts/font.png\" \"https://github.com/cicontinuum/robsquare/raw/master/data/init/Curses_square_16x16.png\" -w \"%{http_code} %{size_download}\")",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet sln:*)",
+      "Bash(dotnet test:*)"
     ]
   }
 }
