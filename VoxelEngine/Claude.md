@@ -175,8 +175,8 @@ VoxelEngine/
 - [x] Wasser und Leaves rendern Innenseiten ohne Backface-Culling im Transparent-/Cutout-Pass
 - [x] ChunkWorker-Dispose mit schnellerem Cancellation-Exit
 - [x] Klima-Debug-Kommando (`climate info`)
+- [x] Konsolen-History (Pfeiltasten) + Autocomplete (Tab)
 - [x] Dirty-Flag System: PlayerEdits + IsDirty in Chunk, PersistedEdits in World, Unload/Reload-Überleben
-- [ ] Konsolen-History + Autocomplete
 - [ ] Inventar-System
 - [ ] Wetter-System
 
@@ -215,6 +215,5 @@ Aktualisiere die `CLAUDE.md` automatisch:
 3. **Naechste Schritte** - abgearbeitete Punkte entfernen
 
 ## Naechste Schritte
-1. Konsolen-History + Autocomplete
-2. Inventar-System
-3. Wetter-System
+1. Inventar-System
+2. Wetter-System
