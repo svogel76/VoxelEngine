@@ -204,6 +204,8 @@ VoxelEngine/
 - [x] Inventar-System (Hotbar, ItemStack, TryAdd/Remove, SelectNext/Previous/Slot)
 - [x] HUD-Framework (HudRegistry, Anchor-System, hud.json, ZOrder-Rendering)
 - [x] Hotbar-UI (9 Slots, Mausrad, Zifferntasten 1-9, HotbarHudRenderer)
+- [x] Aufsammeln von Blöcken ins Inventar beim Abbauen
+- [x] Blöcke aus Inventar platzieren (Count dekrementieren, Slot bei Count=0 leeren)
 - [ ] Wetter-System
 
 ## Anweisungen fuer Coding Agents

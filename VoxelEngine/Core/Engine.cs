@@ -374,8 +374,10 @@ public class Engine : IDisposable
         if (hit.BlockType == BlockType.Water)
             return;
 
+        var removedBlock = _context.World.GetBlock(hit.BlockPosition.X, hit.BlockPosition.Y, hit.BlockPosition.Z);
         _context.World.SetBlock(hit.BlockPosition.X, hit.BlockPosition.Y, hit.BlockPosition.Z, BlockType.Air);
         _context.ChunkManager.EnqueueBlockUpdate(hit.BlockPosition.X, hit.BlockPosition.Z);
+        _context.Player.Inventory.TryAdd(removedBlock);
         _context.TargetedBlock = BlockRaycaster.Raycast(
             _context.World,
             _context.Player.EyePosition,
@@ -389,6 +391,11 @@ public class Engine : IDisposable
         if (_context.TargetedBlock is not { } hit)
             return;
 
+        int slot = _context.Player.Inventory.SelectedSlot;
+        var stack = _context.Player.Inventory.Hotbar[slot];
+        if (stack is null)
+            return;
+
         BlockPosition placement = GetPlacementTarget(hit);
         if (placement.Y < 0 || placement.Y >= Chunk.Height)
             return;
@@ -399,8 +406,9 @@ public class Engine : IDisposable
         if (!BlockRegistry.IsReplaceable(_context.World.GetBlock(placement.X, placement.Y, placement.Z)))
             return;
 
-        _context.World.SetBlock(placement.X, placement.Y, placement.Z, _context.Player.SelectedBlock);
+        _context.World.SetBlock(placement.X, placement.Y, placement.Z, stack.BlockType);
         _context.ChunkManager.EnqueueBlockUpdate(placement.X, placement.Z);
+        _context.Player.Inventory.TryRemove(slot, 1);
         _context.TargetedBlock = BlockRaycaster.Raycast(
             _context.World,
             _context.Player.EyePosition,
@@ -415,6 +423,10 @@ public class Engine : IDisposable
         if (_context.TargetedBlock is not { } hit)
             return null;
 
+        var stack = _context.Player.Inventory.Hotbar[_context.Player.Inventory.SelectedSlot];
+        if (stack is null)
+            return null;
+
         BlockPosition placement = GetPlacementTarget(hit);
         if (placement.Y < 0 || placement.Y >= Chunk.Height)
             return null;
@@ -425,7 +437,7 @@ public class Engine : IDisposable
         if (!BlockRegistry.IsReplaceable(_context.World.GetBlock(placement.X, placement.Y, placement.Z)))
             return null;
 
-        return new BlockPlacementPreview(placement, _context.Player.SelectedBlock);
+        return new BlockPlacementPreview(placement, stack.BlockType);
     }
 
     private static BlockPosition GetPlacementTarget(BlockRaycastHit hit) =>

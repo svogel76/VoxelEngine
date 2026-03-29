@@ -67,10 +67,10 @@ public sealed class Inventory
     }
 
     /// <summary>
-    /// Entfernt einen Block aus dem angegebenen Slot (Count-1, bei 0 → null).
-    /// Gibt true zurück wenn erfolgreich.
+    /// Entfernt <paramref name="count"/> Blöcke aus dem angegebenen Slot.
+    /// Bei Count ≤ 0 wird der Slot geleert (null). Gibt true zurück wenn erfolgreich.
     /// </summary>
-    public bool TryRemove(int slot)
+    public bool TryRemove(int slot, int count)
     {
         if (slot < 0 || slot >= HotbarSize)
             return false;
@@ -79,9 +79,13 @@ public sealed class Inventory
             return false;
 
         var stack = _hotbar[slot]!;
-        _hotbar[slot] = stack.Count > 1 ? stack with { Count = stack.Count - 1 } : null;
+        int newCount = stack.Count - count;
+        _hotbar[slot] = newCount > 0 ? stack with { Count = newCount } : null;
         return true;
     }
+
+    /// <summary>Entfernt einen Block aus dem angegebenen Slot (Count-1, bei 0 → null).</summary>
+    public bool TryRemove(int slot) => TryRemove(slot, 1);
 
     /// <summary>Setzt einen Slot direkt (für Startzustand / Tests).</summary>
     internal void SetSlot(int slot, ItemStack? stack)
