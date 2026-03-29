@@ -1,31 +1,34 @@
 using VoxelEngine.Core;
+using VoxelEngine.Persistence;
 
 namespace VoxelEngine.World;
 
 public sealed class ChunkManager : IDisposable
 {
-    private readonly World _world;
-    private readonly EngineSettings _settings;
-    private readonly ChunkWorker _worker;
+    private readonly World             _world;
+    private readonly EngineSettings    _settings;
+    private readonly ChunkWorker       _worker;
+    private readonly IWorldPersistence _persistence;
 
     private int _lastPlayerChunkX = int.MinValue;
     private int _lastPlayerChunkZ = int.MinValue;
 
-    private readonly HashSet<(int X, int Z)> _enqueuedChunks = new();
-    private readonly HashSet<(int X, int Z)> _discardedChunks = new();
-    private readonly List<(int, int)> _unloadedThisUpdate = new();
+    private readonly HashSet<(int X, int Z)>    _enqueuedChunks = new();
+    private readonly HashSet<(int X, int Z)>    _discardedChunks = new();
+    private readonly List<(int, int)>           _unloadedThisUpdate = new();
     private bool _disposed;
 
-    public int RenderDistance { get; set; }
-    public int UnloadDistance => _settings.UnloadDistance;
-    public int PendingChunks => _enqueuedChunks.Count;
+    public int RenderDistance  { get; set; }
+    public int UnloadDistance  => _settings.UnloadDistance;
+    public int PendingChunks   => _enqueuedChunks.Count;
     public IReadOnlyList<(int chunkX, int chunkZ)> UnloadedThisUpdate => _unloadedThisUpdate;
 
-    public ChunkManager(World world, WorldGenerator generator, EngineSettings settings)
+    public ChunkManager(World world, WorldGenerator generator, EngineSettings settings, IWorldPersistence persistence)
     {
-        _world = world;
-        _settings = settings;
-        _worker = new ChunkWorker(world, generator);
+        _world       = world;
+        _settings    = settings;
+        _persistence = persistence;
+        _worker      = new ChunkWorker(world, generator, persistence);
         RenderDistance = settings.RenderDistance;
     }
 
@@ -86,14 +89,15 @@ public sealed class ChunkManager : IDisposable
 
         foreach (var chunk in _world.GetAllChunks().ToList())
         {
-            int dx = chunk.ChunkPosition.X - playerChunkX;
-            int dz = chunk.ChunkPosition.Z - playerChunkZ;
+            int dx   = chunk.ChunkPosition.X - playerChunkX;
+            int dz   = chunk.ChunkPosition.Z - playerChunkZ;
             int dist = Math.Max(Math.Abs(dx), Math.Abs(dz));
 
             if (dist > UnloadDistance)
             {
                 if (chunk.IsDirty)
-                    _world.SavePersistedEdits(chunk.ChunkPosition.X, chunk.ChunkPosition.Z, chunk.PlayerEdits);
+                    _persistence.SaveChunkEditsAsync(chunk.ChunkPosition.X, chunk.ChunkPosition.Z, chunk.PlayerEdits)
+                                .GetAwaiter().GetResult();
                 _world.RemoveChunk(chunk.ChunkPosition.X, chunk.ChunkPosition.Z);
                 if (_enqueuedChunks.Contains(chunk.ChunkPosition))
                     _discardedChunks.Add(chunk.ChunkPosition);
@@ -105,8 +109,8 @@ public sealed class ChunkManager : IDisposable
 
         foreach (var key in _enqueuedChunks.ToList())
         {
-            int dx = key.X - playerChunkX;
-            int dz = key.Z - playerChunkZ;
+            int dx   = key.X - playerChunkX;
+            int dz   = key.Z - playerChunkZ;
             int dist = Math.Max(Math.Abs(dx), Math.Abs(dz));
 
             if (dist > UnloadDistance)
@@ -145,7 +149,8 @@ public sealed class ChunkManager : IDisposable
             {
                 _enqueuedChunks.Remove(key);
                 if (result.Chunk.IsDirty)
-                    _world.SavePersistedEdits(result.ChunkX, result.ChunkZ, result.Chunk.PlayerEdits);
+                    _persistence.SaveChunkEditsAsync(result.ChunkX, result.ChunkZ, result.Chunk.PlayerEdits)
+                                .GetAwaiter().GetResult();
                 _world.RemoveChunk(result.ChunkX, result.ChunkZ);
                 continue;
             }

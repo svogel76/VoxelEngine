@@ -72,6 +72,10 @@ public class EngineSettings
     /// <summary>Fog endet (vollständig) bei diesem Anteil der Render Distance (0.0–1.0)</summary>
     public float FogEndFactor   { get; init; } = 0.9f;
 
+    // Persistence
+    /// <summary>Verzeichnis für Spielstände (relativ zum Arbeitsverzeichnis)</summary>
+    public string SaveDirectory { get; init; } = "saves/world";
+
     // Debug Console
     /// <summary>Maximale Anzahl der gespeicherten Einträge in der Konsolen-History</summary>
     public int ConsoleHistorySize { get; init; } = 50;

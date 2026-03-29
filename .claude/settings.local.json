@@ -11,7 +11,12 @@
       "Bash(dotnet new:*)",
       "Bash(dotnet sln:*)",
       "Bash(dotnet test:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(ls -la c:/projects/VoxelEngine/VoxelEngine/World/*.cs)",
+      "Read(//c/Users/vogel/.claude/projects/c--projects-VoxelEngine/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\vogel\\.claude\\projects\\c--projects-VoxelEngine\\memory"
     ]
   }
 }

@@ -6,6 +6,7 @@ using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Core.Hud;
+using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.Rendering.Hud;
 using VoxelEngine.World;
@@ -18,10 +19,11 @@ public class Engine : IDisposable
     private readonly EngineSettings _settings;
     private readonly double         _fixedDelta;
 
-    private GL            _gl           = null!;
-    private IInputContext _inputContext = null!;
-    private GameContext   _context      = null!;
-    private DebugOverlay  _debugOverlay = null!;
+    private GL                   _gl           = null!;
+    private IInputContext        _inputContext = null!;
+    private GameContext          _context      = null!;
+    private DebugOverlay         _debugOverlay = null!;
+    private LocalFilePersistence _persistence  = null!;
 
     private readonly Stopwatch _frameTimer = new();
 
@@ -30,6 +32,11 @@ public class Engine : IDisposable
     private double _fps         = 0.0;
     private int    _frameCount  = 0;
     private bool   _closed;
+
+    // Spawn-Schutz: FlyMode temporär aktiv bis der Chunk unter dem Spieler geladen ist,
+    // damit der Spieler nicht durch ungeladene Chunks fällt.
+    private bool _waitingForChunkLoad = false;
+    private bool _spawnFlyMode        = false;
 
     // Edge detection
     private bool _prevF1        = false;
@@ -92,7 +99,20 @@ public class Engine : IDisposable
         player.SetInteractionReach(_settings.InteractionReach);
         var camera = new Camera(ToSilk(player.EyePosition), aspectRatio, _settings);
 
-        _context = new GameContext(_settings, world, player, camera, renderer, input, generator);
+        _persistence = new LocalFilePersistence(_settings.SaveDirectory);
+        _context = new GameContext(_settings, world, player, camera, renderer, input, generator, _persistence);
+
+        // Spielerstand + Welt-Metadaten laden (falls vorhanden)
+        var (savedPlayer, savedWorld) = _context.LoadGameStateAsync().GetAwaiter().GetResult();
+        if (savedPlayer is not null && savedWorld is not null)
+            _context.ApplyLoadedState(savedPlayer, savedWorld);
+
+        // Spawn-Schutz: FlyMode aktivieren bis der Chunk unter dem Spieler geladen ist.
+        // Verhindert, dass der Spieler durch ungeladene Chunks fällt (Hintergrund-Generierung
+        // ist asynchron und kann beim ersten Update() noch nicht fertig sein).
+        _spawnFlyMode = _context.Player.FlyMode;
+        _context.Player.SetFlyMode(true);
+        _waitingForChunkLoad = true;
 
         _context.Console.Register(new HelpCommand(_context.Console));
         _context.Console.Register(new PosCommand());
@@ -142,6 +162,20 @@ public class Engine : IDisposable
 
     private void Update(double fixedDelta)
     {
+        // Spawn-Schutz: warten bis der Chunk unter dem Spieler tatsächlich geladen ist.
+        if (_waitingForChunkLoad)
+        {
+            int cx = (int)Math.Floor(_context.Player.Position.X / Chunk.Width);
+            int cz = (int)Math.Floor(_context.Player.Position.Z / Chunk.Depth);
+            if (_context.World.GetChunk(cx, cz) is not null)
+            {
+                _context.Player.SetFlyMode(_spawnFlyMode);
+                if (!_spawnFlyMode)
+                    _context.Player.SyncPhysics(_context.World);
+                _waitingForChunkLoad = false;
+            }
+        }
+
         // F1 — Konsole öffnen/schließen
         bool f1Now = _context.Input.IsKeyPressed(Key.F1);
         if (f1Now && !_prevF1)
@@ -304,11 +338,14 @@ public class Engine : IDisposable
             return;
 
         _closed = true;
+        // Spielerstand + Welt-Metadaten speichern
+        _context?.SaveGameStateAsync().GetAwaiter().GetResult();
         // GL-Kontext ist hier noch aktiv — alle OpenGL-Ressourcen hier freigeben
         // _inputContext wird von Silk.NET/GLFW intern disposed wenn das Fenster schließt —
         // manuelles Dispose hier würde eine ObjectDisposedException auslösen.
         _debugOverlay?.Dispose();
         _context?.Dispose();
+        _persistence?.Dispose();
         Console.WriteLine("Engine closing.");
     }
 

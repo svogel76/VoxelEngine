@@ -6,10 +6,6 @@ public class World
 {
     private readonly ConcurrentDictionary<(int X, int Z), Chunk> _chunks = new();
 
-    // Überlebt Chunk-Unload: Spieler-Edits für noch nicht geladene Chunk-Positionen.
-    // Main Thread (ChunkManager) schreibt, Background Thread (ChunkWorker) liest einmalig via TakePersistedEdits.
-    private readonly ConcurrentDictionary<(int X, int Z), Dictionary<(byte x, byte y, byte z), byte>> _persistedEdits = new();
-
     public int LoadedChunkCount => _chunks.Count;
 
     public static int WorldToChunk(int worldCoord)
@@ -43,23 +39,6 @@ public class World
         chunk.SetBlock(localX, worldY, localZ, type);
         chunk.RecordEdit(localX, worldY, localZ, type);
     }
-
-    /// <summary>
-    /// Speichert die Edits eines entladenen Dirty-Chunks für späteres Reload.
-    /// Wird vom Main Thread (ChunkManager) beim Unload aufgerufen.
-    /// </summary>
-    public void SavePersistedEdits(int chunkX, int chunkZ, IReadOnlyDictionary<(byte x, byte y, byte z), byte> edits)
-    {
-        var copy = new Dictionary<(byte x, byte y, byte z), byte>(edits);
-        _persistedEdits[(chunkX, chunkZ)] = copy;
-    }
-
-    /// <summary>
-    /// Holt und entfernt die gespeicherten Edits für eine Chunk-Position.
-    /// Wird vom Background Thread (ChunkWorker) nach der Terrain-Generierung aufgerufen.
-    /// </summary>
-    public Dictionary<(byte x, byte y, byte z), byte>? TakePersistedEdits(int chunkX, int chunkZ)
-        => _persistedEdits.TryRemove((chunkX, chunkZ), out var edits) ? edits : null;
 
     public void RemoveChunk(int chunkX, int chunkZ)
         => _chunks.TryRemove((chunkX, chunkZ), out _);

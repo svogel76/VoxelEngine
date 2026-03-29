@@ -26,4 +26,13 @@ public class WorldTime
 
     public void SetTime(double hours)
         => Time = Math.Clamp(hours, 0.0, 23.999);
+
+    /// <summary>
+    /// Stellt Uhrzeit und Tagzähler aus einem gespeicherten Spielstand wieder her.
+    /// </summary>
+    public void Restore(double time, int dayCount)
+    {
+        Time     = Math.Clamp(time, 0.0, 23.999);
+        DayCount = Math.Max(0, dayCount);
+    }
 }
