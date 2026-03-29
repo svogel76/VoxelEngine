@@ -28,3 +28,21 @@ Dieses Dokument beschreibt das Projekt kurz für KI-Assistenten (z. B. Codex, Cl
 - Änderungen **nicht direkt auf `main` pushen** – immer als Pull Request
 - Nach Code-Änderungen: **Build prüfen** mit `dotnet build VoxelEngine/VoxelEngine.csproj`
 - Sprache im Code: **Englisch** (Bezeichner, Kommentare); Kommunikation mit Steffen: **Deutsch**
+
+### Stopp-Bedingungen
+- Bei Architekturentscheidungen die mehrere Systeme betreffen → nachfragen
+- Wenn der Build nach 2 Versuchen nicht grün wird → stoppen und melden
+- Keine bestehenden Tests löschen oder deaktivieren
+- Keine Abhängigkeiten (NuGet Packages) ohne Rückfrage hinzufügen
+
+### Pull Request Regeln
+- Branch-Name: feature/kurze-beschreibung oder fix/kurze-beschreibung
+- PR-Titel auf Deutsch
+- PR-Beschreibung enthält: Was wurde geändert, warum, welche Dateien
+- Build muss grün sein bevor PR geöffnet wird
+
+### Kritische Architekturregeln
+- World/ Verzeichnis darf NIEMALS Silk.NET importieren
+- GL-Calls nur im Hauptthread
+- Keine Magic Numbers – alle Konfiguration über EngineSettings
+- Nach Block-Änderungen: Nachbar-Chunks an Borders neu aufbauen
