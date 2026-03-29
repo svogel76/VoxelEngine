@@ -11,6 +11,11 @@ public class ChunkRenderer : IDisposable
     private const int MaxUploadsPerFrame = 16;
     private const float GhostScale = 1.002f;
 
+    // Sicherer Fog-Disable-Wert: weit genug von FLT_MAX entfernt,
+    // um NaN durch float.MaxValue-Arithmetik in GLSL zu vermeiden.
+    private const float FogDisabledStart = 1e30f;
+    private const float FogDisabledEnd   = 2e30f;
+
     private readonly GL _gl;
     private readonly Shader _shader;
     private readonly ArrayTexture _atlas;
@@ -119,8 +124,8 @@ public class ChunkRenderer : IDisposable
                 ? MathF.Max(FogStartFactor, 0.7f)
                 : FogStartFactor;
 
-        float fogStart = FogEndFactor <= 0f ? float.MaxValue / 2f : renderDist * startFactor;
-        float fogEnd = FogEndFactor <= 0f ? float.MaxValue : renderDist * FogEndFactor;
+        float fogStart = FogEndFactor <= 0f ? FogDisabledStart : renderDist * startFactor;
+        float fogEnd   = FogEndFactor <= 0f ? FogDisabledEnd   : renderDist * FogEndFactor;
 
         shader.Use();
         shader.SetMatrix4("model", Matrix4X4<float>.Identity);
@@ -217,8 +222,8 @@ public class ChunkRenderer : IDisposable
                 ? MathF.Max(FogStartFactor, 0.7f)
                 : FogStartFactor;
 
-        float fogStart = FogEndFactor <= 0f ? float.MaxValue / 2f : renderDist * startFactor;
-        float fogEnd = FogEndFactor <= 0f ? float.MaxValue : renderDist * FogEndFactor;
+        float fogStart = FogEndFactor <= 0f ? FogDisabledStart : renderDist * startFactor;
+        float fogEnd   = FogEndFactor <= 0f ? FogDisabledEnd   : renderDist * FogEndFactor;
 
         var ghost = preview.Value;
         var pos = ghost.Position;
