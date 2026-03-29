@@ -1,24 +1,27 @@
 using System.Collections.Concurrent;
+using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 
 namespace VoxelEngine.World;
 
 public sealed class ChunkWorker : IDisposable
 {
-    private readonly World _world;
+    private readonly World          _world;
     private readonly WorldGenerator _generator;
-    private readonly ConcurrentQueue<ChunkJob> _jobQueue = new();
+    private readonly IWorldPersistence _persistence;
+    private readonly ConcurrentQueue<ChunkJob>    _jobQueue    = new();
     private readonly ConcurrentQueue<ChunkResult> _resultQueue = new();
     private readonly CancellationTokenSource _cts = new();
     private readonly Task[] _workers;
 
-    private int _activeJobs;
+    private int  _activeJobs;
     private bool _disposed;
 
-    public ChunkWorker(World world, WorldGenerator generator, int? workerCount = null)
+    public ChunkWorker(World world, WorldGenerator generator, IWorldPersistence persistence, int? workerCount = null)
     {
-        _world = world;
-        _generator = generator;
+        _world       = world;
+        _generator   = generator;
+        _persistence = persistence;
 
         int count = workerCount ?? Math.Max(2, Environment.ProcessorCount - 1);
         _workers = Enumerable.Range(0, count)
@@ -26,7 +29,7 @@ public sealed class ChunkWorker : IDisposable
             .ToArray();
     }
 
-    public int PendingJobCount => _jobQueue.Count + Volatile.Read(ref _activeJobs);
+    public int PendingJobCount    => _jobQueue.Count + Volatile.Read(ref _activeJobs);
     public int PendingResultCount => _resultQueue.Count;
 
     public void EnqueueJob(int chunkX, int chunkZ)
@@ -53,8 +56,8 @@ public sealed class ChunkWorker : IDisposable
                     Chunk? chunk = job.Kind switch
                     {
                         ChunkJobKind.Generate => GenerateChunk(job.ChunkX, job.ChunkZ),
-                        ChunkJobKind.Rebuild => _world.GetChunk(job.ChunkX, job.ChunkZ),
-                        _ => null
+                        ChunkJobKind.Rebuild  => _world.GetChunk(job.ChunkX, job.ChunkZ),
+                        _                     => null
                     };
 
                     if (chunk is null)
@@ -83,7 +86,8 @@ public sealed class ChunkWorker : IDisposable
     {
         var chunk = _generator.GenerateChunk(chunkX, chunkZ);
 
-        var edits = _world.TakePersistedEdits(chunkX, chunkZ);
+        // Gespeicherte Edits laden (blocking auf Background-Thread — kein Deadlock-Risiko).
+        var edits = _persistence.LoadChunkEditsAsync(chunkX, chunkZ).GetAwaiter().GetResult();
         if (edits is not null)
         {
             chunk.LoadEdits(edits);
