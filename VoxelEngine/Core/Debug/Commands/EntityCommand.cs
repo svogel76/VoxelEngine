@@ -54,7 +54,16 @@ public sealed class EntityCommand : ICommand
         }
 
         float yawRadians = context.Camera.Yaw * MathF.PI / 180f;
-        var entity = new TestVoxelEntity(CalculateSpawnPosition(context, model), model, yawRadians);
+        var spawnPosition = CalculateSpawnPosition(context, model);
+        Entity.Entity entity = model.Metadata.Behaviour is null
+            ? new TestVoxelEntity(spawnPosition, model, yawRadians)
+            : new AnimalEntity(
+                spawnPosition,
+                model,
+                context.World,
+                () => context.Player.Position,
+                yawRadians);
+
         context.EntityManager.Add(entity);
 
         context.Console.Log($"Entity '{model.Id}' gespawnt bei ({entity.Position.X:F2}, {entity.Position.Y:F2}, {entity.Position.Z:F2}).");

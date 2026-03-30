@@ -45,4 +45,4 @@ VoxelEngine.Tests/  # xUnit + FluentAssertions - spiegelt World/ + Core/
 
 ## Naechste Schritte
 - Klimaabhaengiges Entity-Spawning auf den neuen `EntityManager` aufsetzen
-- Persistenz und Registry-Aufloesung fuer data-driven Entity-Modelle/Atlanten inklusive optionaler Bounds-Metadaten vorbereiten
+- Herdenverhalten, Persistenz und spaetere Sound-/Drop-Aufloesung fuer data-driven Tierdefinitionen vorbereiten
