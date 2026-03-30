@@ -16,6 +16,9 @@ public class InputHandler
 
     public IKeyboard Keyboard => _keyboard;
 
+    /// <summary>Aktuelle Mausposition in Bildschirmkoordinaten (Pixel).</summary>
+    public (float X, float Y) MousePosition => (_mouse.Position.X, _mouse.Position.Y);
+
     public InputHandler(IInputContext input)
     {
         _keyboard = input.Keyboards[0];
