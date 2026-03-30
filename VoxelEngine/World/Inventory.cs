@@ -88,7 +88,7 @@ public sealed class Inventory
     public bool TryRemove(int slot) => TryRemove(slot, 1);
 
     /// <summary>Setzt einen Slot direkt (für Startzustand / Tests).</summary>
-    internal void SetSlot(int slot, ItemStack? stack)
+    public void SetSlot(int slot, ItemStack? stack)
     {
         if (slot >= 0 && slot < HotbarSize)
             _hotbar[slot] = stack;

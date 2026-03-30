@@ -27,6 +27,7 @@ public class Engine : IDisposable
     private DebugOverlay         _debugOverlay = null!;
     private LocalFilePersistence _persistence  = null!;
     private PauseMenuPanel       _pauseMenu    = null!;
+    private InventoryPanel       _inventoryPanel = null!;
 
     private readonly Stopwatch _frameTimer = new();
 
@@ -148,6 +149,14 @@ public class Engine : IDisposable
         _pauseMenu = new PauseMenuPanel();
         _pauseMenu.InitRenderer(_gl);
         _context.UI.Register(_pauseMenu, isGameMenu: true);
+
+        // Inventar-Panel registrieren (Toggle: E)
+        var invFont     = new BitmapFont(_gl, "Assets/Fonts/font.png");
+        var invText     = new TextRenderer(_gl, invFont, _settings.WindowWidth, _settings.WindowHeight);
+        var invIcon     = new IconRenderer(_gl);
+        _inventoryPanel = new InventoryPanel(invText, invIcon);
+        _inventoryPanel.Atlas = _context.Renderer.Atlas;
+        _context.UI.Register(_inventoryPanel);
 
         _context.ChunkManager.PrimeInitialChunks(player.Position.X, player.Position.Z, _settings.InitialChunkLoadRadius);
 
@@ -366,6 +375,7 @@ public class Engine : IDisposable
         // _inputContext wird von Silk.NET/GLFW intern disposed wenn das Fenster schließt —
         // manuelles Dispose hier würde eine ObjectDisposedException auslösen.
         _pauseMenu?.Dispose();
+        _inventoryPanel?.Dispose();
         _debugOverlay?.Dispose();
         _context?.Dispose();
         _persistence?.Dispose();
