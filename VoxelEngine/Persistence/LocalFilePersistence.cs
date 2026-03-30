@@ -296,11 +296,9 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
     // ──────────────────────────────────────────────────────────────────────────
     // Serialisierung — Spielerstand
     // Binärformat (.vxp):
-    //   [4]  Magic 'VXP1'
-    //   [12] Position: float × 3
-    //   [1]  FlyMode: byte (0/1)
-    //   [1]  SelectedSlot: byte
-    //   [9×] Hotbar-Slots: [hasItem: byte] [blockType: byte] [count: int32]
+    //   VXP1: [4] Magic | [12] Pos | [1] FlyMode | [1] SelSlot | [9×] Hotbar
+    //   VXP2: wie VXP1, zusätzlich: [4] Health (float) | [4] Hunger (float)
+    // VXP1-Dateien werden beim Laden migriert (Health/Hunger = Maximalwert).
     // ──────────────────────────────────────────────────────────────────────────
 
     private static byte[] SerializePlayer(PlayerState state)
@@ -308,7 +306,8 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
         using var ms = new MemoryStream();
         using var bw = new BinaryWriter(ms, System.Text.Encoding.UTF8, leaveOpen: true);
 
-        bw.Write('V'); bw.Write('X'); bw.Write('P'); bw.Write('1');
+        // Version 2: enthält Health + Hunger
+        bw.Write('V'); bw.Write('X'); bw.Write('P'); bw.Write('2');
         bw.Write(state.Position.X);
         bw.Write(state.Position.Y);
         bw.Write(state.Position.Z);
@@ -330,6 +329,10 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
             }
         }
 
+        // VXP2-Erweiterung
+        bw.Write(state.Health);
+        bw.Write(state.Hunger);
+
         bw.Flush();
         return ms.ToArray();
     }
@@ -339,15 +342,18 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
         using var ms = new MemoryStream(data);
         using var br = new BinaryReader(ms);
 
-        if (br.ReadByte() != 'V' || br.ReadByte() != 'X' ||
-            br.ReadByte() != 'P' || br.ReadByte() != '1')
+        if (br.ReadByte() != 'V' || br.ReadByte() != 'X' || br.ReadByte() != 'P')
             return null;
 
-        float posX       = br.ReadSingle();
-        float posY       = br.ReadSingle();
-        float posZ       = br.ReadSingle();
-        bool  flyMode    = br.ReadByte() != 0;
-        int   selSlot    = br.ReadByte();
+        byte version = br.ReadByte();
+        if (version != (byte)'1' && version != (byte)'2')
+            return null;
+
+        float posX    = br.ReadSingle();
+        float posY    = br.ReadSingle();
+        float posZ    = br.ReadSingle();
+        bool  flyMode = br.ReadByte() != 0;
+        int   selSlot = br.ReadByte();
 
         var hotbar = new ItemStackData?[Inventory.HotbarSize];
         for (int i = 0; i < Inventory.HotbarSize; i++)
@@ -360,7 +366,16 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
             }
         }
 
-        return new PlayerState(new Vector3(posX, posY, posZ), flyMode, selSlot, hotbar);
+        // VXP2: Health + Hunger; VXP1: Standardwerte
+        float health = 20f;
+        float hunger = 20f;
+        if (version == (byte)'2' && ms.Position + 8 <= ms.Length)
+        {
+            health = br.ReadSingle();
+            hunger = br.ReadSingle();
+        }
+
+        return new PlayerState(new Vector3(posX, posY, posZ), flyMode, selSlot, hotbar, health, hunger);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
