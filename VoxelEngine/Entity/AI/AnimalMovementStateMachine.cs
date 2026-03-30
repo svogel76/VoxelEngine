@@ -10,6 +10,7 @@ public sealed class AnimalMovementStateMachine
     private readonly EntityBehaviourMetadata _behaviour;
     private readonly Random _random;
     private float _idleTimeRemaining;
+    private EntityTimeOfDayActivity _timeOfDayActivity;
 
     public AnimalMovementStateMachine(EntityBehaviourMetadata behaviour, Random? random = null)
     {
@@ -17,6 +18,7 @@ public sealed class AnimalMovementStateMachine
         _random = random ?? Random.Shared;
 
         ValidateBehaviour(behaviour);
+        _timeOfDayActivity = behaviour.DayActivity;
         EnterIdle();
     }
 
@@ -25,18 +27,46 @@ public sealed class AnimalMovementStateMachine
 
     public AnimalMovementDirective Tick(Vector3 position, Vector3? threatPosition, float deltaTime)
     {
+        if (_timeOfDayActivity == EntityTimeOfDayActivity.Burrow)
+            return new AnimalMovementDirective(AnimalMovementState.Burrow, Vector3.Zero, 0f, null);
+        if (State == AnimalMovementState.Sleep)
+            return TickSleep(position, threatPosition);
+
         if (ShouldFlee(position, threatPosition))
             EnterFlee();
         else if (State == AnimalMovementState.Flee)
-            EnterIdle();
+            EnterScheduledRestState();
 
         return State switch
         {
             AnimalMovementState.Idle => TickIdle(position, threatPosition, deltaTime),
             AnimalMovementState.Wander => TickWander(position, threatPosition),
             AnimalMovementState.Flee => TickFlee(position, threatPosition),
+            AnimalMovementState.Sleep => TickSleep(position, threatPosition),
+            AnimalMovementState.Burrow => new AnimalMovementDirective(AnimalMovementState.Burrow, Vector3.Zero, 0f, null),
             _ => new AnimalMovementDirective(AnimalMovementState.Idle, Vector3.Zero, 0f, null)
         };
+    }
+
+    public void ApplyTimeOfDayActivity(EntityTimeOfDayActivity activity)
+    {
+        _timeOfDayActivity = activity;
+
+        switch (activity)
+        {
+            case EntityTimeOfDayActivity.Active:
+                if (State is AnimalMovementState.Sleep or AnimalMovementState.Burrow)
+                    EnterIdle();
+                break;
+
+            case EntityTimeOfDayActivity.Sleep:
+                EnterSleep();
+                break;
+
+            case EntityTimeOfDayActivity.Burrow:
+                EnterBurrow();
+                break;
+        }
     }
 
     public void ApplyMovementResult(Vector3 position, AnimalMovementDirective directive, bool blocked)
@@ -50,6 +80,12 @@ public sealed class AnimalMovementStateMachine
 
     private AnimalMovementDirective TickIdle(Vector3 position, Vector3? threatPosition, float deltaTime)
     {
+        if (_timeOfDayActivity == EntityTimeOfDayActivity.Sleep)
+        {
+            EnterSleep();
+            return TickSleep(position, threatPosition);
+        }
+
         if (ShouldFlee(position, threatPosition))
             return TickFlee(position, threatPosition);
 
@@ -63,6 +99,12 @@ public sealed class AnimalMovementStateMachine
 
     private AnimalMovementDirective TickWander(Vector3 position, Vector3? threatPosition)
     {
+        if (_timeOfDayActivity == EntityTimeOfDayActivity.Sleep)
+        {
+            EnterSleep();
+            return TickSleep(position, threatPosition);
+        }
+
         if (ShouldFlee(position, threatPosition))
             return TickFlee(position, threatPosition);
 
@@ -92,8 +134,13 @@ public sealed class AnimalMovementStateMachine
     {
         if (!ShouldFlee(position, threatPosition) || threatPosition is not { } threat)
         {
-            EnterIdle();
-            return new AnimalMovementDirective(AnimalMovementState.Idle, Vector3.Zero, 0f, null);
+            EnterScheduledRestState();
+            return State switch
+            {
+                AnimalMovementState.Sleep => new AnimalMovementDirective(AnimalMovementState.Sleep, Vector3.Zero, 0f, null),
+                AnimalMovementState.Burrow => new AnimalMovementDirective(AnimalMovementState.Burrow, Vector3.Zero, 0f, null),
+                _ => new AnimalMovementDirective(AnimalMovementState.Idle, Vector3.Zero, 0f, null)
+            };
         }
 
         Vector3 desired = position - threat;
@@ -107,6 +154,17 @@ public sealed class AnimalMovementStateMachine
             Vector3.Normalize(desired),
             _behaviour.FleeSpeed,
             null);
+    }
+
+    private AnimalMovementDirective TickSleep(Vector3 position, Vector3? threatPosition)
+    {
+        if (ShouldFlee(position, threatPosition))
+        {
+            EnterIdle();
+            return new AnimalMovementDirective(AnimalMovementState.Idle, Vector3.Zero, 0f, null);
+        }
+
+        return new AnimalMovementDirective(AnimalMovementState.Sleep, Vector3.Zero, 0f, null);
     }
 
     private void EnterIdle()
@@ -126,6 +184,28 @@ public sealed class AnimalMovementStateMachine
     {
         State = AnimalMovementState.Flee;
         CurrentTarget = null;
+    }
+
+    private void EnterSleep()
+    {
+        State = AnimalMovementState.Sleep;
+        CurrentTarget = null;
+    }
+
+    private void EnterBurrow()
+    {
+        State = AnimalMovementState.Burrow;
+        CurrentTarget = null;
+    }
+
+    private void EnterScheduledRestState()
+    {
+        if (_timeOfDayActivity == EntityTimeOfDayActivity.Sleep)
+            EnterSleep();
+        else if (_timeOfDayActivity == EntityTimeOfDayActivity.Burrow)
+            EnterBurrow();
+        else
+            EnterIdle();
     }
 
     private bool ShouldFlee(Vector3 position, Vector3? threatPosition)

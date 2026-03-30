@@ -2,6 +2,7 @@ using System.Numerics;
 using FluentAssertions;
 using VoxelEngine.Core;
 using VoxelEngine.Entity;
+using VoxelEngine.Entity.AI;
 using VoxelEngine.Entity.Models;
 using VoxelEngine.World;
 
@@ -135,16 +136,20 @@ public class EntityManagerTests
     [Fact]
     public void Update_OnDayNightTransition_DespawnsInactiveManagedEntitiesOutsideProtectionRadius()
     {
-        string directory = CreateClimateDirectory(SpawnActivity.Diurnal);
+        string directory = CreateClimateDirectory(SpawnActivity.Any);
 
         try
         {
             // Arrange
-            var setup = CreateSpawnManager(directory, timeOfDay: 12.0);
+            var setup = CreateSpawnManager(
+                directory,
+                timeOfDay: 22.0,
+                dayActivity: EntityTimeOfDayActivity.Burrow,
+                nightActivity: EntityTimeOfDayActivity.Active);
             UpdateUntilSpawned(setup.Manager);
             setup.Manager.Count.Should().Be(1);
             setup.PlayerPosition = new Vector3(512f, 90f, 512f);
-            setup.Time.SetTime(22.0);
+            setup.Time.SetTime(12.0);
 
             // Act
             setup.Manager.Update(0.1);
@@ -159,14 +164,18 @@ public class EntityManagerTests
     }
 
     [Fact]
-    public void Update_OnDayNightTransition_KeepsInactiveManagedEntitiesInsideProtectionRadius()
+    public void Update_OnDayNightTransition_PutsDiurnalAnimalsToSleepInsteadOfDespawning()
     {
         string directory = CreateClimateDirectory(SpawnActivity.Diurnal);
 
         try
         {
             // Arrange
-            var setup = CreateSpawnManager(directory, timeOfDay: 12.0);
+            var setup = CreateSpawnManager(
+                directory,
+                timeOfDay: 12.0,
+                dayActivity: EntityTimeOfDayActivity.Active,
+                nightActivity: EntityTimeOfDayActivity.Sleep);
             UpdateUntilSpawned(setup.Manager);
             setup.Manager.Count.Should().Be(1);
             setup.Time.SetTime(22.0);
@@ -176,6 +185,44 @@ public class EntityManagerTests
 
             // Assert
             setup.Manager.Count.Should().Be(1);
+            setup.Manager.GetAll<AnimalEntity>().Should().ContainSingle()
+                .Which.MovementState.Should().Be(AnimalMovementState.Sleep);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Update_DelaysBurrowWhileEntityIsInsideProtectionRadius_AndDespawnsLater()
+    {
+        string directory = CreateClimateDirectory(SpawnActivity.Any);
+
+        try
+        {
+            // Arrange
+            var setup = CreateSpawnManager(
+                directory,
+                timeOfDay: 22.0,
+                dayActivity: EntityTimeOfDayActivity.Burrow,
+                nightActivity: EntityTimeOfDayActivity.Active);
+            UpdateUntilSpawned(setup.Manager);
+            setup.Manager.Count.Should().Be(1);
+            setup.Time.SetTime(12.0);
+
+            // Act
+            setup.Manager.Update(0.1);
+
+            // Assert
+            setup.Manager.Count.Should().Be(1);
+
+            // Act
+            setup.PlayerPosition = new Vector3(512f, 90f, 512f);
+            setup.Manager.Update(0.1);
+
+            // Assert
+            setup.Manager.Count.Should().Be(0);
         }
         finally
         {
@@ -192,7 +239,11 @@ public class EntityManagerTests
         return new EntityManager(new global::VoxelEngine.World.World(), settings);
     }
 
-    private static SpawnTestSetup CreateSpawnManager(string climateDirectory, double timeOfDay)
+    private static SpawnTestSetup CreateSpawnManager(
+        string climateDirectory,
+        double timeOfDay,
+        EntityTimeOfDayActivity dayActivity = EntityTimeOfDayActivity.Active,
+        EntityTimeOfDayActivity nightActivity = EntityTimeOfDayActivity.Active)
     {
         var settings = new EngineSettings
         {
@@ -221,7 +272,7 @@ public class EntityManagerTests
             settings,
             generator,
             time,
-            new TestModelLibrary(CreateAnimalModel("deer")),
+            new TestModelLibrary(CreateAnimalModel("deer", dayActivity, nightActivity)),
             () => playerPosition,
             () => null!,
             new Random(42));
@@ -285,7 +336,10 @@ public class EntityManagerTests
             """);
     }
 
-    private static IVoxelModelDefinition CreateAnimalModel(string id)
+    private static IVoxelModelDefinition CreateAnimalModel(
+        string id,
+        EntityTimeOfDayActivity dayActivity,
+        EntityTimeOfDayActivity nightActivity)
         => new VoxelModelDefinition(
             id,
             1f,
@@ -299,7 +353,9 @@ public class EntityManagerTests
                     FleeRadius = 0f,
                     IdleTimeMin = 1f,
                     IdleTimeMax = 1f,
-                    WanderRadius = 0f
+                    WanderRadius = 0f,
+                    DayActivity = dayActivity,
+                    NightActivity = nightActivity
                 }
             });
 

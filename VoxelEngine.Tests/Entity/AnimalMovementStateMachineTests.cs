@@ -69,6 +69,55 @@ public class AnimalMovementStateMachineTests
         idleDirective.State.Should().Be(AnimalMovementState.Idle);
     }
 
+    [Fact]
+    public void ApplyTimeOfDayActivity_SetsSleepState_AndTickKeepsAnimalStill()
+    {
+        // Arrange
+        var stateMachine = CreateStateMachine();
+        stateMachine.ApplyTimeOfDayActivity(EntityTimeOfDayActivity.Sleep);
+
+        // Act
+        var directive = stateMachine.Tick(Vector3.Zero, threatPosition: null, deltaTime: 0.1f);
+
+        // Assert
+        stateMachine.State.Should().Be(AnimalMovementState.Sleep);
+        directive.State.Should().Be(AnimalMovementState.Sleep);
+        directive.Speed.Should().Be(0f);
+        directive.DesiredDirection.Should().Be(Vector3.Zero);
+    }
+
+    [Fact]
+    public void Tick_WhenSleepingAndThreatAppears_WakesToIdleBeforeFleeing()
+    {
+        // Arrange
+        var stateMachine = CreateStateMachine(fleeRadius: 8f, randomSeed: 7);
+        stateMachine.ApplyTimeOfDayActivity(EntityTimeOfDayActivity.Sleep);
+
+        // Act
+        var wakeDirective = stateMachine.Tick(Vector3.Zero, new Vector3(2f, 0f, 0f), deltaTime: 0.1f);
+        var fleeDirective = stateMachine.Tick(Vector3.Zero, new Vector3(2f, 0f, 0f), deltaTime: 0.1f);
+
+        // Assert
+        wakeDirective.State.Should().Be(AnimalMovementState.Idle);
+        fleeDirective.State.Should().Be(AnimalMovementState.Flee);
+    }
+
+    [Fact]
+    public void ApplyTimeOfDayActivity_SetsBurrowState()
+    {
+        // Arrange
+        var stateMachine = CreateStateMachine();
+
+        // Act
+        stateMachine.ApplyTimeOfDayActivity(EntityTimeOfDayActivity.Burrow);
+        var directive = stateMachine.Tick(Vector3.Zero, threatPosition: null, deltaTime: 0.1f);
+
+        // Assert
+        stateMachine.State.Should().Be(AnimalMovementState.Burrow);
+        directive.State.Should().Be(AnimalMovementState.Burrow);
+        directive.Speed.Should().Be(0f);
+    }
+
     private static AnimalMovementStateMachine CreateStateMachine(
         float idleTimeMin = 2f,
         float idleTimeMax = 6f,
@@ -82,7 +131,9 @@ public class AnimalMovementStateMachineTests
                 FleeRadius = fleeRadius,
                 IdleTimeMin = idleTimeMin,
                 IdleTimeMax = idleTimeMax,
-                WanderRadius = 12f
+                WanderRadius = 12f,
+                DayActivity = EntityTimeOfDayActivity.Active,
+                NightActivity = EntityTimeOfDayActivity.Sleep
             },
             new Random(randomSeed));
 }

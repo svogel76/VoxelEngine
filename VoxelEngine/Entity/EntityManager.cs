@@ -175,6 +175,7 @@ public sealed class EntityManager
         }
 
         HandleDayNightTransition();
+        HandleDeferredBurrowTransitions();
         RunClimateSpawning(deltaTime);
     }
 
@@ -241,6 +242,8 @@ public sealed class EntityManager
 
         if (model.Metadata.Behaviour is null)
             return;
+        if (GetTimeOfDayActivity(model.Metadata.Behaviour, _worldTime!) == EntityTimeOfDayActivity.Burrow)
+            return;
 
         if (!TryFindSpawnPosition(zone, spawn, model, playerPosition, out var spawnPosition))
             return;
@@ -253,9 +256,10 @@ public sealed class EntityManager
             yawRadians: 0f,
             random: new Random(_spawnRandom.Next()));
 
+        entity.ApplyTimeOfDay(_worldTime!.IsDay);
         entity.SyncTerrainPhysics(_world);
         Add(entity);
-        _managedSpawnStates[entity] = new ManagedSpawnState(zone.Id, spawn.EntityId, spawn.Activity);
+        _managedSpawnStates[entity] = new ManagedSpawnState(zone.Id, spawn.EntityId);
     }
 
     private bool TryFindSpawnPosition(
@@ -356,19 +360,57 @@ public sealed class EntityManager
 
         foreach (var entity in _managedSpawnStates.Keys.ToArray())
         {
-            ManagedSpawnState state = _managedSpawnStates[entity];
-            if (IsActivityActive(state.Activity, _worldTime))
+            ApplyManagedEntityTimeOfDay(entity, frustum, playerPosition, isDay);
+        }
+    }
+
+    private void HandleDeferredBurrowTransitions()
+    {
+        if (_worldTime is null || _playerPositionProvider is null)
+            return;
+
+        ViewFrustum? frustum = _frustumProvider?.Invoke();
+        Vector3 playerPosition = _playerPositionProvider();
+
+        foreach (var entity in _managedSpawnStates.Keys.ToArray())
+        {
+            if (entity is not AnimalEntity animalEntity)
                 continue;
 
+            if (animalEntity.GetTimeOfDayActivity(_worldTime.IsDay) != EntityTimeOfDayActivity.Burrow)
+                continue;
+
+            ApplyManagedEntityTimeOfDay(entity, frustum, playerPosition, _worldTime.IsDay);
+        }
+    }
+
+    private void ApplyManagedEntityTimeOfDay(Entity entity, ViewFrustum? frustum, Vector3 playerPosition, bool isDay)
+    {
+        if (!_trackedEntities.ContainsKey(entity))
+            return;
+
+        if (entity is not AnimalEntity animalEntity)
+            return;
+
+        EntityTimeOfDayActivity desiredActivity = animalEntity.GetTimeOfDayActivity(isDay);
+        if (desiredActivity == EntityTimeOfDayActivity.Burrow)
+        {
             BoundingBox bounds = _trackedEntities[entity].Bounds;
             bool isVisible = frustum is not null && frustum.IsVisible(bounds);
             bool isProtected = IntersectsSphere(bounds, playerPosition, _despawnProtectionRadius);
             if (isVisible || isProtected)
-                continue;
+                return;
 
+            animalEntity.ApplyTimeOfDay(isDay);
             Remove(entity);
+            return;
         }
+
+        animalEntity.ApplyTimeOfDay(isDay);
     }
+
+    private static EntityTimeOfDayActivity GetTimeOfDayActivity(EntityBehaviourMetadata behaviour, WorldTime worldTime)
+        => worldTime.IsDay ? behaviour.DayActivity : behaviour.NightActivity;
 
     private static bool IsActivityActive(SpawnActivity activity, WorldTime worldTime)
         => activity switch
@@ -511,5 +553,5 @@ public sealed class EntityManager
         => max > min ? max - BoundsEpsilon : max;
 
     private readonly record struct TrackedEntityState(BoundingBox Bounds, HashSet<(int X, int Y, int Z)> Cells);
-    private readonly record struct ManagedSpawnState(string ZoneId, string EntityId, SpawnActivity Activity);
+    private readonly record struct ManagedSpawnState(string ZoneId, string EntityId);
 }
