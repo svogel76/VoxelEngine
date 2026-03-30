@@ -1,9 +1,15 @@
+using System.Text.Json;
+
 namespace VoxelEngine.Entity.Models;
 
 public sealed class FileSystemEntityModelLibrary : IEntityModelLibrary
 {
     public const int EntityAtlasTileColumns = 4;
     public const int EntityAtlasTileRows = 2;
+    private static readonly JsonSerializerOptions MetadataJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     private readonly Dictionary<string, IVoxelModelDefinition> _models;
 
@@ -37,7 +43,14 @@ public sealed class FileSystemEntityModelLibrary : IEntityModelLibrary
                 continue;
             }
 
-            var model = LoadModel(file, extension, voxelScale);
+            var metadata = LoadMetadata(file);
+            float effectiveScale = metadata?.Scale ?? voxelScale;
+            if (effectiveScale <= 0f)
+                throw new FormatException($"Entity model metadata for '{file}' must define a scale greater than zero.");
+
+            var model = LoadModel(file, extension, effectiveScale);
+            model = VoxelModelTransform.ApplyRotation(model, metadata?.Rotation);
+
             if (models.ContainsKey(model.Id))
                 throw new InvalidOperationException($"Duplicate entity model id '{model.Id}'.");
 
@@ -67,4 +80,21 @@ public sealed class FileSystemEntityModelLibrary : IEntityModelLibrary
             ".vox" => VoxModelLoader.LoadFromFile(path, voxelScale),
             _ => throw new NotSupportedException($"Unsupported entity model format '{extension}'.")
         };
+
+    private static EntityModelMetadata? LoadMetadata(string modelPath)
+    {
+        string metadataPath = Path.ChangeExtension(modelPath, ".json");
+        if (!File.Exists(metadataPath))
+            return null;
+
+        try
+        {
+            string json = File.ReadAllText(metadataPath);
+            return JsonSerializer.Deserialize<EntityModelMetadata>(json, MetadataJsonOptions);
+        }
+        catch (JsonException exception)
+        {
+            throw new FormatException($"Invalid entity model metadata in '{metadataPath}'.", exception);
+        }
+    }
 }

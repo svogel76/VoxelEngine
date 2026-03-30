@@ -38,9 +38,9 @@ public static class VoxModelLoader
         long mainChildrenEnd = reader.Position + mainChildrenSize;
 
         VoxModelSize? size = null;
-        var voxels = new List<VoxVoxel>();
+        VoxModelSize? firstModelSize = null;
+        List<VoxVoxel>? firstModelVoxels = null;
         uint[] palette = CreateDefaultPalette();
-        int modelCount = 0;
 
         while (reader.Position < mainChildrenEnd)
         {
@@ -53,7 +53,7 @@ public static class VoxModelLoader
             switch (chunkId)
             {
                 case "PACK":
-                    modelCount = reader.ReadInt32();
+                    reader.ReadInt32();
                     break;
 
                 case "SIZE":
@@ -66,17 +66,21 @@ public static class VoxModelLoader
                     if (size is null)
                         throw new FormatException("Encountered XYZI chunk before SIZE chunk.");
 
-                    if (voxels.Count > 0)
-                        throw new NotSupportedException("VOX files with multiple models are not supported yet.");
-
                     int voxelCount = reader.ReadInt32();
+                    var parsedModelVoxels = new List<VoxVoxel>(voxelCount);
                     for (int i = 0; i < voxelCount; i++)
                     {
-                        voxels.Add(new VoxVoxel(
+                        parsedModelVoxels.Add(new VoxVoxel(
                             reader.ReadByte(),
                             reader.ReadByte(),
                             reader.ReadByte(),
                             reader.ReadByte()));
+                    }
+
+                    if (firstModelVoxels is null)
+                    {
+                        firstModelSize = size;
+                        firstModelVoxels = parsedModelVoxels;
                     }
                     break;
 
@@ -92,18 +96,15 @@ public static class VoxModelLoader
             reader.Seek(chunkEnd);
         }
 
-        if (modelCount > 1)
-            throw new NotSupportedException("VOX files with PACK > 1 are not supported yet.");
-
-        if (size is null)
+        if (firstModelSize is null)
             throw new FormatException("Missing SIZE chunk.");
-        if (voxels.Count == 0)
+        if (firstModelVoxels is null || firstModelVoxels.Count == 0)
             throw new FormatException("Missing XYZI chunk or voxel data.");
 
-        var modelVoxels = new List<VoxelModelVoxel>(voxels.Count);
-        foreach (var voxel in voxels)
+        var modelVoxels = new List<VoxelModelVoxel>(firstModelVoxels.Count);
+        foreach (var voxel in firstModelVoxels)
         {
-            ValidateVoxelBounds(voxel, size.Value);
+            ValidateVoxelBounds(voxel, firstModelSize.Value);
 
             if (voxel.ColorIndex == 0)
                 throw new FormatException("VOX color index 0 is reserved and cannot be used by XYZI.");
@@ -123,7 +124,18 @@ public static class VoxModelLoader
                 new VoxelTint(r, g, b, a)));
         }
 
-        return new VoxelModelDefinition(modelId, voxelScale, modelVoxels);
+        return new VoxelModelDefinition(
+            modelId,
+            voxelScale,
+            VoxelModelTransform.RotateVoxels(
+                modelVoxels,
+                new EntityModelRotation { X = -90f },
+                minX: 0,
+                minY: 0,
+                minZ: 0,
+                maxX: firstModelSize.Value.X,
+                maxY: firstModelSize.Value.Y,
+                maxZ: firstModelSize.Value.Z));
     }
 
     private static void EnsureNoChildren(string chunkId, int childrenSize)
