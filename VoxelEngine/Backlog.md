@@ -115,7 +115,7 @@
 - [Erledigt] EntityManager in GameContext (Frustum-Culling, Spatial Hashing)
 - [Erledigt] Entity-Rendering (Voxel-Modelle + Entity-Atlas, batched pro Modelltyp)
 - [Mittel] Entity-Kollision mit Terrain (AABB wie Spieler)
-- [Mittel] Entity-Spawning pro Klimazone
+- [Erledigt] Entity-Spawning pro Klimazone
 - [Nice-to-have] Entity-Persistenz
 - [Nice-to-have] LOD fuer Entities
 
