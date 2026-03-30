@@ -1,0 +1,10 @@
+{
+  "id": "taiga",
+  "terrain": { "baseHeight": 78, "amplitude": 40, "frequency": 0.007, "octaves": 5 },
+  "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
+  "snowLine": 100,
+  "trees": { "density": 0.02, "template": "spruce" },
+  "spawns": [
+    { "entity": "deer", "maxCount": 6, "minSpawnDistance": 20, "spawnInterval": 36 }
+  ]
+}

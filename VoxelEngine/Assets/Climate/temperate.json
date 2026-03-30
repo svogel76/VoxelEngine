@@ -1,0 +1,10 @@
+{
+  "id": "temperate",
+  "terrain": { "baseHeight": 64, "amplitude": 32, "frequency": 0.01, "octaves": 4 },
+  "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
+  "snowLine": 2147483647,
+  "trees": { "density": 0.015, "template": "oak" },
+  "spawns": [
+    { "entity": "deer", "maxCount": 8, "minSpawnDistance": 16, "spawnInterval": 30 }
+  ]
+}
