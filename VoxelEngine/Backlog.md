@@ -4,6 +4,7 @@
 - 🔴 Hoch — blockiert andere Features
 - 🟡 Mittel — wichtig für Spielgefühl
 - 🟢 Nice-to-have — Qualität & Polish
+- ✅ Erledigt
 
 ---
 
@@ -66,25 +67,30 @@
 
 ---
 
-## Phase 5 — Engine & Architektur
+## Phase 5 — Engine & Architektur ✅
 
+- ✅ Chunk-Serialisierung — `IWorldPersistence`, `LocalFilePersistence` (Region-Dateien `.vxr`), `InMemoryPersistence`, `SaveDirectory` in `EngineSettings`
 - 🟢 Asset-Management System
 - 🟢 LOD (entfernte Chunks vereinfacht)
 
 ---
 
-## Phase 6 — Gameplay & Simulation
+## Phase 6 — Gameplay & Simulation ✅
+
+### UI & Menü
+- ✅ UI-Zustandsautomat — Stack-basierter `UIStateManager`, `IUIPanel`, Escape-Logik
+- ✅ Spielmenü — Pause, Speichern, Beenden
 
 ### Inventar-System
-- 🟡 Item-Icons in Hotbar (Top-Face aus ArrayTexture)
-- 🟡 Vollständiges Inventar-Fenster (4×9 Slots, Tab öffnen)
+- ✅ Item-Icons in Hotbar (Top-Face aus ArrayTexture, `IconRenderer`, batched Draw-Call)
+- ✅ Vollständiges Inventar-Fenster (4×9 Slots + Ausrüstungs-Slots, Drag & Drop, Shift-Click)
 - 🟢 Crafting-System (Rezepte, Crafting-Tisch)
-- 🟢 Ausrüstungs-Slots (Rüstung, Werkzeug)
 - 🟢 Werkzeug-Haltbarkeit
 
 ### Spieler-Erweiterungen
-- 🟡 Gesundheits-System (HP, Schaden, Regeneration)
-- 🟡 Hunger-System (beeinflusst Regeneration)
+- ✅ Gesundheits-System (HP, Schaden, Regeneration, Fallschaden)
+- ✅ Hunger-System (beeinflusst Regeneration, Verhungern)
+- ✅ Entity-Basisklasse (`Entity/`, Player erbt davon — Phase-7-ready)
 - 🟢 Erfahrungspunkte + Level
 - 🟢 Spieler-Tod + Respawn
 
@@ -102,10 +108,9 @@
 
 ## Phase 7 — Entity-System & Welt beleben
 
-> Voraussetzung: Inventar-System
+> Voraussetzung: Inventar-System ✅
 
 ### Entity-System Architektur
-- 🔴 Entity Basisklasse (Position, Velocity, BoundingBox, Update(), Render())
 - 🔴 EntityManager in GameContext (Frustum-Culling, Spatial Hashing)
 - 🔴 Entity-Rendering (Billboard-Sprites oder Voxel-Modelle)
 - 🟡 Entity-Kollision mit Terrain (AABB wie Spieler)
@@ -148,8 +153,8 @@
 
 ## Empfohlene Reihenfolge
 ```
-Jetzt:       Phase 5 — Chunk-Serialisierung
-Danach:      Phase 6 — Inventar-Fenster + Gesundheit
-Dann:        Phase 7 — Entity-System + Tiere
+Erledigt:    Phase 5 — Chunk-Serialisierung ✅
+Erledigt:    Phase 6 — Inventar-Fenster + Gesundheit ✅
+Jetzt:       Phase 7 — Entity-System + Tiere
 Langfristig: Phase 8 — Multiplayer
 ```
