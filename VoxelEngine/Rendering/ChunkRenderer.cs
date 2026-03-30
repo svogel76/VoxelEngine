@@ -21,6 +21,9 @@ public class ChunkRenderer : IDisposable
     private readonly ArrayTexture _atlas;
     private readonly int _renderDistance;
 
+    /// <summary>Die Block-ArrayTexture — zugänglich für HUD-Renderer (Icons).</summary>
+    public ArrayTexture Atlas => _atlas;
+
     private readonly Dictionary<(int X, int Z), Mesh> _opaqueMeshes = new();
     private readonly Dictionary<(int X, int Z), Mesh> _cutoutMeshes = new();
     private readonly Dictionary<(int X, int Z), Mesh> _transparentMeshes = new();

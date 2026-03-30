@@ -137,6 +137,8 @@ public class Engine : IDisposable
         var hotbarElement  = new HotbarHudElement();
         _context.HudRegistry.Register(hotbarElement);
         var hotbarRenderer = new HotbarHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
+        // Atlas-Referenz setzen — ChunkRenderer ist zu diesem Zeitpunkt bereits initialisiert
+        hotbarRenderer.Atlas = _context.Renderer.Atlas;
         _debugOverlay.HudManager.RegisterRenderer("hotbar", hotbarRenderer);
 
         // hud.json laden (nach allen Registrierungen)
