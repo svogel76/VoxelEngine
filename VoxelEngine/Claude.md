@@ -42,3 +42,6 @@ VoxelEngine.Tests/  # xUnit + FluentAssertions — spiegelt World/ + Core/
 - Gravity, MaxFallSpeed, JumpVelocity
 - StepHeight (1.0f), EnableStepUp
 - PlayerHeight (1.8f), PlayerWidth (0.6f), EyeHeight (1.62f)
+
+## Nächste Schritte
+- Baum-/Vegetations-RNG prozessunabhängig deterministisch aus Welt-Seed plus Chunk-/Lokal-Koordinaten ableiten und per Test absichern
