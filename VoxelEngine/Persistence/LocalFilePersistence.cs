@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using VoxelEngine.World;
+using VoxelEngine.World.Inventories;
 
 namespace VoxelEngine.Persistence;
 
@@ -307,31 +308,18 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
         using var bw = new BinaryWriter(ms, System.Text.Encoding.UTF8, leaveOpen: true);
 
         // Version 2: enthält Health + Hunger
-        bw.Write('V'); bw.Write('X'); bw.Write('P'); bw.Write('2');
+        bw.Write('V'); bw.Write('X'); bw.Write('P'); bw.Write('3');
         bw.Write(state.Position.X);
         bw.Write(state.Position.Y);
         bw.Write(state.Position.Z);
         bw.Write(state.FlyMode ? (byte)1 : (byte)0);
         bw.Write((byte)state.SelectedSlot);
 
-        for (int i = 0; i < Inventory.HotbarSize; i++)
-        {
-            var item = i < state.Hotbar.Count ? state.Hotbar[i] : null;
-            if (item is null)
-            {
-                bw.Write((byte)0);
-            }
-            else
-            {
-                bw.Write((byte)1);
-                bw.Write(item.BlockType);
-                bw.Write(item.Count);
-            }
-        }
-
-        // VXP2-Erweiterung
+        WriteItemStackList(bw, state.Hotbar, Inventory.HotbarSize);
         bw.Write(state.Health);
         bw.Write(state.Hunger);
+        WriteItemStackList(bw, state.InventoryGrid, InventoryGrid.TotalSlots);
+        WriteItemStackList(bw, state.EquipmentSlots, EquipmentSlots.Count);
 
         bw.Flush();
         return ms.ToArray();
@@ -346,7 +334,7 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
             return null;
 
         byte version = br.ReadByte();
-        if (version != (byte)'1' && version != (byte)'2')
+        if (version != (byte)'1' && version != (byte)'2' && version != (byte)'3')
             return null;
 
         float posX    = br.ReadSingle();
@@ -355,27 +343,26 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
         bool  flyMode = br.ReadByte() != 0;
         int   selSlot = br.ReadByte();
 
-        var hotbar = new ItemStackData?[Inventory.HotbarSize];
-        for (int i = 0; i < Inventory.HotbarSize; i++)
-        {
-            if (br.ReadByte() != 0)
-            {
-                byte blockType = br.ReadByte();
-                int  count     = br.ReadInt32();
-                hotbar[i] = new ItemStackData(blockType, count);
-            }
-        }
+        var hotbar = ReadItemStackList(br, Inventory.HotbarSize);
 
         // VXP2: Health + Hunger; VXP1: Standardwerte
         float health = 20f;
         float hunger = 20f;
-        if (version == (byte)'2' && ms.Position + 8 <= ms.Length)
+        if ((version == (byte)'2' || version == (byte)'3') && ms.Position + 8 <= ms.Length)
         {
             health = br.ReadSingle();
             hunger = br.ReadSingle();
         }
 
-        return new PlayerState(new Vector3(posX, posY, posZ), flyMode, selSlot, hotbar, health, hunger);
+        ItemStackData?[] inventoryGrid = new ItemStackData?[InventoryGrid.TotalSlots];
+        ItemStackData?[] equipmentSlots = new ItemStackData?[EquipmentSlots.Count];
+        if (version == (byte)'3')
+        {
+            inventoryGrid = ReadItemStackList(br, InventoryGrid.TotalSlots);
+            equipmentSlots = ReadItemStackList(br, EquipmentSlots.Count);
+        }
+
+        return new PlayerState(new Vector3(posX, posY, posZ), flyMode, selSlot, hotbar, inventoryGrid, equipmentSlots, health, hunger);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -387,6 +374,39 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
     //   [4]  Seed: int32
     //   [8]  TimeScale: double
     // ──────────────────────────────────────────────────────────────────────────
+
+    private static void WriteItemStackList(BinaryWriter bw, IReadOnlyList<ItemStackData?> items, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            var item = i < items.Count ? items[i] : null;
+            if (item is null)
+            {
+                bw.Write((byte)0);
+                continue;
+            }
+
+            bw.Write((byte)1);
+            bw.Write(item.BlockType);
+            bw.Write(item.Count);
+        }
+    }
+
+    private static ItemStackData?[] ReadItemStackList(BinaryReader br, int count)
+    {
+        var items = new ItemStackData?[count];
+        for (int i = 0; i < count; i++)
+        {
+            if (br.ReadByte() == 0)
+                continue;
+
+            byte blockType = br.ReadByte();
+            int countValue = br.ReadInt32();
+            items[i] = new ItemStackData(blockType, countValue);
+        }
+
+        return items;
+    }
 
     private static byte[] SerializeWorldMeta(WorldMeta meta)
     {

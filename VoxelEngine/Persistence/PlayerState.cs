@@ -8,6 +8,8 @@ public sealed record PlayerState(
     bool FlyMode,
     int SelectedSlot,
     IReadOnlyList<ItemStackData?> Hotbar,
+    IReadOnlyList<ItemStackData?> InventoryGrid,
+    IReadOnlyList<ItemStackData?> EquipmentSlots,
     float Health = 20f,
     float Hunger = 20f);
 

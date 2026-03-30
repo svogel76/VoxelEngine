@@ -83,11 +83,27 @@ public class GameContext : IDisposable
             hotbar[i] = stack is null ? null : new ItemStackData(stack.BlockType, stack.Count);
         }
 
+        var inventoryGrid = new ItemStackData?[InventoryGrid.TotalSlots];
+        for (int i = 0; i < InventoryGrid.TotalSlots; i++)
+        {
+            var stack = Inventory.Grid.Get(i);
+            inventoryGrid[i] = stack is null ? null : new ItemStackData(stack.BlockType, stack.Count);
+        }
+
+        var equipmentSlots = new ItemStackData?[EquipmentSlots.Count];
+        for (int i = 0; i < EquipmentSlots.Count; i++)
+        {
+            var stack = Inventory.Equipment.Get((EquipmentSlotType)i);
+            equipmentSlots[i] = stack is null ? null : new ItemStackData(stack.BlockType, stack.Count);
+        }
+
         var playerState = new PlayerState(
             Player.Position,
             Player.FlyMode,
             Player.Inventory.SelectedSlot,
             hotbar,
+            inventoryGrid,
+            equipmentSlots,
             Player.Vitals.Health,
             Player.Vitals.Hunger);
 
@@ -124,6 +140,18 @@ public class GameContext : IDisposable
         {
             var data = i < playerState.Hotbar.Count ? playerState.Hotbar[i] : null;
             Player.Inventory.SetSlot(i, data is null ? null : new ItemStack(data.BlockType, data.Count));
+        }
+
+        for (int i = 0; i < InventoryGrid.TotalSlots; i++)
+        {
+            var data = i < playerState.InventoryGrid.Count ? playerState.InventoryGrid[i] : null;
+            Inventory.Grid.Set(i, data is null ? null : new ItemStack(data.BlockType, data.Count));
+        }
+
+        for (int i = 0; i < EquipmentSlots.Count; i++)
+        {
+            var data = i < playerState.EquipmentSlots.Count ? playerState.EquipmentSlots[i] : null;
+            Inventory.Equipment.Set((EquipmentSlotType)i, data is null ? null : new ItemStack(data.BlockType, data.Count));
         }
 
         Player.Vitals.RestoreHealth(playerState.Health);
