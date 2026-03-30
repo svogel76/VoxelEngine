@@ -16,16 +16,4 @@ obj/
 # NuGet
 *.nupkg
 packages/
-.dotnet/.dotnet/10.0.102_IsDockerContainer.dotnetUserLevelCache
-.dotnet/.dotnet/10.0.102_MachineId.dotnetUserLevelCache
-.dotnet/.dotnet/10.0.102.aspNetCertificateSentinel
-.dotnet/.dotnet/10.0.102.dotnetFirstUseSentinel
-.dotnet/.dotnet/10.0.102.toolpath.sentinel
-.dotnet/.dotnet/MachineId.v1.dotnetUserLevelCache
-.dotnet/.dotnet/TelemetryStorageService/20260322225419_3ee82ce9f2704ce9a45621c8212b7e33.trn
-.dotnet/.dotnet/TelemetryStorageService/20260322225419_7e7c1c37fa944853b441e909b8836c36.trn
-.dotnet/.dotnet/TelemetryStorageService/20260322225419_149efb196c2f4da1871ec4f74a769583.trn
-.dotnet/.dotnet/TelemetryStorageService/20260322225419_359ce65d8ce9453fb8a286ce977a6cbd.trn
-.dotnet/.dotnet/TelemetryStorageService/20260322225419_ef48f65c17034077be6bced356ef51f4.trn
-.dotnet/.dotnet/TelemetryStorageService/20260322225419_f442201cd0ff41cdba10d10fbdbde085.trn
-.dotnet/.dotnet/TelemetryStorageService/ad6154efd19d4147b317ba54f844613e
+.dotnet/

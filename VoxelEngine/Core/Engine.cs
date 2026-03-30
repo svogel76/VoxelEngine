@@ -355,6 +355,8 @@ public class Engine : IDisposable
         foreach (var (x, z) in _context.ChunkManager.UnloadedThisUpdate)
             _context.Renderer.RemoveChunkMesh(x, z);
 
+        _context.EntityManager.Update(fixedDelta);
+
     }
 
     private void Render(double frameTime)

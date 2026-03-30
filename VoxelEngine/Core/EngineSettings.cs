@@ -53,6 +53,9 @@ public class EngineSettings
     /// <summary>Maximale Baum-Ausdehnung in Bloecken fuer Chunk- und Sample-Queries</summary>
     public int TreeInfluenceRadius { get; init; } = 8;
 
+    /// <summary>Zellgroesse des Entity-Spatial-Hashings in Weltbloecken.</summary>
+    public float EntitySpatialHashCellSize { get; init; } = Chunk.Width;
+
     // Time
     /// <summary>Startzeit der Welt in Stunden (0.0–24.0)</summary>
     public double InitialTime { get; init; } = 12.0;

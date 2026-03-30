@@ -1,6 +1,7 @@
 using VoxelEngine.Core.Debug;
 using VoxelEngine.Core.Hud;
 using VoxelEngine.Core.UI;
+using VoxelEngine.Entity;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
@@ -20,6 +21,7 @@ public class GameContext : IDisposable
     public WorldGenerator    Generator     { get; }
     public ChunkManager      ChunkManager  { get; }
     public WorldTime         Time          { get; }
+    public EntityManager     EntityManager { get; }
     public HudRegistry       HudRegistry   { get; } = new HudRegistry();
     public UIStateManager    UI            { get; } = new UIStateManager();
     public IWorldPersistence Persistence   { get; }
@@ -62,6 +64,7 @@ public class GameContext : IDisposable
         Console      = new DebugConsole(this);
         ChunkManager = new ChunkManager(world, generator, settings, persistence);
         Time         = new WorldTime { TimeScale = settings.TimeScale };
+        EntityManager = new EntityManager(world, settings);
         Time.SetTime(settings.InitialTime);
         Inventory    = new PlayerInventory(player.Inventory);
     }
