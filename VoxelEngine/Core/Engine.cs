@@ -6,6 +6,7 @@ using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Core.Hud;
+using VoxelEngine.Core.UI;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.Rendering.Hud;
@@ -250,9 +251,12 @@ public class Engine : IDisposable
         _prevDown      = false;
         _prevTab       = false;
 
-        if (_context.Input.IsKeyPressed(Key.Escape))
+        // UI-Zustandsautomat: verarbeitet Panel-Tasten und Escape.
+        // Gibt true zurück wenn ein Panel offen ist → Gameplay-Input pausieren.
+        bool uiConsuming = _context.UI.Update(_context);
+        if (uiConsuming)
         {
-            _window.Close();
+            _context.Input.ClearTransientMouseState();
             return;
         }
 
@@ -330,6 +334,7 @@ public class Engine : IDisposable
         _context.Renderer.UploadPendingMeshes(_context.ChunkManager);
         _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime, _context.TargetedBlock, _context.PlacementPreview);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
+        _context.UI.Render(_context, frameTime);
     }
 
     private void Close()
