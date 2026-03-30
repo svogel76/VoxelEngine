@@ -57,6 +57,12 @@ public class EngineSettings
     public float EntitySpatialHashCellSize { get; init; } = Chunk.Width;
     /// <summary>Skalierungsfaktor fuer importierte Entity-Voxelmodelle. 1.0 = 1 Voxel entspricht 1 Welt-Unit.</summary>
     public float EntityVoxelScale { get; init; } = 1.0f;
+    /// <summary>Maximaler horizontaler Radius um den Spieler fuer klimaabhaengige Spawn-Versuche.</summary>
+    public float EntitySpawnRadius { get; init; } = Chunk.Width * 2;
+    /// <summary>Anzahl zufaelliger Kandidaten pro Spawn-Check bevor ein Spawn-Versuch aufgegeben wird.</summary>
+    public int EntitySpawnPlacementAttempts { get; init; } = 16;
+    /// <summary>Radius um den Spieler in dem inaktive Entities beim Tag/Nacht-Wechsel nicht despawnen.</summary>
+    public float EntityDespawnProtectionRadius { get; init; } = Chunk.Width * 2;
 
     // Time
     /// <summary>Startzeit der Welt in Stunden (0.0–24.0)</summary>

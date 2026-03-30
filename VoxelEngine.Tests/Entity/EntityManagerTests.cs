@@ -2,6 +2,7 @@ using System.Numerics;
 using FluentAssertions;
 using VoxelEngine.Core;
 using VoxelEngine.Entity;
+using VoxelEngine.Entity.Models;
 using VoxelEngine.World;
 
 namespace VoxelEngine.Tests.Entity;
@@ -87,6 +88,101 @@ public class EntityManagerTests
         unloadedEntity.UpdateCallCount.Should().Be(0);
     }
 
+    [Fact]
+    public void Update_SpawnsDiurnalEntitiesOnlyDuringDay()
+    {
+        string directory = CreateClimateDirectory(SpawnActivity.Diurnal);
+
+        try
+        {
+            // Arrange
+            var setup = CreateSpawnManager(directory, timeOfDay: 12.0);
+
+            // Act
+            UpdateUntilSpawned(setup.Manager);
+
+            // Assert
+            setup.Manager.Count.Should().Be(1);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Update_DoesNotSpawnDiurnalEntitiesAtNight()
+    {
+        string directory = CreateClimateDirectory(SpawnActivity.Diurnal);
+
+        try
+        {
+            // Arrange
+            var setup = CreateSpawnManager(directory, timeOfDay: 22.0);
+
+            // Act
+            UpdateUntilSpawned(setup.Manager);
+
+            // Assert
+            setup.Manager.Count.Should().Be(0);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Update_OnDayNightTransition_DespawnsInactiveManagedEntitiesOutsideProtectionRadius()
+    {
+        string directory = CreateClimateDirectory(SpawnActivity.Diurnal);
+
+        try
+        {
+            // Arrange
+            var setup = CreateSpawnManager(directory, timeOfDay: 12.0);
+            UpdateUntilSpawned(setup.Manager);
+            setup.Manager.Count.Should().Be(1);
+            setup.PlayerPosition = new Vector3(512f, 90f, 512f);
+            setup.Time.SetTime(22.0);
+
+            // Act
+            setup.Manager.Update(0.1);
+
+            // Assert
+            setup.Manager.Count.Should().Be(0);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Update_OnDayNightTransition_KeepsInactiveManagedEntitiesInsideProtectionRadius()
+    {
+        string directory = CreateClimateDirectory(SpawnActivity.Diurnal);
+
+        try
+        {
+            // Arrange
+            var setup = CreateSpawnManager(directory, timeOfDay: 12.0);
+            UpdateUntilSpawned(setup.Manager);
+            setup.Manager.Count.Should().Be(1);
+            setup.Time.SetTime(22.0);
+
+            // Act
+            setup.Manager.Update(0.1);
+
+            // Assert
+            setup.Manager.Count.Should().Be(1);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static EntityManager CreateManager(float? cellSize = null)
     {
         var settings = cellSize is null
@@ -95,6 +191,117 @@ public class EntityManagerTests
 
         return new EntityManager(new global::VoxelEngine.World.World(), settings);
     }
+
+    private static SpawnTestSetup CreateSpawnManager(string climateDirectory, double timeOfDay)
+    {
+        var settings = new EngineSettings
+        {
+            Terrain = new NoiseSettings { Seed = 12345 },
+            EntitySpawnRadius = 48f,
+            EntitySpawnPlacementAttempts = 128,
+            EntityDespawnProtectionRadius = 128f
+        };
+
+        var generator = new WorldGenerator(settings, climateDirectory);
+        (int worldX, int worldZ) = FindCoordinateForClimate(generator, "temperate");
+        int chunkX = global::VoxelEngine.World.World.WorldToChunk(worldX);
+        int chunkZ = global::VoxelEngine.World.World.WorldToChunk(worldZ);
+        var world = new global::VoxelEngine.World.World();
+
+        for (int x = chunkX - 1; x <= chunkX + 1; x++)
+        for (int z = chunkZ - 1; z <= chunkZ + 1; z++)
+            world.AddChunk(generator.GenerateChunk(x, z));
+
+        int surfaceHeight = generator.GetSurfaceHeight(worldX, worldZ);
+        var playerPosition = new Vector3(worldX + 0.5f, surfaceHeight + 1f, worldZ + 0.5f);
+        var time = new WorldTime();
+        time.SetTime(timeOfDay);
+        var manager = new EntityManager(
+            world,
+            settings,
+            generator,
+            time,
+            new TestModelLibrary(CreateAnimalModel("deer")),
+            () => playerPosition,
+            () => null!,
+            new Random(42));
+
+        return new SpawnTestSetup(manager, time, () => playerPosition, value => playerPosition = value);
+    }
+
+    private static void UpdateUntilSpawned(EntityManager manager)
+    {
+        for (int i = 0; i < 6; i++)
+            manager.Update(0.1);
+    }
+
+    private static (int WorldX, int WorldZ) FindCoordinateForClimate(WorldGenerator generator, string climateId)
+    {
+        for (int z = -512; z <= 512; z += 8)
+        for (int x = -512; x <= 512; x += 8)
+        {
+            if (string.Equals(generator.SampleClimate(x, z).PrimaryZone.Id, climateId, StringComparison.OrdinalIgnoreCase))
+                return (x, z);
+        }
+
+        throw new InvalidOperationException($"Could not find a sample coordinate for climate '{climateId}'.");
+    }
+
+    private static string CreateClimateDirectory(SpawnActivity activity)
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"{nameof(EntityManagerTests)}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+
+        WriteClimateFile(directory, "temperate", true, activity);
+        WriteClimateFile(directory, "taiga", false, SpawnActivity.Any);
+        WriteClimateFile(directory, "steppe", false, SpawnActivity.Any);
+        WriteClimateFile(directory, "savanna", false, SpawnActivity.Any);
+        WriteClimateFile(directory, "desert", false, SpawnActivity.Any);
+        WriteClimateFile(directory, "tropics", false, SpawnActivity.Any);
+        return directory;
+    }
+
+    private static void WriteClimateFile(string directory, string id, bool includeSpawn, SpawnActivity activity)
+    {
+        string spawnJson = includeSpawn
+            ? $$"""
+              "spawns": [
+                { "entity": "deer", "maxCount": 1, "minSpawnDistance": 8, "spawnInterval": 0, "activity": "{{activity.ToString().ToLowerInvariant()}}" }
+              ]
+              """
+            : "\"spawns\": []";
+
+        File.WriteAllText(
+            Path.Combine(directory, $"{id}.json"),
+            $$"""
+            {
+              "id": "{{id}}",
+              "terrain": { "baseHeight": 72, "amplitude": 8, "frequency": 0.009, "octaves": 3 },
+              "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
+              "snowLine": 999,
+              "trees": { "density": 0.0, "template": "oak" },
+              {{spawnJson}}
+            }
+            """);
+    }
+
+    private static IVoxelModelDefinition CreateAnimalModel(string id)
+        => new VoxelModelDefinition(
+            id,
+            1f,
+            [new VoxelModelVoxel(0, 0, 0, 0, 0, new VoxelTint(255, 255, 255, 255))],
+            new EntityModelMetadata
+            {
+                Behaviour = new EntityBehaviourMetadata
+                {
+                    MoveSpeed = 0f,
+                    FleeSpeed = 0f,
+                    FleeRadius = 0f,
+                    IdleTimeMin = 1f,
+                    IdleTimeMax = 1f,
+                    WanderRadius = 0f
+                }
+            });
 
     private class TestEntity : global::VoxelEngine.Entity.Entity, IEntityUpdatable, IEntityBoundsProvider
     {
@@ -121,6 +328,47 @@ public class EntityManagerTests
         public DerivedTestEntity(Vector3 position)
             : base(position)
         {
+        }
+    }
+
+    private sealed class TestModelLibrary : IEntityModelLibrary
+    {
+        private readonly Dictionary<string, IVoxelModelDefinition> _models;
+
+        public TestModelLibrary(params IVoxelModelDefinition[] models)
+        {
+            _models = models.ToDictionary(model => model.Id, StringComparer.OrdinalIgnoreCase);
+        }
+
+        public EntityAtlasDefinition Atlas { get; } = new("Assets/Entities/entity_atlas.png", 4, 2);
+
+        public IReadOnlyCollection<IVoxelModelDefinition> GetAllModels()
+            => _models.Values;
+
+        public IVoxelModelDefinition GetModel(string modelId)
+            => _models[modelId];
+    }
+
+    private sealed class SpawnTestSetup
+    {
+        private readonly Func<Vector3> _getPlayerPosition;
+        private readonly Action<Vector3> _setPlayerPosition;
+
+        public SpawnTestSetup(EntityManager manager, WorldTime time, Func<Vector3> getPlayerPosition, Action<Vector3> setPlayerPosition)
+        {
+            Manager = manager;
+            Time = time;
+            _getPlayerPosition = getPlayerPosition;
+            _setPlayerPosition = setPlayerPosition;
+        }
+
+        public EntityManager Manager { get; }
+        public WorldTime Time { get; }
+
+        public Vector3 PlayerPosition
+        {
+            get => _getPlayerPosition();
+            set => _setPlayerPosition(value);
         }
     }
 }

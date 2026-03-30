@@ -47,7 +47,7 @@ public sealed class ClimateSystemTests : IDisposable
         temperate.TreeDensity.Should().Be(0.015f);
         temperate.TreeTemplate.Name.Should().Be("oak");
         temperate.Spawns.Should().ContainSingle();
-        temperate.Spawns[0].Should().BeEquivalentTo(new ClimateSpawnDefinition("deer", 8, 16f, 30f));
+        temperate.Spawns[0].Should().BeEquivalentTo(new ClimateSpawnDefinition("deer", 8, 16f, 30f, SpawnActivity.Diurnal));
 
         ClimateZone desert = system.Zones.Should().ContainSingle(zone => zone.Id == "desert").Subject;
         desert.SurfaceBlock.Should().Be(BlockType.Sand);
@@ -94,6 +94,34 @@ public sealed class ClimateSystemTests : IDisposable
             .WithMessage("*taiga*");
     }
 
+    [Fact]
+    public void Constructor_WhenSpawnActivityIsMissing_DefaultsToAny()
+    {
+        // Arrange
+        File.WriteAllText(
+            Path.Combine(_climateDirectory, "temperate.json"),
+            """
+            {
+              "id": "temperate",
+              "terrain": { "baseHeight": 72, "amplitude": 28, "frequency": 0.009, "octaves": 5 },
+              "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
+              "snowLine": 999,
+              "trees": { "density": 0.015, "template": "oak" },
+              "spawns": [
+                { "entity": "deer", "maxCount": 8, "minSpawnDistance": 16, "spawnInterval": 30 }
+              ]
+            }
+            """);
+
+        // Act
+        var system = new ClimateSystem(new NoiseSettings(), _climateDirectory);
+
+        // Assert
+        ClimateZone temperate = system.Zones.Should().ContainSingle(zone => zone.Id == "temperate").Subject;
+        temperate.Spawns.Should().ContainSingle();
+        temperate.Spawns[0].Activity.Should().Be(SpawnActivity.Any);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_climateDirectory))
@@ -112,7 +140,7 @@ public sealed class ClimateSystemTests : IDisposable
               "snowLine": 999,
               "trees": { "density": 0.015, "template": "oak" },
               "spawns": [
-                { "entity": "deer", "maxCount": 8, "minSpawnDistance": 16, "spawnInterval": 30 }
+                { "entity": "deer", "maxCount": 8, "minSpawnDistance": 16, "spawnInterval": 30, "activity": "diurnal" }
               ]
             }
             """);

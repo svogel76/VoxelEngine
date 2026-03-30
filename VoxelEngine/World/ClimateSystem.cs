@@ -320,7 +320,27 @@ public sealed class ClimateSystem
         if (spawn.SpawnInterval < 0f)
             throw new FormatException($"Climate zone '{climateId}' contains a spawn entry with a negative spawnInterval.");
 
-        return new ClimateSpawnDefinition(spawn.Entity, spawn.MaxCount, spawn.MinSpawnDistance, spawn.SpawnInterval);
+        return new ClimateSpawnDefinition(
+            spawn.Entity,
+            spawn.MaxCount,
+            spawn.MinSpawnDistance,
+            spawn.SpawnInterval,
+            ParseSpawnActivity(spawn.Activity, climateId, spawn.Entity));
+    }
+
+    private static SpawnActivity ParseSpawnActivity(string? activity, string climateId, string entityId)
+    {
+        if (string.IsNullOrWhiteSpace(activity))
+            return SpawnActivity.Any;
+
+        return activity.ToLowerInvariant() switch
+        {
+            "any" => SpawnActivity.Any,
+            "diurnal" => SpawnActivity.Diurnal,
+            "nocturnal" => SpawnActivity.Nocturnal,
+            _ => throw new FormatException(
+                $"Climate zone '{climateId}' references unknown activity '{activity}' for spawn '{entityId}'.")
+        };
     }
 
     private static void ValidateDocument(ClimateZoneDocument document, string file)
@@ -405,6 +425,7 @@ public sealed class ClimateSystem
         public int MaxCount { get; set; }
         public float MinSpawnDistance { get; set; }
         public float SpawnInterval { get; set; }
+        public string? Activity { get; set; }
     }
 }
 

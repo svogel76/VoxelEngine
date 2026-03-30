@@ -28,5 +28,6 @@
     "hurt": null,
     "death": null
   },
+  "activity": "diurnal",
   "drops": []
 }

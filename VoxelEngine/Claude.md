@@ -44,5 +44,5 @@ VoxelEngine.Tests/  # xUnit + FluentAssertions - spiegelt World/ + Core/
 - PlayerHeight (1.8f), PlayerWidth (0.6f), EyeHeight (1.62f)
 
 ## Naechste Schritte
-- Klimaabhaengiges Entity-Spawning auf Basis der neuen JSON-Klimazonen im `EntityManager` aufsetzen
-- Polarregion und Mediterran als weitere JSON-Klimazonen plus Raster-Erweiterung in `ClimateSystem` vorbereiten
+- Spawn-Balancing pro Klimazone verfeinern (weitere Tiere, Aktivitaetsmuster, Spawn-Orte)
+- Entity-Persistenz fuer klimaabhaengig gespawnte Tiere vorbereiten

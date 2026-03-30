@@ -5,6 +5,6 @@
   "snowLine": 100,
   "trees": { "density": 0.02, "template": "spruce" },
   "spawns": [
-    { "entity": "deer", "maxCount": 6, "minSpawnDistance": 20, "spawnInterval": 36 }
+    { "entity": "deer", "maxCount": 6, "minSpawnDistance": 20, "spawnInterval": 36, "activity": "diurnal" }
   ]
 }
