@@ -13,7 +13,10 @@ public class Renderer : IDisposable
     private Skybox        _skybox        = null!;
     private BlockHighlightRenderer _blockHighlight = null!;
 
-    public Skybox Skybox => _skybox;
+    public Skybox       Skybox => _skybox;
+
+    /// <summary>Block-ArrayTexture — wird an HUD-Renderer weitergereicht für Block-Icons.</summary>
+    public ArrayTexture Atlas  => _chunkRenderer.Atlas;
 
     public Renderer(GL gl, EngineSettings settings)
     {
