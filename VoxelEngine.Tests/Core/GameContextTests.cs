@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Silk.NET.Maths;
 using VoxelEngine.Core;
+using VoxelEngine.Entity.Models;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
@@ -30,6 +31,7 @@ public class GameContextTests
             renderer: null!,
             inputHandler: null!,
             generator,
+            entityModels: CreateModels(),
             persistence);
 
         var destinationPlayer = new Player(System.Numerics.Vector3.Zero);
@@ -44,6 +46,7 @@ public class GameContextTests
             renderer: null!,
             inputHandler: null!,
             generator,
+            entityModels: CreateModels(),
             persistence);
 
         // Act
@@ -57,5 +60,24 @@ public class GameContextTests
         destinationContext.Camera.Position.X.Should().BeApproximately(destinationContext.Player.EyePosition.X, 0.001f);
         destinationContext.Camera.Position.Y.Should().BeApproximately(destinationContext.Player.EyePosition.Y, 0.001f);
         destinationContext.Camera.Position.Z.Should().BeApproximately(destinationContext.Player.EyePosition.Z, 0.001f);
+    }
+
+    private static IEntityModelLibrary CreateModels()
+        => new TestModelLibrary();
+
+    private sealed class TestModelLibrary : IEntityModelLibrary
+    {
+        private readonly IVoxelModelDefinition _model = new VoxelModelDefinition(
+            "test",
+            0.25f,
+            [new VoxelModelVoxel(0, 0, 0, 0, 0, VoxelTint.White)]);
+
+        public EntityAtlasDefinition Atlas { get; } = new("Assets/Entities/entity_atlas.png", 4, 2);
+
+        public IReadOnlyCollection<IVoxelModelDefinition> GetAllModels()
+            => [_model];
+
+        public IVoxelModelDefinition GetModel(string modelId)
+            => _model;
     }
 }

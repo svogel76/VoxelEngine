@@ -44,5 +44,5 @@ VoxelEngine.Tests/  # xUnit + FluentAssertions - spiegelt World/ + Core/
 - PlayerHeight (1.8f), PlayerWidth (0.6f), EyeHeight (1.62f)
 
 ## Naechste Schritte
-- Entity-Rendering auf Basis von `EntityManager.GetVisible(...)` anbinden
 - Entity-Kollision mit Terrain und klimaabhaengiges Spawning auf den neuen `EntityManager` aufsetzen
+- Persistenz und Registry-Aufloesung fuer data-driven Entity-Modelle/Atlanten vorbereiten

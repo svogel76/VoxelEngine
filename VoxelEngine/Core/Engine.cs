@@ -8,6 +8,7 @@ using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Core.Hud;
 using VoxelEngine.Core.UI;
 using VoxelEngine.Core.UI.Panels;
+using VoxelEngine.Entity.Models;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.Rendering.Hud;
@@ -95,7 +96,8 @@ public class Engine : IDisposable
 
         float aspectRatio      = (float)_settings.WindowWidth / _settings.WindowHeight;
         var (camX, camY, camZ) = _settings.CameraStartPosition;
-        var renderer  = new Renderer(_gl, _settings);
+        var entityModels = FileSystemEntityModelLibrary.LoadFromDirectory("Assets/Entities", _settings.EntityVoxelScale);
+        var renderer  = new Renderer(_gl, _settings, entityModels);
         var world     = new World.World();
         var generator = new WorldGenerator(_settings);
         var playerStart = CreatePlayerStartPosition(generator, camX, camY, camZ);
@@ -104,7 +106,7 @@ public class Engine : IDisposable
         var camera = new Camera(ToSilk(player.EyePosition), aspectRatio, _settings);
 
         _persistence = new LocalFilePersistence(_settings.SaveDirectory);
-        _context = new GameContext(_settings, world, player, camera, renderer, input, generator, _persistence);
+        _context = new GameContext(_settings, world, player, camera, renderer, input, generator, entityModels, _persistence);
 
         // Spielerstand + Welt-Metadaten laden (falls vorhanden)
         var (savedPlayer, savedWorld) = _context.LoadGameStateAsync().GetAwaiter().GetResult();
@@ -131,6 +133,7 @@ public class Engine : IDisposable
         _context.Console.Register(new TimeCommand());
         _context.Console.Register(new FogCommand());
         _context.Console.Register(new HudCommand(_context.HudRegistry));
+        _context.Console.Register(new EntityCommand());
 
         _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight);
 
@@ -373,7 +376,7 @@ public class Engine : IDisposable
         }
 
         _context.Renderer.UploadPendingMeshes(_context.ChunkManager);
-        _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime, _context.TargetedBlock, _context.PlacementPreview);
+        _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime, _context.EntityManager, _context.TargetedBlock, _context.PlacementPreview);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
         _context.UI.Render(_context, frameTime, _settings.WindowWidth, _settings.WindowHeight);
     }
