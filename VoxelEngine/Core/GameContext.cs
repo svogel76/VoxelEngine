@@ -3,6 +3,7 @@ using VoxelEngine.Core.Hud;
 using VoxelEngine.Core.UI;
 using VoxelEngine.Entity;
 using VoxelEngine.Entity.Models;
+using VoxelEngine.Entity.Spawning;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
@@ -23,6 +24,7 @@ public class GameContext : IDisposable
     public ChunkManager      ChunkManager  { get; }
     public WorldTime         Time          { get; }
     public EntityManager     EntityManager { get; }
+    public SpawnManager      SpawnManager  { get; }
     public IEntityModelLibrary EntityModels { get; }
     public HudRegistry       HudRegistry   { get; } = new HudRegistry();
     public UIStateManager    UI            { get; } = new UIStateManager();
@@ -76,6 +78,16 @@ public class GameContext : IDisposable
             entityModels,
             () => Player.Position,
             () => global::VoxelEngine.Entity.ViewFrustum.FromViewProjection(ToNumerics(Camera.ViewMatrix * Camera.ProjectionMatrix)));
+        SpawnManager = new SpawnManager(
+            world,
+            EntityManager,
+            settings,
+            generator,
+            Time,
+            entityModels,
+            () => Player.Position,
+            () => global::VoxelEngine.Entity.ViewFrustum.FromViewProjection(ToNumerics(Camera.ViewMatrix * Camera.ProjectionMatrix)));
+        EntityManager.SpawnManager = SpawnManager;
         Time.SetTime(settings.InitialTime);
         Inventory    = new PlayerInventory(player.Inventory);
     }

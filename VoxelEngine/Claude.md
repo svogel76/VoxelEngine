@@ -46,3 +46,4 @@ VoxelEngine.Tests/  # xUnit + FluentAssertions - spiegelt World/ + Core/
 ## Naechste Schritte
 - Spawn-Balancing pro Klimazone verfeinern (weitere Tiere, Burrow-/Sleep-Profile, Spawn-Orte)
 - Entity-Persistenz fuer klimaabhaengig gespawnte Tiere vorbereiten
+- SpawnManager um Block-/Hang-Praferenzen und Herdenspawns erweitern
