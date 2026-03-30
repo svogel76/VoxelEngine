@@ -120,6 +120,8 @@ public abstract class PersistenceTestBase
 
         var state = new PlayerState(
             new Vector3(10f, 65.5f, -5f),
+            Yaw: 37.5f,
+            Pitch: -22.25f,
             FlyMode: true,
             SelectedSlot: 2,
             hotbar,
@@ -133,6 +135,8 @@ public abstract class PersistenceTestBase
         loaded!.Position.X.Should().BeApproximately(10f, 0.001f);
         loaded.Position.Y.Should().BeApproximately(65.5f, 0.001f);
         loaded.Position.Z.Should().BeApproximately(-5f, 0.001f);
+        loaded.Yaw.Should().BeApproximately(37.5f, 0.001f);
+        loaded.Pitch.Should().BeApproximately(-22.25f, 0.001f);
         loaded.FlyMode.Should().BeTrue();
         loaded.SelectedSlot.Should().Be(2);
         loaded.Hotbar[0].Should().Be(new ItemStackData(BlockType.Grass, 10));
@@ -161,6 +165,8 @@ public abstract class PersistenceTestBase
         var p = CreatePersistence();
         var state = new PlayerState(
             Vector3.Zero,
+            Yaw: -90f,
+            Pitch: 0f,
             FlyMode: false,
             SelectedSlot: 0,
             new ItemStackData?[9],

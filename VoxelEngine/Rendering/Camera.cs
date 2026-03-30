@@ -8,8 +8,8 @@ public class Camera
 {
     public Vector3D<float> Position { get; set; }
 
-    public float Yaw   { get; set; } = -90f;
-    public float Pitch { get; set; } = 0f;
+    public float Yaw   { get; private set; } = -90f;
+    public float Pitch { get; private set; } = 0f;
 
     public float MovementSpeed    { get; }
     public float MouseSensitivity { get; }
@@ -59,11 +59,15 @@ public class Camera
     {
         float effectiveDeltaY = InvertMouseY ? -deltaY : deltaY;
 
-        Yaw   += deltaX        * MouseSensitivity;
-        Pitch -= effectiveDeltaY * MouseSensitivity;
+        SetRotation(
+            Yaw + deltaX * MouseSensitivity,
+            Pitch - effectiveDeltaY * MouseSensitivity);
+    }
 
-        Pitch = Math.Clamp(Pitch, -89f, 89f);
-
+    public void SetRotation(float yaw, float pitch)
+    {
+        Yaw = yaw;
+        Pitch = Math.Clamp(pitch, -89f, 89f);
         UpdateVectors();
     }
 

@@ -102,6 +102,8 @@ public class GameContext : IDisposable
 
         var playerState = new PlayerState(
             Player.Position,
+            Camera.Yaw,
+            Camera.Pitch,
             Player.FlyMode,
             Player.Inventory.SelectedSlot,
             hotbar,
@@ -137,6 +139,8 @@ public class GameContext : IDisposable
     public void ApplyLoadedState(PlayerState playerState, WorldMeta worldMeta)
     {
         Player.Teleport(playerState.Position);
+        Camera.Position = new Silk.NET.Maths.Vector3D<float>(Player.EyePosition.X, Player.EyePosition.Y, Player.EyePosition.Z);
+        Camera.SetRotation(playerState.Yaw, playerState.Pitch);
         Player.SetFlyMode(playerState.FlyMode);
         Player.Inventory.SelectSlot(playerState.SelectedSlot);
         for (int i = 0; i < global::VoxelEngine.World.Inventory.HotbarSize; i++)

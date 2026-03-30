@@ -5,6 +5,8 @@ namespace VoxelEngine.Persistence;
 /// <summary>Gespeicherter Spielerstand: Position, Flugmodus, Inventar und Vitalwerte.</summary>
 public sealed record PlayerState(
     Vector3 Position,
+    float Yaw,
+    float Pitch,
     bool FlyMode,
     int SelectedSlot,
     IReadOnlyList<ItemStackData?> Hotbar,

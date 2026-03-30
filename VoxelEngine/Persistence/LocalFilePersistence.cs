@@ -308,10 +308,12 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
         using var bw = new BinaryWriter(ms, System.Text.Encoding.UTF8, leaveOpen: true);
 
         // Version 2: enthält Health + Hunger
-        bw.Write('V'); bw.Write('X'); bw.Write('P'); bw.Write('3');
+        bw.Write('V'); bw.Write('X'); bw.Write('P'); bw.Write('4');
         bw.Write(state.Position.X);
         bw.Write(state.Position.Y);
         bw.Write(state.Position.Z);
+        bw.Write(state.Yaw);
+        bw.Write(state.Pitch);
         bw.Write(state.FlyMode ? (byte)1 : (byte)0);
         bw.Write((byte)state.SelectedSlot);
 
@@ -334,21 +336,28 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
             return null;
 
         byte version = br.ReadByte();
-        if (version != (byte)'1' && version != (byte)'2' && version != (byte)'3')
+        if (version != (byte)'1' && version != (byte)'2' && version != (byte)'3' && version != (byte)'4')
             return null;
 
         float posX    = br.ReadSingle();
         float posY    = br.ReadSingle();
         float posZ    = br.ReadSingle();
+        float yaw     = -90f;
+        float pitch   = 0f;
+        if (version == (byte)'4')
+        {
+            yaw = br.ReadSingle();
+            pitch = br.ReadSingle();
+        }
         bool  flyMode = br.ReadByte() != 0;
         int   selSlot = br.ReadByte();
 
         var hotbar = ReadItemStackList(br, Inventory.HotbarSize);
 
-        // VXP2: Health + Hunger; VXP1: Standardwerte
+        // VXP2+: Health + Hunger; VXP1: Standardwerte
         float health = 20f;
         float hunger = 20f;
-        if ((version == (byte)'2' || version == (byte)'3') && ms.Position + 8 <= ms.Length)
+        if ((version == (byte)'2' || version == (byte)'3' || version == (byte)'4') && ms.Position + 8 <= ms.Length)
         {
             health = br.ReadSingle();
             hunger = br.ReadSingle();
@@ -356,13 +365,13 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
 
         ItemStackData?[] inventoryGrid = new ItemStackData?[InventoryGrid.TotalSlots];
         ItemStackData?[] equipmentSlots = new ItemStackData?[EquipmentSlots.Count];
-        if (version == (byte)'3')
+        if (version == (byte)'3' || version == (byte)'4')
         {
             inventoryGrid = ReadItemStackList(br, InventoryGrid.TotalSlots);
             equipmentSlots = ReadItemStackList(br, EquipmentSlots.Count);
         }
 
-        return new PlayerState(new Vector3(posX, posY, posZ), flyMode, selSlot, hotbar, inventoryGrid, equipmentSlots, health, hunger);
+        return new PlayerState(new Vector3(posX, posY, posZ), yaw, pitch, flyMode, selSlot, hotbar, inventoryGrid, equipmentSlots, health, hunger);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
