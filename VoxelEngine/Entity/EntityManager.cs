@@ -10,6 +10,7 @@ public sealed class EntityManager
 
     private readonly global::VoxelEngine.World.World _world;
     private readonly float _cellSize;
+    private readonly EntityPhysicsSettings _physicsSettings;
     private readonly List<Entity> _entities = new();
     private readonly Dictionary<Entity, TrackedEntityState> _trackedEntities = new();
     private readonly Dictionary<(int X, int Y, int Z), HashSet<Entity>> _spatialHash = new();
@@ -26,6 +27,7 @@ public sealed class EntityManager
 
         _world = world;
         _cellSize = settings.EntitySpatialHashCellSize;
+        _physicsSettings = new EntityPhysicsSettings(settings.Gravity, settings.MaxFallSpeed);
     }
 
     public T Create<T>(Func<T> factory) where T : Entity
@@ -122,8 +124,14 @@ public sealed class EntityManager
     {
         foreach (var entity in _entities)
         {
-            if (IsInLoadedChunk(entity) && entity is IEntityUpdatable updatable)
-                updatable.Update(deltaTime);
+            if (IsInLoadedChunk(entity))
+            {
+                if (entity is TerrainPhysicsEntity terrainPhysicsEntity)
+                    terrainPhysicsEntity.ApplyTerrainPhysics(_world, _physicsSettings, deltaTime);
+
+                if (entity is IEntityUpdatable updatable)
+                    updatable.Update(deltaTime);
+            }
 
             RefreshTrackedEntity(entity);
         }

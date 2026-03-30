@@ -9,9 +9,11 @@ public class Player : Entity.Entity
     public const float Height = 1.8f;
     public const float EyeHeight = 1.62f;
     public const float SpawnClearance = 2f;
-    private const float CollisionEpsilon = 0.001f;
-    private const float GroundProbeDistance = 0.05f;
     private const float MaxCollisionSubStep = 0.5f;
+    private static readonly BoundingBox PlayerLocalBounds = new(
+        new Vector3(-Width * 0.5f, 0f, -Width * 0.5f),
+        new Vector3(Width * 0.5f, Height, Width * 0.5f));
+    private static readonly TerrainCollisionResolver TerrainCollision = new(PlayerLocalBounds);
 
     // Position und Velocity kommen von Entity.Entity
     public bool IsOnGround { get; private set; }
@@ -27,7 +29,7 @@ public class Player : Entity.Entity
 
     public Vector3 Size => new(Width, Height, Width);
     public Vector3 EyePosition => Position + new Vector3(0f, EyeHeight + _stepVisualOffsetY, 0f);
-    public BoundingBox BoundingBox => CreateBoundingBox(Position);
+    public BoundingBox BoundingBox => TerrainCollision.CreateWorldBounds(Position);
 
     public Player(Vector3 startPosition, bool flyMode = false, VitalsConfig? vitalsConfig = null)
         : base(startPosition, vitalsConfig)
@@ -91,7 +93,7 @@ public class Player : Entity.Entity
             horizontalMovement = Vector3.Normalize(horizontalMovement);
 
         float verticalVelocity = Velocity.Y;
-        bool hadGroundSupport = IsOnGround || HasGroundSupport(Position, world);
+        bool hadGroundSupport = IsOnGround || TerrainCollision.HasGroundSupport(Position, world);
 
         if (input.Jump && hadGroundSupport)
         {
@@ -116,7 +118,7 @@ public class Player : Entity.Entity
 
         for (int i = 0; i < steps; i++)
         {
-            bool canStepUp = groundedDuringMove || hadGroundSupport || HasGroundSupport(nextPosition, world);
+            bool canStepUp = groundedDuringMove || hadGroundSupport || TerrainCollision.HasGroundSupport(nextPosition, world);
             ResolveMovementStep(
                 ref nextPosition,
                 new Vector3(desiredVelocity.X * subDelta, desiredVelocity.Y * subDelta, desiredVelocity.Z * subDelta),
@@ -130,7 +132,7 @@ public class Player : Entity.Entity
         bool wasOnGroundBefore = IsOnGround;
         Position = nextPosition;
         Velocity = desiredVelocity;
-        IsOnGround = groundedDuringMove || HasGroundSupport(Position, world);
+        IsOnGround = groundedDuringMove || TerrainCollision.HasGroundSupport(Position, world);
         UpdateStepVisualOffset(dt, physics.StepUpSmoothingSpeed);
 
         if (IsOnGround && Velocity.Y < 0f)
@@ -236,7 +238,7 @@ public class Player : Entity.Entity
 
         Velocity = new Vector3(Velocity.X, 0f, Velocity.Z);
         ResolvePenetration(world);
-        IsOnGround = HasGroundSupport(Position, world);
+        IsOnGround = TerrainCollision.HasGroundSupport(Position, world);
         _stepVisualOffsetY = 0f;
         if (IsOnGround)
             Velocity = new Vector3(Velocity.X, 0f, Velocity.Z);
@@ -255,11 +257,11 @@ public class Player : Entity.Entity
         int count = 0;
 
         if (MathF.Abs(stepDelta.X) > float.Epsilon)
-            axisMoves[count++] = new AxisMove(Axis.X, stepDelta.X, EstimateAxisPenetration(position, stepDelta.X, Axis.X, world));
+            axisMoves[count++] = new AxisMove(CollisionAxis.X, stepDelta.X, TerrainCollision.EstimateAxisPenetration(position, stepDelta.X, CollisionAxis.X, world));
         if (MathF.Abs(stepDelta.Y) > float.Epsilon)
-            axisMoves[count++] = new AxisMove(Axis.Y, stepDelta.Y, EstimateAxisPenetration(position, stepDelta.Y, Axis.Y, world));
+            axisMoves[count++] = new AxisMove(CollisionAxis.Y, stepDelta.Y, TerrainCollision.EstimateAxisPenetration(position, stepDelta.Y, CollisionAxis.Y, world));
         if (MathF.Abs(stepDelta.Z) > float.Epsilon)
-            axisMoves[count++] = new AxisMove(Axis.Z, stepDelta.Z, EstimateAxisPenetration(position, stepDelta.Z, Axis.Z, world));
+            axisMoves[count++] = new AxisMove(CollisionAxis.Z, stepDelta.Z, TerrainCollision.EstimateAxisPenetration(position, stepDelta.Z, CollisionAxis.Z, world));
 
         for (int i = 0; i < count - 1; i++)
         for (int j = i + 1; j < count; j++)
@@ -271,13 +273,13 @@ public class Player : Entity.Entity
         for (int i = 0; i < count; i++)
         {
             var move = axisMoves[i];
-            if (move.Axis == Axis.Y)
+            if (move.Axis == CollisionAxis.Y)
             {
-                ResolveAxis(ref position, move.Delta, Axis.Y, world, ref velocity, ref isGrounded);
+                TerrainCollision.ResolveAxis(ref position, move.Delta, CollisionAxis.Y, world, ref velocity, ref isGrounded);
             }
             else
             {
-                bool stepAllowed = physics.EnableStepUp && canStepUp && (isGrounded || HasGroundSupport(position, world));
+                bool stepAllowed = physics.EnableStepUp && canStepUp && (isGrounded || TerrainCollision.HasGroundSupport(position, world));
                 ResolveHorizontalAxis(ref position, move.Delta, move.Axis, physics, world, stepAllowed, ref velocity);
             }
         }
@@ -286,7 +288,7 @@ public class Player : Entity.Entity
     private void ResolveHorizontalAxis(
         ref Vector3 position,
         float delta,
-        Axis axis,
+        CollisionAxis axis,
         PlayerPhysicsSettings physics,
         World world,
         bool canStepUp,
@@ -298,7 +300,7 @@ public class Player : Entity.Entity
         Vector3 candidate = position;
         SetAxis(ref candidate, axis, GetAxis(candidate, axis) + delta);
 
-        if (!Collides(world, candidate))
+        if (!TerrainCollision.Collides(world, candidate))
         {
             position = candidate;
             return;
@@ -307,57 +309,28 @@ public class Player : Entity.Entity
         if (physics.EnableStepUp && canStepUp && TryStepUp(ref position, delta, axis, physics.StepHeight, physics.StepUpMaxVisualDrop, world))
             return;
 
-        float resolved = ResolveAxisPosition(position, candidate, axis, world);
+        float resolved = TerrainCollision.ResolveAxisPosition(position, candidate, axis, world);
         SetAxis(ref position, axis, resolved);
         ZeroVelocityAxis(ref velocity, axis);
     }
 
-    private void ResolveAxis(
-        ref Vector3 position,
-        float delta,
-        Axis axis,
-        World world,
-        ref Vector3 velocity,
-        ref bool isGrounded)
-    {
-        if (MathF.Abs(delta) <= float.Epsilon)
-            return;
-
-        Vector3 candidate = position;
-        SetAxis(ref candidate, axis, GetAxis(candidate, axis) + delta);
-
-        if (!Collides(world, candidate))
-        {
-            position = candidate;
-            return;
-        }
-
-        float resolved = ResolveAxisPosition(position, candidate, axis, world);
-        SetAxis(ref position, axis, resolved);
-
-        if (axis == Axis.Y && delta < 0f)
-            isGrounded = true;
-
-        ZeroVelocityAxis(ref velocity, axis);
-    }
-
-    private bool TryStepUp(ref Vector3 position, float delta, Axis axis, float stepHeight, float maxVisualDrop, World world)
+    private bool TryStepUp(ref Vector3 position, float delta, CollisionAxis axis, float stepHeight, float maxVisualDrop, World world)
     {
         if (stepHeight <= 0f)
             return false;
 
         Vector3 raised = position with { Y = position.Y + stepHeight };
-        if (Collides(world, raised))
+        if (TerrainCollision.Collides(world, raised))
             return false;
 
         Vector3 advanced = raised;
         SetAxis(ref advanced, axis, GetAxis(advanced, axis) + delta);
-        if (Collides(world, advanced))
+        if (TerrainCollision.Collides(world, advanced))
             return false;
 
         Vector3 descentVelocity = Vector3.Zero;
         bool grounded = false;
-        ResolveAxis(ref advanced, -stepHeight, Axis.Y, world, ref descentVelocity, ref grounded);
+        TerrainCollision.ResolveAxis(ref advanced, -stepHeight, CollisionAxis.Y, world, ref descentVelocity, ref grounded);
         if (!grounded)
             return false;
 
@@ -390,188 +363,42 @@ public class Player : Entity.Entity
 
     private void ResolvePenetration(World world)
     {
-        const int maxIterations = 8;
-
-        for (int i = 0; i < maxIterations; i++)
-        {
-            BoundingBox playerBox = CreateBoundingBox(Position);
-            PenetrationResolution? smallest = null;
-
-            foreach (var block in GetIntersectingSolidBlocks(world, playerBox))
-            {
-                BoundingBox blockBox = CreateBlockBoundingBox(block.X, block.Y, block.Z);
-                foreach (var resolution in GetPenetrationResolutions(playerBox, blockBox))
-                {
-                    if (smallest is null || resolution.Distance < smallest.Value.Distance)
-                        smallest = resolution;
-                }
-            }
-
-            if (smallest is null)
-                return;
-
-            Position += smallest.Value.Offset;
-        }
-    }
-
-    private IEnumerable<PenetrationResolution> GetPenetrationResolutions(BoundingBox playerBox, BoundingBox blockBox)
-    {
-        float overlapLeft = playerBox.Max.X - blockBox.Min.X;
-        float overlapRight = blockBox.Max.X - playerBox.Min.X;
-        float overlapDown = playerBox.Max.Y - blockBox.Min.Y;
-        float overlapUp = blockBox.Max.Y - playerBox.Min.Y;
-        float overlapBack = playerBox.Max.Z - blockBox.Min.Z;
-        float overlapFront = blockBox.Max.Z - playerBox.Min.Z;
-
-        yield return overlapLeft < overlapRight
-            ? new PenetrationResolution(new Vector3(-overlapLeft, 0f, 0f), overlapLeft)
-            : new PenetrationResolution(new Vector3(overlapRight, 0f, 0f), overlapRight);
-
-        yield return overlapDown < overlapUp
-            ? new PenetrationResolution(new Vector3(0f, -overlapDown, 0f), overlapDown)
-            : new PenetrationResolution(new Vector3(0f, overlapUp, 0f), overlapUp);
-
-        yield return overlapBack < overlapFront
-            ? new PenetrationResolution(new Vector3(0f, 0f, -overlapBack), overlapBack)
-            : new PenetrationResolution(new Vector3(0f, 0f, overlapFront), overlapFront);
-    }
-
-    private float EstimateAxisPenetration(Vector3 position, float delta, Axis axis, World world)
-    {
-        Vector3 candidate = position;
-        SetAxis(ref candidate, axis, GetAxis(candidate, axis) + delta);
-        BoundingBox candidateBox = CreateBoundingBox(candidate);
-
-        float penetration = 0f;
-        bool collided = false;
-
-        foreach (var block in GetIntersectingSolidBlocks(world, candidateBox))
-        {
-            collided = true;
-            BoundingBox blockBox = CreateBlockBoundingBox(block.X, block.Y, block.Z);
-            float overlap = GetAxisPenetration(candidateBox, blockBox, axis, delta > 0f);
-            penetration = penetration <= 0f ? overlap : MathF.Min(penetration, overlap);
-        }
-
-        return collided ? penetration : 0f;
-    }
-
-    private bool HasGroundSupport(Vector3 position, World world)
-    {
-        var probe = CreateBoundingBox(position).Translate(0f, -GroundProbeDistance, 0f);
-        return IntersectsSolid(world, probe);
-    }
-
-    private bool Collides(World world, Vector3 feetPosition)
-        => IntersectsSolid(world, CreateBoundingBox(feetPosition));
-
-    private bool IntersectsSolid(World world, BoundingBox box)
-    {
-        foreach (var _ in GetIntersectingSolidBlocks(world, box))
-            return true;
-
-        return false;
-    }
-
-    private IEnumerable<(int X, int Y, int Z)> GetIntersectingSolidBlocks(World world, BoundingBox box)
-    {
-        int minX = (int)MathF.Floor(box.Min.X);
-        int maxX = (int)MathF.Floor(box.Max.X - CollisionEpsilon);
-        int minY = (int)MathF.Floor(box.Min.Y);
-        int maxY = (int)MathF.Floor(box.Max.Y - CollisionEpsilon);
-        int minZ = (int)MathF.Floor(box.Min.Z);
-        int maxZ = (int)MathF.Floor(box.Max.Z - CollisionEpsilon);
-
-        for (int x = minX; x <= maxX; x++)
-        for (int y = minY; y <= maxY; y++)
-        for (int z = minZ; z <= maxZ; z++)
-        {
-            if (!BlockRegistry.CollidesWithPlayer(world.GetBlock(x, y, z)))
-                continue;
-
-            yield return (x, y, z);
-        }
-    }
-
-    private float ResolveAxisPosition(Vector3 current, Vector3 candidate, Axis axis, World world)
-    {
-        BoundingBox candidateBox = CreateBoundingBox(candidate);
-        float resolved = GetAxis(candidate, axis);
-        bool movingPositive = GetAxis(candidate, axis) > GetAxis(current, axis);
-
-        foreach (var block in GetIntersectingSolidBlocks(world, candidateBox))
-        {
-            BoundingBox blockBox = CreateBlockBoundingBox(block.X, block.Y, block.Z);
-            float penetration = GetAxisPenetration(candidateBox, blockBox, axis, movingPositive);
-            resolved = movingPositive
-                ? MathF.Min(resolved, GetAxis(candidate, axis) - penetration)
-                : MathF.Max(resolved, GetAxis(candidate, axis) + penetration);
-        }
-
-        return resolved;
-    }
-
-    private static float GetAxisPenetration(BoundingBox playerBox, BoundingBox blockBox, Axis axis, bool movingPositive) => axis switch
-    {
-        Axis.X => movingPositive
-            ? playerBox.Max.X - blockBox.Min.X
-            : blockBox.Max.X - playerBox.Min.X,
-        Axis.Y => movingPositive
-            ? playerBox.Max.Y - blockBox.Min.Y
-            : blockBox.Max.Y - playerBox.Min.Y,
-        _ => movingPositive
-            ? playerBox.Max.Z - blockBox.Min.Z
-            : blockBox.Max.Z - playerBox.Min.Z
-    };
-
-    private BoundingBox CreateBoundingBox(Vector3 feetPosition)
-    {
-        float halfWidth = Width * 0.5f;
-        return new(
-            new Vector3(feetPosition.X - halfWidth, feetPosition.Y, feetPosition.Z - halfWidth),
-            new Vector3(feetPosition.X + halfWidth, feetPosition.Y + Height, feetPosition.Z + halfWidth));
+        var position = Position;
+        TerrainCollision.ResolvePenetration(world, ref position);
+        Position = position;
     }
 
     private static BoundingBox CreateBlockBoundingBox(int x, int y, int z)
         => new(new Vector3(x, y, z), new Vector3(x + 1f, y + 1f, z + 1f));
 
-    private static float GetAxis(Vector3 vector, Axis axis) => axis switch
+    private static float GetAxis(Vector3 vector, CollisionAxis axis) => axis switch
     {
-        Axis.X => vector.X,
-        Axis.Y => vector.Y,
+        CollisionAxis.X => vector.X,
+        CollisionAxis.Y => vector.Y,
         _ => vector.Z
     };
 
-    private static void SetAxis(ref Vector3 vector, Axis axis, float value)
+    private static void SetAxis(ref Vector3 vector, CollisionAxis axis, float value)
     {
         vector = axis switch
         {
-            Axis.X => vector with { X = value },
-            Axis.Y => vector with { Y = value },
+            CollisionAxis.X => vector with { X = value },
+            CollisionAxis.Y => vector with { Y = value },
             _ => vector with { Z = value }
         };
     }
 
-    private static void ZeroVelocityAxis(ref Vector3 velocity, Axis axis)
+    private static void ZeroVelocityAxis(ref Vector3 velocity, CollisionAxis axis)
     {
         velocity = axis switch
         {
-            Axis.X => velocity with { X = 0f },
-            Axis.Y => velocity with { Y = 0f },
+            CollisionAxis.X => velocity with { X = 0f },
+            CollisionAxis.Y => velocity with { Y = 0f },
             _ => velocity with { Z = 0f }
         };
     }
 
-    private readonly record struct AxisMove(Axis Axis, float Delta, float Penetration);
-
-    private readonly record struct PenetrationResolution(Vector3 Offset, float Distance);
-
-    private enum Axis
-    {
-        X,
-        Y,
-        Z
-    }
+    private readonly record struct AxisMove(CollisionAxis Axis, float Delta, float Penetration);
 }
 
 public readonly record struct PlayerInput(float MoveForward, float MoveRight, float MoveUp, bool Jump);
@@ -584,14 +411,3 @@ public readonly record struct PlayerPhysicsSettings(
     float StepUpMaxVisualDrop,
     float StepUpSmoothingSpeed,
     bool EnableStepUp);
-
-public readonly record struct BoundingBox(Vector3 Min, Vector3 Max)
-{
-    public bool Intersects(BoundingBox other) =>
-        Max.X > other.Min.X && Min.X < other.Max.X &&
-        Max.Y > other.Min.Y && Min.Y < other.Max.Y &&
-        Max.Z > other.Min.Z && Min.Z < other.Max.Z;
-
-    public BoundingBox Translate(float x, float y, float z)
-        => new(Min + new Vector3(x, y, z), Max + new Vector3(x, y, z));
-}
