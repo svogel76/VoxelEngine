@@ -22,7 +22,7 @@ public class VoxModelLoaderTests
         model.VoxelSize.Should().Be(1.0f);
         model.Voxels.Should().ContainSingle();
         model.Voxels[0].X.Should().Be(1);
-        model.Voxels[0].Y.Should().Be(0);
+        model.Voxels[0].Y.Should().Be(1);
         model.Voxels[0].Z.Should().Be(1);
         model.Voxels[0].TileX.Should().Be(0);
         model.Voxels[0].TileY.Should().Be(0);
@@ -65,18 +65,43 @@ public class VoxModelLoaderTests
     }
 
     [Fact]
-    public void Parse_RejectsMultipleModels()
+    public void Parse_RotatesMagicaVoxelCoordinatesFromZUpToYUp()
+    {
+        // Arrange
+        byte[] data = VoxTestFileBuilder.Create(
+            new VoxTestModelSize(2, 3, 4),
+            [new VoxTestVoxel(1, 2, 3, 1)],
+            paletteEntries: null);
+
+        // Act
+        var model = VoxModelLoader.Parse(data, "rotated");
+
+        // Assert
+        model.Voxels.Should().ContainSingle();
+        model.Voxels[0].X.Should().Be(1);
+        model.Voxels[0].Y.Should().Be(3);
+        model.Voxels[0].Z.Should().Be(0);
+    }
+
+    [Fact]
+    public void Parse_UsesFirstModelWhenFileContainsMultipleModels()
     {
         // Arrange
         byte[] data = VoxTestFileBuilder.CreateWithPack(
             [new VoxTestModelSize(1, 1, 1), new VoxTestModelSize(1, 1, 1)],
-            [[new VoxTestVoxel(0, 0, 0, 1)], [new VoxTestVoxel(0, 0, 0, 2)]]);
+            [[new VoxTestVoxel(0, 0, 0, 1)], [new VoxTestVoxel(0, 0, 0, 2)]],
+            paletteEntries: new Dictionary<byte, uint>
+            {
+                [1] = 0xFF010203,
+                [2] = 0xFF040506
+            });
 
         // Act
-        Action act = () => VoxModelLoader.Parse(data, "multi");
+        var model = VoxModelLoader.Parse(data, "multi");
 
         // Assert
-        act.Should().Throw<NotSupportedException>();
+        model.Voxels.Should().ContainSingle();
+        model.Voxels[0].Tint.Should().Be(new VoxelTint(0x03, 0x02, 0x01, 0xFF));
     }
 
     [Fact]
@@ -100,6 +125,65 @@ public class VoxModelLoaderTests
             library.GetAllModels().Select(model => model.Id).Should().BeEquivalentTo(["cube", "sheep"]);
             library.GetModel("cube").VoxelSize.Should().Be(0.5f);
             library.GetModel("sheep").VoxelSize.Should().Be(2.0f);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadFromDirectory_UsesCompanionJsonScaleOverride()
+    {
+        // Arrange
+        string directory = Path.Combine(Path.GetTempPath(), $"vox-import-scale-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Assets", "Entities", "entity_atlas.png"), Path.Combine(directory, "entity_atlas.png"));
+        File.WriteAllBytes(
+            Path.Combine(directory, "deer.vox"),
+            VoxTestFileBuilder.Create(new VoxTestModelSize(1, 1, 1), [new VoxTestVoxel(0, 0, 0, 1)], null));
+        File.WriteAllText(Path.Combine(directory, "deer.json"), "{ \"scale\": 0.1 }");
+
+        try
+        {
+            // Act
+            var library = FileSystemEntityModelLibrary.LoadFromDirectory(directory, voxelScale: 2.0f);
+
+            // Assert
+            library.GetModel("deer").VoxelSize.Should().Be(0.1f);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadFromDirectory_AppliesCompanionJsonRotation()
+    {
+        // Arrange
+        string directory = Path.Combine(Path.GetTempPath(), $"vox-import-rotation-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Assets", "Entities", "entity_atlas.png"), Path.Combine(directory, "entity_atlas.png"));
+        File.WriteAllText(
+            Path.Combine(directory, "sign.vxm"),
+            """
+            model sign
+            voxelSize 1
+            voxel 0 0 0 0 0
+            voxel 1 0 0 0 0
+            """);
+        File.WriteAllText(Path.Combine(directory, "sign.json"), "{ \"rotation\": { \"z\": 90 } }");
+
+        try
+        {
+            // Act
+            var model = FileSystemEntityModelLibrary.LoadFromDirectory(directory).GetModel("sign");
+
+            // Assert
+            model.Voxels.Select(voxel => (voxel.X, voxel.Y, voxel.Z))
+                .Should()
+                .BeEquivalentTo([(0, 0, 0), (0, 1, 0)]);
         }
         finally
         {

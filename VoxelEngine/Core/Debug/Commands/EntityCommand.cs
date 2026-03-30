@@ -7,7 +7,7 @@ public sealed class EntityCommand : ICommand
 {
     public string Name => "entity";
     public string Description => "Spawnt oder listet Debug-Entities";
-    public string Usage => "entity spawn test | entity list";
+    public string Usage => "entity spawn <modelId> | entity list";
 
     public void Execute(string[] args, GameContext context)
     {
@@ -35,18 +35,42 @@ public sealed class EntityCommand : ICommand
 
     private static void SpawnEntity(string[] args, GameContext context)
     {
-        if (args.Length < 2 || !string.Equals(args[1], "test", StringComparison.OrdinalIgnoreCase))
+        if (args.Length < 2)
         {
-            context.Console.Log("Aktuell verfuegbar: entity spawn test");
+            LogAvailableModels(context);
             return;
         }
 
-        var model = context.EntityModels.GetModel("test");
+        string requestedModelId = args[1];
+        var model = context.EntityModels
+            .GetAllModels()
+            .FirstOrDefault(model => string.Equals(model.Id, requestedModelId, StringComparison.OrdinalIgnoreCase));
+
+        if (model is null)
+        {
+            context.Console.Log($"Unbekanntes Entity-Modell: '{requestedModelId}'.");
+            LogAvailableModels(context);
+            return;
+        }
+
         float yawRadians = context.Camera.Yaw * MathF.PI / 180f;
         var entity = new TestVoxelEntity(CalculateSpawnPosition(context, model), model, yawRadians);
         context.EntityManager.Add(entity);
 
-        context.Console.Log($"Test-Entity gespawnt bei ({entity.Position.X:F2}, {entity.Position.Y:F2}, {entity.Position.Z:F2}).");
+        context.Console.Log($"Entity '{model.Id}' gespawnt bei ({entity.Position.X:F2}, {entity.Position.Y:F2}, {entity.Position.Z:F2}).");
+    }
+
+    private static void LogAvailableModels(GameContext context)
+    {
+        string[] modelIds = context.EntityModels
+            .GetAllModels()
+            .Select(model => model.Id)
+            .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        context.Console.Log(modelIds.Length == 0
+            ? "Keine Entity-Modelle geladen."
+            : $"Verwendung: entity spawn <modelId>. Verfuegbar: {string.Join(", ", modelIds)}");
     }
 
     private static System.Numerics.Vector3 CalculateSpawnPosition(GameContext context, IVoxelModelDefinition model)
