@@ -7,6 +7,7 @@ using Silk.NET.Windowing;
 using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Core.Hud;
 using VoxelEngine.Core.UI;
+using VoxelEngine.Core.UI.Panels;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.Rendering.Hud;
@@ -25,6 +26,7 @@ public class Engine : IDisposable
     private GameContext          _context      = null!;
     private DebugOverlay         _debugOverlay = null!;
     private LocalFilePersistence _persistence  = null!;
+    private PauseMenuPanel       _pauseMenu    = null!;
 
     private readonly Stopwatch _frameTimer = new();
 
@@ -140,6 +142,11 @@ public class Engine : IDisposable
         // hud.json laden (nach allen Registrierungen)
         _context.HudRegistry.LoadConfig("Assets/Hud/hud.json");
 
+        // Pause-Menü registrieren (Spielmenü-Sonderfall: nur über Escape erreichbar)
+        _pauseMenu = new PauseMenuPanel();
+        _pauseMenu.InitRenderer(_gl);
+        _context.UI.Register(_pauseMenu, isGameMenu: true);
+
         _context.ChunkManager.PrimeInitialChunks(player.Position.X, player.Position.Z, _settings.InitialChunkLoadRadius);
 
         _frameTimer.Start();
@@ -254,6 +261,14 @@ public class Engine : IDisposable
         // UI-Zustandsautomat: verarbeitet Panel-Tasten und Escape.
         // Gibt true zurück wenn ein Panel offen ist → Gameplay-Input pausieren.
         bool uiConsuming = _context.UI.Update(_context);
+
+        // ShutdownRequested kann von UI-Panels gesetzt werden (z.B. "Beenden"-Button).
+        if (_context.ShutdownRequested)
+        {
+            _window.Close();
+            return;
+        }
+
         if (uiConsuming)
         {
             _context.Input.ClearTransientMouseState();
@@ -334,7 +349,7 @@ public class Engine : IDisposable
         _context.Renderer.UploadPendingMeshes(_context.ChunkManager);
         _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime, _context.TargetedBlock, _context.PlacementPreview);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
-        _context.UI.Render(_context, frameTime);
+        _context.UI.Render(_context, frameTime, _settings.WindowWidth, _settings.WindowHeight);
     }
 
     private void Close()
@@ -348,6 +363,7 @@ public class Engine : IDisposable
         // GL-Kontext ist hier noch aktiv — alle OpenGL-Ressourcen hier freigeben
         // _inputContext wird von Silk.NET/GLFW intern disposed wenn das Fenster schließt —
         // manuelles Dispose hier würde eine ObjectDisposedException auslösen.
+        _pauseMenu?.Dispose();
         _debugOverlay?.Dispose();
         _context?.Dispose();
         _persistence?.Dispose();

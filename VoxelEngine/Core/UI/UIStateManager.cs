@@ -33,9 +33,17 @@ public class UIStateManager
     }
 
     /// <summary>
-    /// Wird jeden Tick aufgerufen. Verarbeitet Tasteneingaben und verwaltet den Stack.
-    /// Gibt <c>true</c> zurück wenn Input vom UIStateManager konsumiert wurde und der
-    /// normale Gameplay-Input pausiert werden soll.
+    /// Schließt das oberste Panel auf dem Stack von innen heraus
+    /// (z.B. "Weiterspielen"-Button im PauseMenu).
+    /// </summary>
+    public void CloseTop(GameContext ctx)
+    {
+        Pop(ctx);
+    }
+
+    /// <summary>
+    /// Wird jeden Tick aufgerufen. Verarbeitet Tasteneingaben, ruft Update auf offene
+    /// Panels, und gibt true zurück wenn Gameplay-Input pausiert werden soll.
     /// </summary>
     public bool Update(GameContext ctx)
     {
@@ -45,8 +53,8 @@ public class UIStateManager
             if (panel.ToggleKey is not { } key)
                 continue;
 
-            bool heldNow  = ctx.Input.IsKeyPressed(key);
-            bool heldPrev = _keysHeldLastFrame.Contains(key);
+            bool heldNow     = ctx.Input.IsKeyPressed(key);
+            bool heldPrev    = _keysHeldLastFrame.Contains(key);
             bool justPressed = heldNow && !heldPrev;
 
             if (heldNow) _keysHeldLastFrame.Add(key);
@@ -56,15 +64,9 @@ public class UIStateManager
                 continue;
 
             if (_stack.Count > 0 && _stack.Peek() == panel)
-            {
-                // Panel liegt oben → schließen
                 Pop(ctx);
-            }
             else
-            {
-                // Panel liegt nicht oben → öffnen (push)
                 Push(ctx, panel);
-            }
         }
 
         // --- Escape ---
@@ -73,25 +75,28 @@ public class UIStateManager
         if (escNow && !escPrev)
         {
             if (_stack.Count > 0)
-            {
                 ClearAll(ctx);
-            }
             else if (_gameMenu is not null)
-            {
                 Push(ctx, _gameMenu);
-            }
         }
         if (escNow) _keysHeldLastFrame.Add(Key.Escape);
         else        _keysHeldLastFrame.Remove(Key.Escape);
 
+        // --- Offene Panels ticken ---
+        foreach (var panel in _stack.Reverse())
+            panel.Update(ctx);
+
         return IsAnyPanelOpen;
     }
 
-    /// <summary>Rendert alle offenen Panels (bottom → top).</summary>
-    public void Render(GameContext ctx, double frameTime)
+    /// <summary>
+    /// Rendert alle offenen Panels (bottom → top).
+    /// screenW/H werden von Engine.Render durchgereicht.
+    /// </summary>
+    public void Render(GameContext ctx, double frameTime, int screenW, int screenH)
     {
         foreach (var panel in _stack.Reverse())
-            panel.Render(ctx, frameTime);
+            panel.Render(ctx, frameTime, screenW, screenH);
     }
 
     // ── interne Hilfsmethoden ───────────────────────────────────────────────
@@ -123,14 +128,8 @@ public class UIStateManager
         ApplyMouseState(ctx);
     }
 
-    /// <summary>
-    /// Setzt den Maus-Cursor-Modus passend zum aktuellen Stack-Zustand:
-    /// offen → Normal (sichtbar), leer → Raw (versteckt für Kamera).
-    /// </summary>
     private static void ApplyMouseState(GameContext ctx)
     {
-        // InputHandler gibt keinen direkten Maus-Zugriff nach außen —
-        // wir erweitern ihn mit einer Hilfsmethode (SetCursorMode).
         ctx.Input.SetCursorMode(
             ctx.UI.IsAnyPanelOpen ? CursorMode.Normal : CursorMode.Raw);
     }

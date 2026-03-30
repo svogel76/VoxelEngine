@@ -22,6 +22,15 @@ public interface IUIPanel
     /// <summary>Wird aufgerufen wenn das Panel vom Stack entfernt wird.</summary>
     void OnClose(GameContext ctx);
 
-    /// <summary>Wird jeden Frame aufgerufen solange das Panel offen ist.</summary>
-    void Render(GameContext ctx, double frameTime);
+    /// <summary>
+    /// Wird jeden Tick (Fixed Update) aufgerufen solange das Panel offen ist.
+    /// Hier: Input-Verarbeitung, Zustandsänderungen, Aktionen auslösen.
+    /// </summary>
+    void Update(GameContext ctx);
+
+    /// <summary>
+    /// Wird jeden Frame aufgerufen solange das Panel offen ist.
+    /// Hier: reines Rendering — GL-Calls, TextRenderer, etc.
+    /// </summary>
+    void Render(GameContext ctx, double frameTime, int screenW, int screenH);
 }

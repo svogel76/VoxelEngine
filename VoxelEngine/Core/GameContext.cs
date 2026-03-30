@@ -26,6 +26,12 @@ public class GameContext : IDisposable
     public BlockRaycastHit?       TargetedBlock    { get; set; }
     public BlockPlacementPreview? PlacementPreview { get; set; }
 
+    /// <summary>
+    /// Wird von UI-Panels gesetzt (z.B. "Beenden"-Button im Pause-Menü).
+    /// Engine.Update() prüft dieses Flag und schließt das Fenster sauber.
+    /// </summary>
+    public bool ShutdownRequested { get; set; }
+
     private bool _disposed;
 
     public GameContext(
