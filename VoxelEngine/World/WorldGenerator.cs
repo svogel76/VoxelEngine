@@ -13,12 +13,14 @@ public class WorldGenerator
     private readonly int _treeInfluenceRadius;
     private readonly ConcurrentDictionary<(int X, int Z), IReadOnlyList<TreePlacement>> _treeCache = new();
 
-    public WorldGenerator(VoxelEngine.Core.EngineSettings settings)
+    public WorldGenerator(VoxelEngine.Core.EngineSettings settings, string? climateDirectory = null)
     {
         _worldSeed = settings.Terrain.Seed;
         _treeInfluenceRadius = settings.TreeInfluenceRadius;
-        _climateSystem = new ClimateSystem(settings.Terrain);
+        _climateSystem = new ClimateSystem(settings.Terrain, climateDirectory);
     }
+
+    public IReadOnlyCollection<ClimateZone> ClimateZones => _climateSystem.Zones;
 
     /// <summary>
     /// Generiert flache Testwelt.

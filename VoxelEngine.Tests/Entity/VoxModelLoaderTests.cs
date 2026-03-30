@@ -185,7 +185,9 @@ public class VoxModelLoaderTests
                 "fleeRadius": 8.0,
                 "idleTimeMin": 2.0,
                 "idleTimeMax": 6.0,
-                "wanderRadius": 12.0
+                "wanderRadius": 12.0,
+                "dayActivity": "active",
+                "nightActivity": "sleep"
               }
             }
             """);
@@ -201,6 +203,8 @@ public class VoxModelLoaderTests
             model.PlacementBounds.Max.Y.Should().BeApproximately(1.8f, 0.0001f);
             model.Metadata.Behaviour.Should().NotBeNull();
             model.Metadata.Behaviour!.FleeRadius.Should().Be(8.0f);
+            model.Metadata.Behaviour.DayActivity.Should().Be(EntityTimeOfDayActivity.Active);
+            model.Metadata.Behaviour.NightActivity.Should().Be(EntityTimeOfDayActivity.Sleep);
         }
         finally
         {

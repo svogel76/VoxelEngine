@@ -59,6 +59,8 @@ public sealed class EntityBehaviourMetadata
     public float IdleTimeMin { get; init; }
     public float IdleTimeMax { get; init; }
     public float WanderRadius { get; init; }
+    public EntityTimeOfDayActivity DayActivity { get; init; } = EntityTimeOfDayActivity.Active;
+    public EntityTimeOfDayActivity NightActivity { get; init; } = EntityTimeOfDayActivity.Active;
 }
 
 public sealed class EntitySoundMetadata

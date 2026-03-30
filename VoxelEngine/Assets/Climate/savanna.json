@@ -1,0 +1,8 @@
+{
+  "id": "savanna",
+  "terrain": { "baseHeight": 68, "amplitude": 18, "frequency": 0.0085, "octaves": 4 },
+  "blocks": { "surface": "dry_grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
+  "snowLine": 2147483647,
+  "trees": { "density": 0.008, "template": "acacia" },
+  "spawns": []
+}

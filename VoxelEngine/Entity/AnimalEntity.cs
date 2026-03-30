@@ -35,6 +35,12 @@ public sealed class AnimalEntity : TerrainPhysicsEntity, IEntityRenderDataProvid
     public float YawRadians { get; private set; }
     public AnimalMovementState MovementState => _stateMachine.State;
 
+    public EntityTimeOfDayActivity GetTimeOfDayActivity(bool isDay)
+        => isDay ? _model.Metadata.Behaviour!.DayActivity : _model.Metadata.Behaviour!.NightActivity;
+
+    public void ApplyTimeOfDay(bool isDay)
+        => _stateMachine.ApplyTimeOfDayActivity(GetTimeOfDayActivity(isDay));
+
     public void Update(double deltaTime)
     {
         float dt = (float)deltaTime;

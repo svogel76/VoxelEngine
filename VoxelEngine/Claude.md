@@ -44,5 +44,5 @@ VoxelEngine.Tests/  # xUnit + FluentAssertions - spiegelt World/ + Core/
 - PlayerHeight (1.8f), PlayerWidth (0.6f), EyeHeight (1.62f)
 
 ## Naechste Schritte
-- Klimaabhaengiges Entity-Spawning auf den neuen `EntityManager` aufsetzen
-- Herdenverhalten, Persistenz und spaetere Sound-/Drop-Aufloesung fuer data-driven Tierdefinitionen vorbereiten
+- Spawn-Balancing pro Klimazone verfeinern (weitere Tiere, Burrow-/Sleep-Profile, Spawn-Orte)
+- Entity-Persistenz fuer klimaabhaengig gespawnte Tiere vorbereiten

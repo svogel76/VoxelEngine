@@ -4,5 +4,7 @@ public enum AnimalMovementState
 {
     Idle,
     Wander,
-    Flee
+    Flee,
+    Sleep,
+    Burrow
 }

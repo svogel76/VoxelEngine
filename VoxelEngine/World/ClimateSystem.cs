@@ -2,6 +2,7 @@ namespace VoxelEngine.World;
 
 public sealed class ClimateSystem
 {
+    private const string DefaultClimateDirectory = "Assets/Climate";
     private const float TemperatureLatitudeSpan = 1800f;
     private const float TemperatureNoiseFrequency = 0.0011f;
     private const float TemperatureNoiseStrength = 0.20f;
@@ -17,19 +18,25 @@ public sealed class ClimateSystem
     private readonly FastNoiseLite _humidityNoise;
     private readonly ClimateZone[,] _zoneLookup;
     private readonly Dictionary<ClimateZone, FastNoiseLite> _terrainNoiseByZone;
+    private readonly Dictionary<string, ClimateZone> _zonesById;
 
-    public ClimateSystem(NoiseSettings temperateDefaults)
+    public ClimateSystem(NoiseSettings temperateDefaults, string? climateDirectory = null)
     {
         int baseSeed = temperateDefaults.Seed;
 
         _temperatureNoise = CreateNoise(baseSeed + ClimateSeedOffset + 1, TemperatureNoiseFrequency, 2);
         _humidityNoise = CreateNoise(baseSeed + ClimateSeedOffset + 2, HumidityNoiseFrequency, 3);
 
-        _zoneLookup = CreateZoneLookup(temperateDefaults);
+        _zoneLookup = CreateZoneLookup(temperateDefaults, climateDirectory);
+        _zonesById = _zoneLookup.Cast<ClimateZone>()
+            .Distinct()
+            .ToDictionary(zone => zone.Id, StringComparer.OrdinalIgnoreCase);
         _terrainNoiseByZone = _zoneLookup.Cast<ClimateZone>()
             .Distinct()
             .ToDictionary(zone => zone, zone => CreateNoise(zone.Terrain.Seed, zone.Terrain.Frequency, zone.Terrain.Octaves));
     }
+
+    public IReadOnlyCollection<ClimateZone> Zones => _zonesById.Values;
 
     public ClimateSample Sample(int worldX, int worldZ)
     {
@@ -160,86 +167,265 @@ public sealed class ClimateSystem
         return noise;
     }
 
-    private static ClimateZone[,] CreateZoneLookup(NoiseSettings temperateDefaults)
+    private static ClimateZone[,] CreateZoneLookup(NoiseSettings temperateDefaults, string? climateDirectory)
     {
-        var steppe = new ClimateZone(
-            "Steppe",
-            new NoiseSettings { Seed = temperateDefaults.Seed + 101, BaseHeight = 66f, Amplitude = 14f, Frequency = 0.0075f, Octaves = 3 },
-            BlockType.DryGrass,
-            BlockType.Dirt,
-            BlockType.Stone,
-            BlockType.Water,
-            int.MaxValue,
-            0.005f,
-            TreeTemplate.Shrub());
+        string resolvedDirectory = ResolveClimateDirectory(climateDirectory);
+        var documents = LoadClimateDocuments(resolvedDirectory);
 
-        var savanna = new ClimateZone(
-            "Savanne",
-            new NoiseSettings { Seed = temperateDefaults.Seed + 102, BaseHeight = 68f, Amplitude = 18f, Frequency = 0.0085f, Octaves = 4 },
-            BlockType.DryGrass,
-            BlockType.Dirt,
-            BlockType.Stone,
-            BlockType.Water,
-            int.MaxValue,
-            0.008f,
-            TreeTemplate.Acacia());
-
-        var desert = new ClimateZone(
-            "Wueste",
-            new NoiseSettings { Seed = temperateDefaults.Seed + 103, BaseHeight = 62f, Amplitude = 10f, Frequency = 0.0060f, Octaves = 3 },
-            BlockType.Sand,
-            BlockType.Sand,
-            BlockType.Stone,
-            BlockType.Water,
-            int.MaxValue,
-            0.003f,
-            TreeTemplate.Cactus());
-
-        var taiga = new ClimateZone(
-            "Taiga",
-            new NoiseSettings { Seed = temperateDefaults.Seed + 104, BaseHeight = 78f, Amplitude = 40f, Frequency = 0.0070f, Octaves = 5 },
-            BlockType.Grass,
-            BlockType.Dirt,
-            BlockType.Stone,
-            BlockType.Water,
-            100,
-            0.020f,
-            TreeTemplate.Spruce());
-
-        var temperate = new ClimateZone(
-            "Gemaessigt",
-            new NoiseSettings
-            {
-                Seed = temperateDefaults.Seed + 105,
-                BaseHeight = temperateDefaults.BaseHeight,
-                Amplitude = temperateDefaults.Amplitude,
-                Frequency = temperateDefaults.Frequency,
-                Octaves = temperateDefaults.Octaves
-            },
-            BlockType.Grass,
-            BlockType.Dirt,
-            BlockType.Stone,
-            BlockType.Water,
-            int.MaxValue,
-            0.015f,
-            TreeTemplate.Oak());
-
-        var tropics = new ClimateZone(
-            "Tropen",
-            new NoiseSettings { Seed = temperateDefaults.Seed + 106, BaseHeight = 72f, Amplitude = 26f, Frequency = 0.0100f, Octaves = 4 },
-            BlockType.Grass,
-            BlockType.Dirt,
-            BlockType.Stone,
-            BlockType.Water,
-            int.MaxValue,
-            0.025f,
-            TreeTemplate.Palm());
+        var steppe = CreateZone(documents, "steppe", temperateDefaults);
+        var savanna = CreateZone(documents, "savanna", temperateDefaults);
+        var desert = CreateZone(documents, "desert", temperateDefaults);
+        var taiga = CreateZone(documents, "taiga", temperateDefaults);
+        var temperate = CreateZone(documents, "temperate", temperateDefaults);
+        var tropics = CreateZone(documents, "tropics", temperateDefaults);
 
         return new[,]
         {
             { steppe, savanna, desert },
             { taiga, temperate, tropics }
         };
+    }
+
+    private static string ResolveClimateDirectory(string? climateDirectory)
+    {
+        if (!string.IsNullOrWhiteSpace(climateDirectory))
+            return climateDirectory;
+
+        string baseDirectoryCandidate = Path.Combine(AppContext.BaseDirectory, "Assets", "Climate");
+        if (Directory.Exists(baseDirectoryCandidate))
+            return baseDirectoryCandidate;
+
+        return DefaultClimateDirectory;
+    }
+
+    private static Dictionary<string, ClimateZoneDocument> LoadClimateDocuments(string climateDirectory)
+    {
+        if (!Directory.Exists(climateDirectory))
+            throw new DirectoryNotFoundException($"Climate asset directory '{climateDirectory}' was not found.");
+
+        var documents = new Dictionary<string, ClimateZoneDocument>(StringComparer.OrdinalIgnoreCase);
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        foreach (string file in Directory.EnumerateFiles(climateDirectory, "*.json", SearchOption.TopDirectoryOnly))
+        {
+            try
+            {
+                string json = File.ReadAllText(file);
+                var document = System.Text.Json.JsonSerializer.Deserialize<ClimateZoneDocument>(json, jsonOptions)
+                    ?? throw new FormatException($"Climate zone file '{file}' is empty.");
+
+                ValidateDocument(document, file);
+                if (!documents.TryAdd(document.Id, document))
+                    throw new FormatException($"Climate zone id '{document.Id}' is defined more than once.");
+            }
+            catch (System.Text.Json.JsonException exception)
+            {
+                throw new FormatException($"Invalid climate zone JSON in '{file}'.", exception);
+            }
+        }
+
+        return documents;
+    }
+
+    private static ClimateZone CreateZone(
+        IReadOnlyDictionary<string, ClimateZoneDocument> documents,
+        string id,
+        NoiseSettings temperateDefaults)
+    {
+        if (!documents.TryGetValue(id, out var document))
+            throw new KeyNotFoundException($"Climate zone '{id}' is missing in Assets/Climate.");
+
+        var blocks = document.Blocks!;
+        var trees = document.Trees!;
+        var spawns = document.Spawns!;
+
+        return new ClimateZone(
+            document.Id,
+            ToDisplayName(document.Id),
+            CreateTerrainSettings(document, temperateDefaults),
+            ResolveBlock(blocks.Surface, document.Id, nameof(blocks.Surface)),
+            ResolveBlock(blocks.Subsurface, document.Id, nameof(blocks.Subsurface)),
+            ResolveBlock(blocks.Stone, document.Id, nameof(blocks.Stone)),
+            ResolveBlock(blocks.Sea, document.Id, nameof(blocks.Sea)),
+            document.SnowLine,
+            trees.Density,
+            ResolveTreeTemplate(trees.Template, document.Id),
+            spawns
+                .Select(spawn => CreateSpawnDefinition(spawn, document.Id))
+                .ToArray());
+    }
+
+    private static NoiseSettings CreateTerrainSettings(ClimateZoneDocument document, NoiseSettings temperateDefaults)
+    {
+        var terrain = document.Terrain!;
+        return new NoiseSettings
+        {
+            Seed = CreateZoneSeed(temperateDefaults.Seed, document.Id),
+            BaseHeight = terrain.BaseHeight,
+            Amplitude = terrain.Amplitude,
+            Frequency = terrain.Frequency,
+            Octaves = terrain.Octaves
+        };
+    }
+
+    private static int CreateZoneSeed(int baseSeed, string id)
+    {
+        uint hash = 2166136261u;
+        foreach (char character in id)
+        {
+            hash ^= char.ToLowerInvariant(character);
+            hash *= 16777619u;
+        }
+
+        hash ^= (uint)baseSeed;
+        hash *= 16777619u;
+        return (int)(hash & 0x7FFFFFFF);
+    }
+
+    private static byte ResolveBlock(string blockName, string climateId, string propertyName)
+    {
+        try
+        {
+            return BlockRegistry.Get(blockName).Id;
+        }
+        catch (KeyNotFoundException exception)
+        {
+            throw new FormatException($"Climate zone '{climateId}' references unknown block '{blockName}' in '{propertyName}'.", exception);
+        }
+    }
+
+    private static TreeTemplate ResolveTreeTemplate(string templateName, string climateId)
+        => templateName.ToLowerInvariant() switch
+        {
+            "oak" => TreeTemplate.Oak(),
+            "spruce" => TreeTemplate.Spruce(),
+            "cactus" => TreeTemplate.Cactus(),
+            "palm" => TreeTemplate.Palm(),
+            "acacia" => TreeTemplate.Acacia(),
+            "shrub" => TreeTemplate.Shrub(),
+            _ => throw new FormatException($"Climate zone '{climateId}' references unknown tree template '{templateName}'.")
+        };
+
+    private static ClimateSpawnDefinition CreateSpawnDefinition(ClimateSpawnDocument spawn, string climateId)
+    {
+        if (string.IsNullOrWhiteSpace(spawn.Entity))
+            throw new FormatException($"Climate zone '{climateId}' contains a spawn entry without an entity id.");
+        if (spawn.MaxCount < 0)
+            throw new FormatException($"Climate zone '{climateId}' contains a spawn entry with a negative maxCount.");
+        if (spawn.MinSpawnDistance < 0f)
+            throw new FormatException($"Climate zone '{climateId}' contains a spawn entry with a negative minSpawnDistance.");
+        if (spawn.SpawnInterval < 0f)
+            throw new FormatException($"Climate zone '{climateId}' contains a spawn entry with a negative spawnInterval.");
+
+        return new ClimateSpawnDefinition(
+            spawn.Entity,
+            spawn.MaxCount,
+            spawn.MinSpawnDistance,
+            spawn.SpawnInterval,
+            ParseSpawnActivity(spawn.Activity, climateId, spawn.Entity));
+    }
+
+    private static SpawnActivity ParseSpawnActivity(string? activity, string climateId, string entityId)
+    {
+        if (string.IsNullOrWhiteSpace(activity))
+            return SpawnActivity.Any;
+
+        return activity.ToLowerInvariant() switch
+        {
+            "any" => SpawnActivity.Any,
+            "diurnal" => SpawnActivity.Diurnal,
+            "nocturnal" => SpawnActivity.Nocturnal,
+            _ => throw new FormatException(
+                $"Climate zone '{climateId}' references unknown activity '{activity}' for spawn '{entityId}'.")
+        };
+    }
+
+    private static void ValidateDocument(ClimateZoneDocument document, string file)
+    {
+        if (string.IsNullOrWhiteSpace(document.Id))
+            throw new FormatException($"Climate zone file '{file}' is missing an id.");
+        if (document.Terrain is null)
+            throw new FormatException($"Climate zone '{document.Id}' is missing terrain settings.");
+        if (document.Blocks is null)
+            throw new FormatException($"Climate zone '{document.Id}' is missing block settings.");
+        if (document.Trees is null)
+            throw new FormatException($"Climate zone '{document.Id}' is missing tree settings.");
+        if (document.Terrain.Frequency <= 0f)
+            throw new FormatException($"Climate zone '{document.Id}' must define a terrain frequency greater than zero.");
+        if (document.Terrain.Octaves <= 0)
+            throw new FormatException($"Climate zone '{document.Id}' must define at least one terrain octave.");
+        if (document.Terrain.Amplitude < 0f)
+            throw new FormatException($"Climate zone '{document.Id}' must define a non-negative terrain amplitude.");
+        if (document.Terrain.BaseHeight < 0f)
+            throw new FormatException($"Climate zone '{document.Id}' must define a non-negative base height.");
+        if (document.Trees.Density < 0f)
+            throw new FormatException($"Climate zone '{document.Id}' must define a non-negative tree density.");
+        if (string.IsNullOrWhiteSpace(document.Blocks.Surface) ||
+            string.IsNullOrWhiteSpace(document.Blocks.Subsurface) ||
+            string.IsNullOrWhiteSpace(document.Blocks.Stone) ||
+            string.IsNullOrWhiteSpace(document.Blocks.Sea))
+        {
+            throw new FormatException($"Climate zone '{document.Id}' must define all block ids.");
+        }
+
+        if (string.IsNullOrWhiteSpace(document.Trees.Template))
+            throw new FormatException($"Climate zone '{document.Id}' must define a tree template.");
+
+        document.Spawns ??= [];
+    }
+
+    private static string ToDisplayName(string id)
+    {
+        string normalized = id.Replace('_', ' ').Replace('-', ' ');
+        return string.Join(
+            ' ',
+            normalized
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(static part => char.ToUpperInvariant(part[0]) + part[1..].ToLowerInvariant()));
+    }
+
+    private sealed class ClimateZoneDocument
+    {
+        public string Id { get; set; } = string.Empty;
+        public TerrainDocument? Terrain { get; set; }
+        public BlockDocument? Blocks { get; set; }
+        public int SnowLine { get; set; }
+        public TreeDocument? Trees { get; set; }
+        public List<ClimateSpawnDocument>? Spawns { get; set; }
+    }
+
+    private sealed class TerrainDocument
+    {
+        public float BaseHeight { get; set; }
+        public float Amplitude { get; set; }
+        public float Frequency { get; set; }
+        public int Octaves { get; set; }
+    }
+
+    private sealed class BlockDocument
+    {
+        public string Surface { get; set; } = string.Empty;
+        public string Subsurface { get; set; } = string.Empty;
+        public string Stone { get; set; } = string.Empty;
+        public string Sea { get; set; } = string.Empty;
+    }
+
+    private sealed class TreeDocument
+    {
+        public float Density { get; set; }
+        public string Template { get; set; } = string.Empty;
+    }
+
+    private sealed class ClimateSpawnDocument
+    {
+        public string Entity { get; set; } = string.Empty;
+        public int MaxCount { get; set; }
+        public float MinSpawnDistance { get; set; }
+        public float SpawnInterval { get; set; }
+        public string? Activity { get; set; }
     }
 }
 

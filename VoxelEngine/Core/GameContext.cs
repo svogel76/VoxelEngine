@@ -68,7 +68,14 @@ public class GameContext : IDisposable
         Console      = new DebugConsole(this);
         ChunkManager = new ChunkManager(world, generator, settings, persistence);
         Time         = new WorldTime { TimeScale = settings.TimeScale };
-        EntityManager = new EntityManager(world, settings);
+        EntityManager = new EntityManager(
+            world,
+            settings,
+            generator,
+            Time,
+            entityModels,
+            () => Player.Position,
+            () => global::VoxelEngine.Entity.ViewFrustum.FromViewProjection(ToNumerics(Camera.ViewMatrix * Camera.ProjectionMatrix)));
         Time.SetTime(settings.InitialTime);
         Inventory    = new PlayerInventory(player.Inventory);
     }
@@ -183,4 +190,11 @@ public class GameContext : IDisposable
         Console.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    private static System.Numerics.Matrix4x4 ToNumerics(Silk.NET.Maths.Matrix4X4<float> matrix)
+        => new(
+            matrix.M11, matrix.M12, matrix.M13, matrix.M14,
+            matrix.M21, matrix.M22, matrix.M23, matrix.M24,
+            matrix.M31, matrix.M32, matrix.M33, matrix.M34,
+            matrix.M41, matrix.M42, matrix.M43, matrix.M44);
 }
