@@ -8,9 +8,10 @@ public sealed class VoxelModelDefinition : IVoxelModelDefinition
     public string Id { get; }
     public float VoxelSize { get; }
     public BoundingBox PlacementBounds { get; }
+    public EntityModelMetadata Metadata { get; }
     public IReadOnlyList<VoxelModelVoxel> Voxels { get; }
 
-    public VoxelModelDefinition(string id, float voxelSize, IReadOnlyList<VoxelModelVoxel> voxels)
+    public VoxelModelDefinition(string id, float voxelSize, IReadOnlyList<VoxelModelVoxel> voxels, EntityModelMetadata? metadata = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentNullException.ThrowIfNull(voxels);
@@ -23,6 +24,7 @@ public sealed class VoxelModelDefinition : IVoxelModelDefinition
         Id = id;
         VoxelSize = voxelSize;
         Voxels = voxels;
+        Metadata = metadata ?? EntityModelMetadata.Empty;
         PlacementBounds = CreatePlacementBounds(voxelSize, voxels);
     }
 

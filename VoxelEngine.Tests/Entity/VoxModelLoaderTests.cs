@@ -159,6 +159,92 @@ public class VoxModelLoaderTests
     }
 
     [Fact]
+    public void LoadFromDirectory_UsesGroupedDisplayMetadataAndBehaviour()
+    {
+        // Arrange
+        string directory = Path.Combine(Path.GetTempPath(), $"vox-import-grouped-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Assets", "Entities", "entity_atlas.png"), Path.Combine(directory, "entity_atlas.png"));
+        File.WriteAllBytes(
+            Path.Combine(directory, "deer.vox"),
+            VoxTestFileBuilder.Create(new VoxTestModelSize(1, 1, 1), [new VoxTestVoxel(0, 0, 0, 1)], null));
+        File.WriteAllText(
+            Path.Combine(directory, "deer.json"),
+            """
+            {
+              "display": {
+                "scale": 0.1,
+                "boundingBox": {
+                  "width": 1.2,
+                  "height": 1.8
+                }
+              },
+              "behaviour": {
+                "moveSpeed": 3.0,
+                "fleeSpeed": 6.0,
+                "fleeRadius": 8.0,
+                "idleTimeMin": 2.0,
+                "idleTimeMax": 6.0,
+                "wanderRadius": 12.0
+              }
+            }
+            """);
+
+        try
+        {
+            // Act
+            var model = FileSystemEntityModelLibrary.LoadFromDirectory(directory).GetModel("deer");
+
+            // Assert
+            model.VoxelSize.Should().Be(0.1f);
+            model.PlacementBounds.Min.X.Should().BeApproximately(-0.6f, 0.0001f);
+            model.PlacementBounds.Max.Y.Should().BeApproximately(1.8f, 0.0001f);
+            model.Metadata.Behaviour.Should().NotBeNull();
+            model.Metadata.Behaviour!.FleeRadius.Should().Be(8.0f);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadFromDirectory_PrefersExplicitDisplayModelOverJsonFileName()
+    {
+        // Arrange
+        string directory = Path.Combine(Path.GetTempPath(), $"vox-import-explicit-model-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Assets", "Entities", "entity_atlas.png"), Path.Combine(directory, "entity_atlas.png"));
+        File.WriteAllBytes(
+            Path.Combine(directory, "shared.vox"),
+            VoxTestFileBuilder.Create(new VoxTestModelSize(1, 1, 1), [new VoxTestVoxel(0, 0, 0, 1)], null));
+        File.WriteAllText(
+            Path.Combine(directory, "stag.json"),
+            """
+            {
+              "display": {
+                "model": "shared.vox",
+                "scale": 0.25
+              }
+            }
+            """);
+
+        try
+        {
+            // Act
+            var library = FileSystemEntityModelLibrary.LoadFromDirectory(directory);
+
+            // Assert
+            library.GetAllModels().Select(model => model.Id).Should().Contain("stag");
+            library.GetModel("stag").VoxelSize.Should().Be(0.25f);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void LoadFromDirectory_AppliesCompanionJsonRotation()
     {
         // Arrange
