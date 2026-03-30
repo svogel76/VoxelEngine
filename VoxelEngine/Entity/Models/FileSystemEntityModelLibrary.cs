@@ -1,4 +1,6 @@
+using System.Numerics;
 using System.Text.Json;
+using VoxelEngine.World;
 
 namespace VoxelEngine.Entity.Models;
 
@@ -50,6 +52,7 @@ public sealed class FileSystemEntityModelLibrary : IEntityModelLibrary
 
             var model = LoadModel(file, extension, effectiveScale);
             model = VoxelModelTransform.ApplyRotation(model, metadata?.Rotation);
+            model = ApplyBoundsOverride(model, metadata?.Bounds);
 
             if (models.ContainsKey(model.Id))
                 throw new InvalidOperationException($"Duplicate entity model id '{model.Id}'.");
@@ -96,5 +99,24 @@ public sealed class FileSystemEntityModelLibrary : IEntityModelLibrary
         {
             throw new FormatException($"Invalid entity model metadata in '{metadataPath}'.", exception);
         }
+    }
+
+    private static IVoxelModelDefinition ApplyBoundsOverride(IVoxelModelDefinition model, EntityModelBounds? bounds)
+    {
+        if (bounds is null)
+            return model;
+
+        var placementBounds = new BoundingBox(
+            new Vector3(bounds.Min.X, bounds.Min.Y, bounds.Min.Z),
+            new Vector3(bounds.Max.X, bounds.Max.Y, bounds.Max.Z));
+
+        if (placementBounds.Max.X <= placementBounds.Min.X ||
+            placementBounds.Max.Y <= placementBounds.Min.Y ||
+            placementBounds.Max.Z <= placementBounds.Min.Z)
+        {
+            throw new FormatException($"Entity model '{model.Id}' must define bounds with max greater than min on all axes.");
+        }
+
+        return new ConfigurableVoxelModelDefinition(model, placementBounds);
     }
 }
