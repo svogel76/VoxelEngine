@@ -17,6 +17,24 @@
       "scale": 1.0,
       "visible": true,
       "zOrder": 20
+    },
+    {
+      "id": "health",
+      "anchor": "BottomLeft",
+      "offsetX": 0.01,
+      "offsetY": 0.085,
+      "scale": 1.0,
+      "visible": true,
+      "zOrder": 15
+    },
+    {
+      "id": "hunger",
+      "anchor": "BottomRight",
+      "offsetX": -0.01,
+      "offsetY": 0.085,
+      "scale": 1.0,
+      "visible": true,
+      "zOrder": 16
     }
   ]
 }

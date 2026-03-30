@@ -1,8 +1,9 @@
 using System.Numerics;
+using VoxelEngine.Entity;
 
 namespace VoxelEngine.World;
 
-public sealed class Player
+public class Player : Entity.Entity
 {
     public const float Width = 0.6f;
     public const float Height = 1.8f;
@@ -12,8 +13,7 @@ public sealed class Player
     private const float GroundProbeDistance = 0.05f;
     private const float MaxCollisionSubStep = 0.5f;
 
-    public Vector3 Position { get; private set; }
-    public Vector3 Velocity { get; private set; }
+    // Position und Velocity kommen von Entity.Entity
     public bool IsOnGround { get; private set; }
     public bool FlyMode { get; private set; } = false;
     public Inventory Inventory { get; }
@@ -21,13 +21,17 @@ public sealed class Player
     public float InteractionReach { get; private set; } = 5f;
     private float _stepVisualOffsetY;
 
+    // Fallschaden-Tracking
+    private float _fallStartY;
+    private bool  _wasFalling;
+
     public Vector3 Size => new(Width, Height, Width);
     public Vector3 EyePosition => Position + new Vector3(0f, EyeHeight + _stepVisualOffsetY, 0f);
     public BoundingBox BoundingBox => CreateBoundingBox(Position);
 
-    public Player(Vector3 startPosition, bool flyMode = false)
+    public Player(Vector3 startPosition, bool flyMode = false, VitalsConfig? vitalsConfig = null)
+        : base(startPosition, vitalsConfig)
     {
-        Position = startPosition;
         FlyMode = flyMode;
         Inventory = new Inventory();
         // Startzustand: ein paar Blöcke vorbefüllen
@@ -123,6 +127,7 @@ public sealed class Player
                 ref groundedDuringMove);
         }
 
+        bool wasOnGroundBefore = IsOnGround;
         Position = nextPosition;
         Velocity = desiredVelocity;
         IsOnGround = groundedDuringMove || HasGroundSupport(Position, world);
@@ -130,6 +135,52 @@ public sealed class Player
 
         if (IsOnGround && Velocity.Y < 0f)
             Velocity = new Vector3(Velocity.X, 0f, Velocity.Z);
+
+        // Fallschaden-Tracking: Fallstart und Landeimpact erkennen
+        TrackFallDamage(wasOnGroundBefore);
+    }
+
+    /// <summary>
+    /// Verarbeitet einen Vitalwerte-Tick für Hunger, Regeneration und Verhungern.
+    /// Muss einmal pro Update-Schritt mit dem gleichen deltaTime wie ProcessInput aufgerufen werden.
+    /// </summary>
+    /// <param name="deltaTime">Zeitschritt in Sekunden.</param>
+    public void UpdateVitals(double deltaTime)
+    {
+        bool isMoving = Velocity.X != 0f || Velocity.Z != 0f;
+        Vitals.Tick((float)deltaTime, isMoving);
+    }
+
+    private void TrackFallDamage(bool wasOnGroundBefore)
+    {
+        if (FlyMode)
+        {
+            _wasFalling = false;
+            _fallStartY = Position.Y;
+            return;
+        }
+
+        if (!IsOnGround && Velocity.Y < 0f)
+        {
+            // Falle gerade
+            if (!_wasFalling)
+            {
+                _fallStartY = Position.Y;
+                _wasFalling = true;
+            }
+        }
+        else if (IsOnGround && _wasFalling)
+        {
+            // Gerade gelandet
+            float fallen = _fallStartY - Position.Y;
+            Vitals.FallDistance = MathF.Max(0f, fallen);
+            Vitals.ApplyFallDamage();
+            _wasFalling = false;
+        }
+        else if (IsOnGround)
+        {
+            _wasFalling = false;
+        }
     }
 
     public void Teleport(Vector3 feetPosition)
@@ -138,6 +189,8 @@ public sealed class Player
         Velocity = Vector3.Zero;
         IsOnGround = false;
         _stepVisualOffsetY = 0f;
+        _wasFalling = false;
+        Vitals.FallDistance = 0f;
     }
 
     public void SetFlyMode(bool enabled)

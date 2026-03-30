@@ -1,3 +1,4 @@
+using VoxelEngine.Entity;
 using VoxelEngine.World;
 
 namespace VoxelEngine.Core;
@@ -86,4 +87,8 @@ public class EngineSettings
     public int  HotbarSlotSize         { get; init; } = 40;
     /// <summary>Zifferntasten 1-9 wählen Hotbar-Slot direkt an</summary>
     public bool EnableHotbarNumberKeys { get; init; } = true;
+
+    // Vitals (Health & Hunger)
+    /// <summary>Konfiguration der Spieler-Vitalwerte. null = Standardwerte aus VitalsConfig.</summary>
+    public VitalsConfig? Vitals { get; init; } = null;
 }

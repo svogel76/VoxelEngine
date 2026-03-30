@@ -87,7 +87,9 @@ public class GameContext : IDisposable
             Player.Position,
             Player.FlyMode,
             Player.Inventory.SelectedSlot,
-            hotbar);
+            hotbar,
+            Player.Vitals.Health,
+            Player.Vitals.Hunger);
 
         var worldMeta = new WorldMeta(
             Time.Time,
@@ -123,6 +125,9 @@ public class GameContext : IDisposable
             var data = i < playerState.Hotbar.Count ? playerState.Hotbar[i] : null;
             Player.Inventory.SetSlot(i, data is null ? null : new ItemStack(data.BlockType, data.Count));
         }
+
+        Player.Vitals.RestoreHealth(playerState.Health);
+        Player.Vitals.RestoreHunger(playerState.Hunger);
 
         Time.Restore(worldMeta.Time, worldMeta.DayCount);
         Time.TimeScale = worldMeta.TimeScale;

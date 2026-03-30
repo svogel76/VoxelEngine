@@ -99,7 +99,7 @@ public class Engine : IDisposable
         var world     = new World.World();
         var generator = new WorldGenerator(_settings);
         var playerStart = CreatePlayerStartPosition(generator, camX, camY, camZ);
-        var player = new Player(playerStart);
+        var player = new Player(playerStart, vitalsConfig: _settings.Vitals);
         player.SetInteractionReach(_settings.InteractionReach);
         var camera = new Camera(ToSilk(player.EyePosition), aspectRatio, _settings);
 
@@ -141,6 +141,18 @@ public class Engine : IDisposable
         // Atlas-Referenz setzen — ChunkRenderer ist zu diesem Zeitpunkt bereits initialisiert
         hotbarRenderer.Atlas = _context.Renderer.Atlas;
         _debugOverlay.HudManager.RegisterRenderer("hotbar", hotbarRenderer);
+
+        // Health-HUD-Element + Renderer
+        var healthElement  = new HealthHudElement();
+        _context.HudRegistry.Register(healthElement);
+        var healthRenderer = new HealthHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
+        _debugOverlay.HudManager.RegisterRenderer("health", healthRenderer);
+
+        // Hunger-HUD-Element + Renderer
+        var hungerElement  = new HungerHudElement();
+        _context.HudRegistry.Register(hungerElement);
+        var hungerRenderer = new HungerHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
+        _debugOverlay.HudManager.RegisterRenderer("hunger", hungerRenderer);
 
         // hud.json laden (nach allen Registrierungen)
         _context.HudRegistry.LoadConfig("Assets/Hud/hud.json");
@@ -299,6 +311,7 @@ public class Engine : IDisposable
             BuildPhysicsSettings(),
             _context.World,
             fixedDelta);
+        _context.Player.UpdateVitals(fixedDelta);
         _context.Camera.Position = ToSilk(_context.Player.EyePosition);
         _context.TargetedBlock = BlockRaycaster.Raycast(
             _context.World,
