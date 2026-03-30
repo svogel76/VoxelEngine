@@ -5,6 +5,8 @@ namespace VoxelEngine.World;
 public class WorldGenerator
 {
     public const int SeaLevel = 64;
+    private const int TreePlacementSalt = 0x2D51;
+    private const int TreeTemplateSalt = 0x1537;
 
     private readonly ClimateSystem _climateSystem;
     private readonly int _worldSeed;
@@ -172,9 +174,7 @@ public class WorldGenerator
 
     private bool ShouldPlaceTree(int worldX, int worldZ, ClimateZone zone)
     {
-        int mixed = unchecked(worldX * 374761 + worldZ * 668265);
-        int hash = HashCode.Combine(_worldSeed, mixed);
-        var rng = new Random(hash);
+        var rng = CreateTreeRandom(worldX, worldZ, TreePlacementSalt);
         return rng.NextSingle() < zone.TreeDensity;
     }
 
@@ -183,10 +183,37 @@ public class WorldGenerator
         if (zone.TreeTemplate.Name != "cactus")
             return zone.TreeTemplate;
 
-        int mixed = unchecked(worldX * 92821 + worldZ * 68917);
-        int hash = HashCode.Combine(_worldSeed, mixed, 5_431);
-        var rng = new Random(hash);
+        var rng = CreateTreeRandom(worldX, worldZ, TreeTemplateSalt);
         return TreeTemplate.Cactus(rng.Next(3, 6));
+    }
+
+    private Random CreateTreeRandom(int worldX, int worldZ, int salt)
+    {
+        int chunkX = World.WorldToChunk(worldX);
+        int chunkZ = World.WorldToChunk(worldZ);
+        int localX = worldX - chunkX * Chunk.Width;
+        int localZ = worldZ - chunkZ * Chunk.Depth;
+        int seed = CreateDeterministicSeed(_worldSeed, chunkX, chunkZ, localX, localZ, salt);
+        return new Random(seed);
+    }
+
+    private static int CreateDeterministicSeed(int worldSeed, int chunkX, int chunkZ, int localX, int localZ, int salt)
+    {
+        uint hash = 2166136261u;
+        hash = Mix(hash, (uint)worldSeed);
+        hash = Mix(hash, (uint)chunkX);
+        hash = Mix(hash, (uint)chunkZ);
+        hash = Mix(hash, (uint)localX);
+        hash = Mix(hash, (uint)localZ);
+        hash = Mix(hash, (uint)salt);
+        hash ^= hash >> 16;
+        return (int)(hash & 0x7FFFFFFF);
+    }
+
+    private static uint Mix(uint hash, uint value)
+    {
+        hash ^= value + 0x9E3779B9u + (hash << 6) + (hash >> 2);
+        return hash * 16777619u;
     }
 
     private static bool IsValidTreeSurface(byte surfaceBlock, TreeTemplate template)
