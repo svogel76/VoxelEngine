@@ -4,6 +4,7 @@ using VoxelEngine.Core.UI;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
+using VoxelEngine.World.Inventories;
 
 namespace VoxelEngine.Core;
 
@@ -22,6 +23,12 @@ public class GameContext : IDisposable
     public HudRegistry       HudRegistry   { get; } = new HudRegistry();
     public UIStateManager    UI            { get; } = new UIStateManager();
     public IWorldPersistence Persistence   { get; }
+
+    /// <summary>
+    /// Vollständiges Spieler-Inventar (Hotbar + Grid + Equipment).
+    /// Wird nach dem Konstruktor via Init() gesetzt.
+    /// </summary>
+    public PlayerInventory   Inventory     { get; private set; } = null!;
 
     public BlockRaycastHit?       TargetedBlock    { get; set; }
     public BlockPlacementPreview? PlacementPreview { get; set; }
@@ -56,6 +63,7 @@ public class GameContext : IDisposable
         ChunkManager = new ChunkManager(world, generator, settings, persistence);
         Time         = new WorldTime { TimeScale = settings.TimeScale };
         Time.SetTime(settings.InitialTime);
+        Inventory    = new PlayerInventory(player.Inventory);
     }
 
     public bool TryDequeueResult(out ChunkResult result) =>
@@ -68,8 +76,8 @@ public class GameContext : IDisposable
     {
         await WorldStatePersistence.SaveLoadedChunkEditsAsync(World, Persistence).ConfigureAwait(false);
 
-        var hotbar = new ItemStackData?[Inventory.HotbarSize];
-        for (int i = 0; i < Inventory.HotbarSize; i++)
+        var hotbar = new ItemStackData?[global::VoxelEngine.World.Inventory.HotbarSize];
+        for (int i = 0; i < global::VoxelEngine.World.Inventory.HotbarSize; i++)
         {
             var stack = Player.Inventory.Hotbar[i];
             hotbar[i] = stack is null ? null : new ItemStackData(stack.BlockType, stack.Count);
@@ -110,7 +118,7 @@ public class GameContext : IDisposable
         Player.Teleport(playerState.Position);
         Player.SetFlyMode(playerState.FlyMode);
         Player.Inventory.SelectSlot(playerState.SelectedSlot);
-        for (int i = 0; i < Inventory.HotbarSize; i++)
+        for (int i = 0; i < global::VoxelEngine.World.Inventory.HotbarSize; i++)
         {
             var data = i < playerState.Hotbar.Count ? playerState.Hotbar[i] : null;
             Player.Inventory.SetSlot(i, data is null ? null : new ItemStack(data.BlockType, data.Count));
