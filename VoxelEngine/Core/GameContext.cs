@@ -1,5 +1,6 @@
 using VoxelEngine.Core.Debug;
 using VoxelEngine.Core.Hud;
+using VoxelEngine.Core.UI;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
@@ -19,6 +20,7 @@ public class GameContext : IDisposable
     public ChunkManager      ChunkManager  { get; }
     public WorldTime         Time          { get; }
     public HudRegistry       HudRegistry   { get; } = new HudRegistry();
+    public UIStateManager    UI            { get; } = new UIStateManager();
     public IWorldPersistence Persistence   { get; }
 
     public BlockRaycastHit?       TargetedBlock    { get; set; }

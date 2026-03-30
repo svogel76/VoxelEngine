@@ -86,6 +86,18 @@ public class InputHandler
             _pendingRightClicks++;
     }
 
+    /// <summary>
+    /// Setzt den Cursor-Modus der Maus (Raw = versteckt/gesperrt, Normal = sichtbar).
+    /// Wird vom UIStateManager aufgerufen wenn sich der Panel-Stack ändert.
+    /// </summary>
+    public void SetCursorMode(CursorMode mode)
+    {
+        _mouse.Cursor.CursorMode = mode;
+        // Bei Wechsel zurück zu Raw: erste Bewegung ignorieren (kein Sprung)
+        if (mode == CursorMode.Raw)
+            _firstMove = true;
+    }
+
     private void OnScroll(IMouse mouse, ScrollWheel wheel)
     {
         _pendingScrollSteps += (int)MathF.Round(wheel.Y);
