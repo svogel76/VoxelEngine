@@ -2,7 +2,7 @@ using Silk.NET.Input;
 
 namespace VoxelEngine.Core;
 
-public class InputHandler
+public class InputHandler : IInputState
 {
     private readonly IKeyboard _keyboard;
     private readonly IMouse    _mouse;

@@ -21,6 +21,7 @@ public class Engine : IDisposable
     private readonly IWindow        _window;
     private readonly EngineSettings _settings;
     private readonly double         _fixedDelta;
+    private readonly IGame          _game;
 
     private GL                   _gl           = null!;
     private IInputContext        _inputContext = null!;
@@ -56,9 +57,10 @@ public class Engine : IDisposable
     // Eingabe-Buffer für Debug-Konsole (Silk.NET-spezifisch)
     private string _consoleInput = "";
 
-    public Engine(EngineSettings settings)
+    public Engine(EngineSettings settings, IGame game)
     {
         _settings   = settings;
+        _game       = game;
         _fixedDelta = 1.0 / settings.TargetUPS;
 
         var options = WindowOptions.Default with
@@ -175,6 +177,7 @@ public class Engine : IDisposable
 
         _context.ChunkManager.PrimeInitialChunks(player.Position.X, player.Position.Z, _settings.InitialChunkLoadRadius);
 
+        _game.Initialize(_context);
         _frameTimer.Start();
     }
 
@@ -359,6 +362,7 @@ public class Engine : IDisposable
             _context.Renderer.RemoveChunkMesh(x, z);
 
         _context.EntityManager.Update(fixedDelta);
+        _game.Update(fixedDelta);
 
     }
 
@@ -379,6 +383,7 @@ public class Engine : IDisposable
         _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime, _context.EntityManager, _context.TargetedBlock, _context.PlacementPreview);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
         _context.UI.Render(_context, frameTime, _settings.WindowWidth, _settings.WindowHeight);
+        _game.Render(frameTime);
     }
 
     private void Close()
@@ -389,6 +394,7 @@ public class Engine : IDisposable
         _closed = true;
         // Spielerstand + Welt-Metadaten speichern
         _context?.SaveGameStateAsync().GetAwaiter().GetResult();
+        _game.Shutdown();
         // GL-Kontext ist hier noch aktiv — alle OpenGL-Ressourcen hier freigeben
         // _inputContext wird von Silk.NET/GLFW intern disposed wenn das Fenster schließt —
         // manuelles Dispose hier würde eine ObjectDisposedException auslösen.

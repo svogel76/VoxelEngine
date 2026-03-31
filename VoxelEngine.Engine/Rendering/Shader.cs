@@ -1,4 +1,5 @@
-using System.Numerics;
+﻿using System.Numerics;
+using System.Reflection;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 
@@ -13,8 +14,8 @@ public class Shader : IDisposable
     {
         _gl = gl;
 
-        uint vert = CompileShader(ShaderType.VertexShader,   File.ReadAllText(vertexPath));
-        uint frag = CompileShader(ShaderType.FragmentShader, File.ReadAllText(fragmentPath));
+        uint vert = CompileShader(ShaderType.VertexShader, LoadShaderSource(vertexPath));
+        uint frag = CompileShader(ShaderType.FragmentShader, LoadShaderSource(fragmentPath));
 
         _handle = gl.CreateProgram();
         gl.AttachShader(_handle, vert);
@@ -27,6 +28,47 @@ public class Shader : IDisposable
 
         gl.DeleteShader(vert);
         gl.DeleteShader(frag);
+    }
+
+    private static string LoadShaderSource(string path)
+    {
+        if (File.Exists(path))
+        {
+            return File.ReadAllText(path);
+        }
+
+        var assembly = typeof(Shader).Assembly;
+        var normalizedPath = path.Replace('\\', '.').Replace('/', '.');
+        var assemblyName = assembly.GetName().Name ?? "VoxelEngine.Engine";
+
+        var candidateNames = new[]
+        {
+            $"{assemblyName}.{normalizedPath}",
+            normalizedPath
+        };
+
+        foreach (var resourceName in candidateNames)
+        {
+            using var directStream = assembly.GetManifestResourceStream(resourceName);
+            if (directStream is not null)
+            {
+                using var reader = new StreamReader(directStream);
+                return reader.ReadToEnd();
+            }
+        }
+
+        var fallbackName = assembly
+            .GetManifestResourceNames()
+            .FirstOrDefault(name => name.EndsWith(normalizedPath, StringComparison.OrdinalIgnoreCase));
+
+        if (fallbackName is not null)
+        {
+            using var stream = assembly.GetManifestResourceStream(fallbackName)!;
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        }
+
+        throw new FileNotFoundException($"Shader source not found for '{path}' as file or embedded resource.");
     }
 
     private uint CompileShader(ShaderType type, string source)

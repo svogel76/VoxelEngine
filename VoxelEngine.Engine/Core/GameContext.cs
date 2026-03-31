@@ -11,7 +11,7 @@ using VoxelEngine.World.Inventories;
 
 namespace VoxelEngine.Core;
 
-public class GameContext : IDisposable
+public class GameContext : IDisposable, IGameContext
 {
     public EngineSettings    Settings      { get; }
     public World.World       World         { get; }
@@ -29,6 +29,9 @@ public class GameContext : IDisposable
     public HudRegistry       HudRegistry   { get; } = new HudRegistry();
     public UIStateManager    UI            { get; } = new UIStateManager();
     public IWorldPersistence Persistence   { get; }
+    IBlockRegistry IGameContext.BlockRegistry => BlockRegistryAdapter.Instance;
+    IWorldAccess IGameContext.World => World;
+    IInputState IGameContext.Input => Input;
 
     /// <summary>
     /// Vollständiges Spieler-Inventar (Hotbar + Grid + Equipment).

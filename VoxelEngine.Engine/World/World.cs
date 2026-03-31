@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace VoxelEngine.World;
 
-public class World
+public class World : IWorldAccess
 {
     private readonly ConcurrentDictionary<(int X, int Z), Chunk> _chunks = new();
 
