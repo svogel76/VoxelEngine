@@ -78,11 +78,11 @@ public class EngineSettings
     public double TimeScale { get; init; } = 0.0;
 
     // Player physics
-    public float Gravity      { get; init; } = 28.0f;
+    public float Gravity      { get; init; } = 24.0f;
     public float MaxFallSpeed { get; init; } = 50.0f;
-    public float JumpVelocity { get; init; } = 8.0f;
-    public float FallDamageThreshold { get; init; } = 8.0f;
-    public float FallDamageMultiplier { get; init; } = 0.5f;
+    public float JumpVelocity { get; init; } = 9.5f;
+    public float FallDamageThreshold { get; init; } = 14.0f;
+    public float FallDamageMultiplier { get; init; } = 0.25f;
     public float StepHeight   { get; init; } = 1.0f;
     public float StepUpMaxVisualDrop { get; init; } = 0.5f;
     public float StepUpSmoothingSpeed { get; init; } = 4.0f;
@@ -282,5 +282,7 @@ public class EngineSettings
         public bool? ShowFps { get; init; }
     }
 }
+
+
 
 
