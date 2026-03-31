@@ -26,6 +26,8 @@ public sealed class EngineSettingsTests : IDisposable
             "gravity": -24.0,
             "max_fall_speed": -50.0,
             "jump_velocity": 8.5,
+            "fall_damage_threshold": 9.0,
+            "fall_damage_multiplier": 1.5,
             "step_height": 1.25,
             "enable_step_up": false
           },
@@ -51,6 +53,8 @@ public sealed class EngineSettingsTests : IDisposable
         settings.Gravity.Should().Be(24f);
         settings.MaxFallSpeed.Should().Be(50f);
         settings.JumpVelocity.Should().Be(8.5f);
+        settings.FallDamageThreshold.Should().Be(9f);
+        settings.FallDamageMultiplier.Should().Be(1.5f);
         settings.StepHeight.Should().Be(1.25f);
         settings.EnableStepUp.Should().BeFalse();
         settings.FogStartFactor.Should().Be(0.4f);
@@ -79,6 +83,8 @@ public sealed class EngineSettingsTests : IDisposable
         settings.UnloadDistance.Should().Be(defaults.UnloadDistance);
         settings.SeaLevel.Should().Be(defaults.SeaLevel);
         settings.Gravity.Should().Be(defaults.Gravity);
+        settings.FallDamageThreshold.Should().Be(defaults.FallDamageThreshold);
+        settings.FallDamageMultiplier.Should().Be(defaults.FallDamageMultiplier);
         settings.ShowFps.Should().Be(defaults.ShowFps);
     }
 

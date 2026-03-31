@@ -51,7 +51,7 @@ public class EntityCommandTests
         var world    = new global::VoxelEngine.World.World();
 
         var player = new global::VoxelEngine.Entity.Entity("player", new Vector3(0f, 64f, 0f));
-        var phys   = new PhysicsComponent(world, 0.6f, 1.8f, settings.Gravity, settings.MaxFallSpeed);
+        var phys   = new PhysicsComponent(world, 0.6f, 1.8f, settings.Gravity, settings.MaxFallSpeed, settings.FallDamageThreshold, settings.FallDamageMultiplier);
         phys.EyeOffset = 1.62f;
         player.AddComponent(phys);
 
@@ -96,3 +96,4 @@ public class EntityCommandTests
                 id, 0.25f, [new VoxelModelVoxel(0, 0, 0, 0, 0, VoxelTint.White)]);
     }
 }
+

@@ -21,6 +21,7 @@ public class PlayerStepUpTests
             world,
             0.6f, 1.8f,
             settings.Gravity, settings.MaxFallSpeed,
+            settings.FallDamageThreshold, settings.FallDamageMultiplier,
             settings.StepHeight, settings.EnableStepUp,
             settings.StepUpMaxVisualDrop, settings.StepUpSmoothingSpeed);
         phys.EyeOffset = 1.62f;
@@ -67,3 +68,4 @@ public class PlayerStepUpTests
         }
     }
 }
+

@@ -71,7 +71,7 @@ public sealed class EntityCommand : ICommand
         float width  = model.PlacementBounds.Max.X - model.PlacementBounds.Min.X;
         float height = model.PlacementBounds.Max.Y - model.PlacementBounds.Min.Y;
         var   phys   = new PhysicsComponent(context.World, width, height,
-            context.Settings.Gravity, context.Settings.MaxFallSpeed);
+            context.Settings.Gravity, context.Settings.MaxFallSpeed, context.Settings.FallDamageThreshold, context.Settings.FallDamageMultiplier);
         entity.AddComponent(phys);
 
         if (model.Metadata.Behaviour is not null)
@@ -118,3 +118,4 @@ public sealed class EntityCommand : ICommand
         return context.Player.InternalPosition + horizontalForward * spawnDistance;
     }
 }
+

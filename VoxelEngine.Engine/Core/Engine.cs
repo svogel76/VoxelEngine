@@ -50,6 +50,7 @@ public class Engine : IDisposable
     // Spawn-Schutz
     private bool _waitingForChunkLoad = false;
     private bool _spawnFlyMode        = false;
+    private Vector3 _playerSpawnPoint;
 
     // Edge detection
     private bool _prevF1        = false;
@@ -109,6 +110,7 @@ public class Engine : IDisposable
         var world     = new World.World();
         var generator = new WorldGenerator(_settings);
         var playerStart = CreatePlayerStartPosition(generator, camX, camY, camZ);
+        _playerSpawnPoint = playerStart;
 
         _interactionReach = _settings.InteractionReach;
 
@@ -121,7 +123,7 @@ public class Engine : IDisposable
             _settings);
 
         _persistence = new LocalFilePersistence(_settings.SaveDirectory);
-        _context     = new GameContext(_settings, _keyBindings, world, playerEntity, camera, renderer, input, generator, entityModels, _persistence);
+        _context     = new GameContext(_settings, _keyBindings, world, playerEntity, camera, renderer, input, generator, entityModels, _persistence, _playerSpawnPoint);
         _modContext  = new EngineModContext(_context);
 
         // Spieler-Komponenten hinzufügen
@@ -129,6 +131,7 @@ public class Engine : IDisposable
             world,
             _settings.PlayerWidth, _settings.PlayerHeight,
             _settings.Gravity, _settings.MaxFallSpeed,
+            _settings.FallDamageThreshold, _settings.FallDamageMultiplier,
             _settings.StepHeight, _settings.EnableStepUp,
             _settings.StepUpMaxVisualDrop, _settings.StepUpSmoothingSpeed);
         playerPhys.EyeOffset = _settings.EyeHeight;
@@ -167,6 +170,7 @@ public class Engine : IDisposable
         _context.Console.Register(new FogCommand());
         _context.Console.Register(new HudCommand(_context.HudRegistry));
         _context.Console.Register(new EntityCommand());
+        _context.Console.Register(new DamageCommand());
 
         _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight);
 
@@ -340,6 +344,7 @@ public class Engine : IDisposable
 
         _context.EntityManager.Update(fixedDelta);
         _game.Update(fixedDelta);
+        _context.RespawnPlayerIfDead();
     }
 
     private void Render(double frameTime)
@@ -469,3 +474,5 @@ public class Engine : IDisposable
     private static Vector3 ToNumerics(Vector3D<float> vector) => new(vector.X, vector.Y, vector.Z);
     private static Vector3D<float> ToSilk(Vector3 vector) => new(vector.X, vector.Y, vector.Z);
 }
+
+

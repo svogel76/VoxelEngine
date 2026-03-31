@@ -62,7 +62,7 @@ public class GameContextTests
         Vector3 position, EngineSettings settings, global::VoxelEngine.World.World world)
     {
         var entity = new global::VoxelEngine.Entity.Entity("player", position);
-        var phys   = new PhysicsComponent(world, 0.6f, 1.8f, settings.Gravity, settings.MaxFallSpeed);
+        var phys   = new PhysicsComponent(world, 0.6f, 1.8f, settings.Gravity, settings.MaxFallSpeed, settings.FallDamageThreshold, settings.FallDamageMultiplier);
         phys.EyeOffset = 1.62f;
         entity.AddComponent(phys);
         entity.AddComponent(new HealthComponent(20f));
@@ -88,3 +88,4 @@ public class GameContextTests
         public IVoxelModelDefinition GetModel(string modelId)            => _model;
     }
 }
+
