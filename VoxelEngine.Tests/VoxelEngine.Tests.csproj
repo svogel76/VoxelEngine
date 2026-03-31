@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VoxelEngine.Engine\VoxelEngine.Engine.csproj" />
+    <ProjectReference Include="..\VoxelEngine.Game\VoxelEngine.Game.csproj" />
   </ItemGroup>
 
   <ItemGroup>

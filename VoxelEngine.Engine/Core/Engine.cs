@@ -21,6 +21,7 @@ public class Engine : IDisposable
     private readonly IWindow        _window;
     private readonly EngineSettings _settings;
     private readonly double         _fixedDelta;
+    private readonly IKeyBindings   _keyBindings;
     private readonly IGame          _game;
 
     private GL                   _gl           = null!;
@@ -57,9 +58,10 @@ public class Engine : IDisposable
     // Eingabe-Buffer für Debug-Konsole (Silk.NET-spezifisch)
     private string _consoleInput = "";
 
-    public Engine(EngineSettings settings, IGame game)
+    public Engine(EngineSettings settings, IKeyBindings keyBindings, IGame game)
     {
         _settings   = settings;
+        _keyBindings = keyBindings;
         _game       = game;
         _fixedDelta = 1.0 / settings.TargetUPS;
 
@@ -108,7 +110,7 @@ public class Engine : IDisposable
         var camera = new Camera(ToSilk(player.EyePosition), aspectRatio, _settings);
 
         _persistence = new LocalFilePersistence(_settings.SaveDirectory);
-        _context = new GameContext(_settings, world, player, camera, renderer, input, generator, entityModels, _persistence);
+        _context = new GameContext(_settings, _keyBindings, world, player, camera, renderer, input, generator, entityModels, _persistence);
 
         // Spielerstand + Welt-Metadaten laden (falls vorhanden)
         var (savedPlayer, savedWorld) = _context.LoadGameStateAsync().GetAwaiter().GetResult();
@@ -171,7 +173,7 @@ public class Engine : IDisposable
         var invFont     = new BitmapFont(_gl, "Assets/Fonts/font.png");
         var invText     = new TextRenderer(_gl, invFont, _settings.WindowWidth, _settings.WindowHeight);
         var invIcon     = new IconRenderer(_gl);
-        _inventoryPanel = new InventoryPanel(invText, invIcon);
+        _inventoryPanel = new InventoryPanel(invText, invIcon, _keyBindings.ToggleInventory);
         _inventoryPanel.Atlas = _context.Renderer.Atlas;
         _context.UI.Register(_inventoryPanel);
 
@@ -214,7 +216,7 @@ public class Engine : IDisposable
         }
 
         // F1 — Konsole öffnen/schließen
-        bool f1Now = _context.Input.IsKeyPressed(Key.F1);
+        bool f1Now = _context.Input.IsKeyPressed(_keyBindings.DebugConsole);
         if (f1Now && !_prevF1)
             _context.Console.Toggle();
         _prevF1 = f1Now;
@@ -224,7 +226,7 @@ public class Engine : IDisposable
             _context.Input.ClearTransientMouseState();
 
             // Escape — Konsole schließen
-            bool escNow = _context.Input.IsKeyPressed(Key.Escape);
+            bool escNow = _context.Input.IsKeyPressed(_keyBindings.Pause);
             if (escNow && !_prevEscape)
             {
                 _context.Console.Toggle();
@@ -328,14 +330,15 @@ public class Engine : IDisposable
         _context.PlacementPreview = null;
 
         int scrollSteps = _context.Input.ConsumeScrollSteps();
-        if (scrollSteps != 0)
-            _context.Player.CycleSelectedBlock(scrollSteps);
+        int hotbarDelta = MapHotbarScroll(scrollSteps);
+        if (hotbarDelta != 0)
+            _context.Player.CycleSelectedBlock(hotbarDelta);
 
         // Zifferntasten 1-9 für direkten Hotbar-Slot-Auswahl
         if (_settings.EnableHotbarNumberKeys)
         {
-            Key[] numKeys = [Key.Number1, Key.Number2, Key.Number3, Key.Number4, Key.Number5,
-                             Key.Number6, Key.Number7, Key.Number8, Key.Number9];
+            Key[] numKeys = [_keyBindings.Hotbar1, _keyBindings.Hotbar2, _keyBindings.Hotbar3, _keyBindings.Hotbar4, _keyBindings.Hotbar5,
+                             _keyBindings.Hotbar6, _keyBindings.Hotbar7, _keyBindings.Hotbar8, _keyBindings.Hotbar9];
             for (int i = 0; i < 9; i++)
             {
                 bool numNow = _context.Input.IsKeyPressed(numKeys[i]);
@@ -345,10 +348,10 @@ public class Engine : IDisposable
             }
         }
 
-        if (_context.Input.ConsumeLeftClicks() > 0)
+        if (_context.Input.ConsumeMouseClicks(_keyBindings.BlockBreak) > 0)
             TryBreakTargetedBlock();
 
-        int rightClicks = _context.Input.ConsumeRightClicks();
+        int rightClicks = _context.Input.ConsumeMouseClicks(_keyBindings.BlockPlace);
         if (rightClicks > 0)
             TryPlaceSelectedBlock();
         else
@@ -374,7 +377,7 @@ public class Engine : IDisposable
         if (_fpsTimer >= 0.5)
         {
             _fps          = _frameCount / _fpsTimer;
-            _window.Title = $"{_settings.Title} | FPS: {_fps:F0}  Chunks: {_context.World.LoadedChunkCount}";
+            _window.Title = _settings.ShowFps ? $"{_settings.Title} | FPS: {_fps:F0}  Chunks: {_context.World.LoadedChunkCount}" : _settings.Title;
             _fpsTimer     = 0.0;
             _frameCount   = 0;
         }
@@ -420,18 +423,18 @@ public class Engine : IDisposable
         float right = 0f;
         float up = 0f;
 
-        if (_context.Input.IsKeyPressed(Key.W))
+        if (_context.Input.IsKeyPressed(_keyBindings.MoveForward))
             forward += 1f;
-        if (_context.Input.IsKeyPressed(Key.S))
+        if (_context.Input.IsKeyPressed(_keyBindings.MoveBackward))
             forward -= 1f;
-        if (_context.Input.IsKeyPressed(Key.D))
+        if (_context.Input.IsKeyPressed(_keyBindings.MoveRight))
             right += 1f;
-        if (_context.Input.IsKeyPressed(Key.A))
+        if (_context.Input.IsKeyPressed(_keyBindings.MoveLeft))
             right -= 1f;
-        bool jump = _context.Input.IsKeyPressed(Key.Space);
+        bool jump = _context.Input.IsKeyPressed(_keyBindings.Jump);
         if (_context.Player.FlyMode && jump)
             up += 1f;
-        if (_context.Input.IsKeyPressed(Key.ShiftLeft))
+        if (_context.Input.IsKeyPressed(_keyBindings.Sneak))
             up -= 1f;
 
         return new PlayerInput(forward, right, up, jump);
@@ -540,6 +543,15 @@ public class Engine : IDisposable
             ? hit.BlockPosition
             : hit.PlacementPosition;
 
+    private int MapHotbarScroll(int scrollSteps)
+    {
+        if (scrollSteps == 0)
+            return 0;
+
+        int direction = _keyBindings.HotbarScrollUp == ScrollBinding.Up ? 1 : -1;
+        return scrollSteps * direction;
+    }
+
     private bool ShouldIgnoreWaterForRaycast()
     {
         var eyePosition = _context.Player.EyePosition;
@@ -549,3 +561,6 @@ public class Engine : IDisposable
         return _context.World.GetBlock(x, y, z) == BlockType.Water;
     }
 }
+
+
+

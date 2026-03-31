@@ -14,6 +14,7 @@ namespace VoxelEngine.Core;
 public class GameContext : IDisposable, IGameContext
 {
     public EngineSettings    Settings      { get; }
+    public IKeyBindings      KeyBindings   { get; }
     public World.World       World         { get; }
     public Player            Player        { get; }
     public Camera            Camera        { get; }
@@ -32,36 +33,30 @@ public class GameContext : IDisposable, IGameContext
     IBlockRegistry IGameContext.BlockRegistry => BlockRegistryAdapter.Instance;
     IWorldAccess IGameContext.World => World;
     IInputState IGameContext.Input => Input;
+    IKeyBindings IGameContext.KeyBindings => KeyBindings;
 
-    /// <summary>
-    /// Vollständiges Spieler-Inventar (Hotbar + Grid + Equipment).
-    /// Wird nach dem Konstruktor via Init() gesetzt.
-    /// </summary>
     public PlayerInventory   Inventory     { get; private set; } = null!;
 
     public BlockRaycastHit?       TargetedBlock    { get; set; }
     public BlockPlacementPreview? PlacementPreview { get; set; }
-
-    /// <summary>
-    /// Wird von UI-Panels gesetzt (z.B. "Beenden"-Button im Pause-Menü).
-    /// Engine.Update() prüft dieses Flag und schließt das Fenster sauber.
-    /// </summary>
     public bool ShutdownRequested { get; set; }
 
     private bool _disposed;
 
     public GameContext(
-        EngineSettings     settings,
-        World.World        world,
-        Player             player,
-        Camera             camera,
-        Renderer           renderer,
-        InputHandler       inputHandler,
-        WorldGenerator     generator,
+        EngineSettings      settings,
+        IKeyBindings        keyBindings,
+        World.World         world,
+        Player              player,
+        Camera              camera,
+        Renderer            renderer,
+        InputHandler        inputHandler,
+        WorldGenerator      generator,
         IEntityModelLibrary entityModels,
-        IWorldPersistence  persistence)
+        IWorldPersistence   persistence)
     {
         Settings     = settings;
+        KeyBindings  = keyBindings;
         World        = world;
         Player       = player;
         Camera       = camera;
@@ -92,15 +87,12 @@ public class GameContext : IDisposable, IGameContext
             () => global::VoxelEngine.Entity.ViewFrustum.FromViewProjection(ToNumerics(Camera.ViewMatrix * Camera.ProjectionMatrix)));
         EntityManager.SpawnManager = SpawnManager;
         Time.SetTime(settings.InitialTime);
-        Inventory    = new PlayerInventory(player.Inventory);
+        Inventory = new PlayerInventory(player.Inventory);
     }
 
     public bool TryDequeueResult(out ChunkResult result) =>
         ChunkManager.TryDequeueResult(out result);
 
-    /// <summary>
-    /// Speichert aktuellen Spielerstand und Welt-Metadaten in der Persistence-Schicht.
-    /// </summary>
     public async Task SaveGameStateAsync()
     {
         await WorldStatePersistence.SaveLoadedChunkEditsAsync(World, Persistence).ConfigureAwait(false);
@@ -148,20 +140,13 @@ public class GameContext : IDisposable, IGameContext
         await Persistence.SaveWorldMetaAsync(worldMeta).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Lädt gespeicherten Spielerstand und Welt-Metadaten.
-    /// Gibt (null, null) zurück wenn kein Speicherstand vorhanden.
-    /// </summary>
     public async Task<(PlayerState? Player, WorldMeta? World)> LoadGameStateAsync()
     {
         var playerState = await Persistence.LoadPlayerStateAsync().ConfigureAwait(false);
-        var worldMeta   = await Persistence.LoadWorldMetaAsync().ConfigureAwait(false);
+        var worldMeta = await Persistence.LoadWorldMetaAsync().ConfigureAwait(false);
         return (playerState, worldMeta);
     }
 
-    /// <summary>
-    /// Wendet geladenen Spielerstand und Welt-Metadaten auf die aktiven Systeme an.
-    /// </summary>
     public void ApplyLoadedState(PlayerState playerState, WorldMeta worldMeta)
     {
         Player.Teleport(playerState.Position);
@@ -206,8 +191,8 @@ public class GameContext : IDisposable, IGameContext
         GC.SuppressFinalize(this);
     }
 
-    private static System.Numerics.Matrix4x4 ToNumerics(Silk.NET.Maths.Matrix4X4<float> matrix)
-        => new(
+    private static System.Numerics.Matrix4x4 ToNumerics(Silk.NET.Maths.Matrix4X4<float> matrix) =>
+        new(
             matrix.M11, matrix.M12, matrix.M13, matrix.M14,
             matrix.M21, matrix.M22, matrix.M23, matrix.M24,
             matrix.M31, matrix.M32, matrix.M33, matrix.M34,

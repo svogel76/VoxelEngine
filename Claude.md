@@ -47,4 +47,4 @@ VoxelEngine.Tests/  # xUnit + FluentAssertions
 - Entity-Persistenz fuer klimaabhaengig gespawnte Tiere vorbereiten
 - SpawnManager um Block-/Hang-Praferenzen und Herdenspawns erweitern
 - Follow-up fuer Gameplay/Modding:
-  Block-Registrierung vollstaendig in `VoxelEngine.Game` ziehen (statt Default-Registrierung in Engine)
+  JSON-Schema fuer Block-Behaviours erweitern (z. B. Fluessigkeiten, Leuchten, Spezial-Interaktionen)

@@ -1,0 +1,20 @@
+{
+  "id": 10,
+  "name": "wood",
+  "textures": {
+    "top": "tree_wood",
+    "side": "tree_wood",
+    "bottom": "tree_wood"
+  },
+  "properties": {
+    "solid": true,
+    "transparent": false,
+    "replaceable": false,
+    "max_stack": 64,
+    "tags": [
+      "natural",
+      "wood"
+    ]
+  },
+  "behaviour": "default"
+}

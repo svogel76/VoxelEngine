@@ -10,8 +10,7 @@ public class InputHandler : IInputState
     private float _lastX;
     private float _lastY;
     private bool  _firstMove = true;
-    private int _pendingLeftClicks;
-    private int _pendingRightClicks;
+    private readonly Dictionary<MouseButton, int> _pendingClicks = new();
     private int _pendingScrollSteps;
 
     public IKeyboard Keyboard => _keyboard;
@@ -53,19 +52,18 @@ public class InputHandler : IInputState
 
     public bool IsKeyPressed(Key key) => _keyboard.IsKeyPressed(key);
 
-    public int ConsumeLeftClicks()
+    public int ConsumeMouseClicks(MouseButton button)
     {
-        int value = _pendingLeftClicks;
-        _pendingLeftClicks = 0;
+        if (!_pendingClicks.TryGetValue(button, out int value))
+            return 0;
+
+        _pendingClicks[button] = 0;
         return value;
     }
 
-    public int ConsumeRightClicks()
-    {
-        int value = _pendingRightClicks;
-        _pendingRightClicks = 0;
-        return value;
-    }
+    public int ConsumeLeftClicks() => ConsumeMouseClicks(MouseButton.Left);
+
+    public int ConsumeRightClicks() => ConsumeMouseClicks(MouseButton.Right);
 
     public int ConsumeScrollSteps()
     {
@@ -76,27 +74,21 @@ public class InputHandler : IInputState
 
     public void ClearTransientMouseState()
     {
-        _pendingLeftClicks = 0;
-        _pendingRightClicks = 0;
+        foreach (var button in _pendingClicks.Keys.ToArray())
+            _pendingClicks[button] = 0;
+
         _pendingScrollSteps = 0;
     }
 
     private void OnMouseDown(IMouse mouse, MouseButton button)
     {
-        if (button == MouseButton.Left)
-            _pendingLeftClicks++;
-        else if (button == MouseButton.Right)
-            _pendingRightClicks++;
+        _pendingClicks.TryGetValue(button, out int count);
+        _pendingClicks[button] = count + 1;
     }
 
-    /// <summary>
-    /// Setzt den Cursor-Modus der Maus (Raw = versteckt/gesperrt, Normal = sichtbar).
-    /// Wird vom UIStateManager aufgerufen wenn sich der Panel-Stack ändert.
-    /// </summary>
     public void SetCursorMode(CursorMode mode)
     {
         _mouse.Cursor.CursorMode = mode;
-        // Bei Wechsel zurück zu Raw: erste Bewegung ignorieren (kein Sprung)
         if (mode == CursorMode.Raw)
             _firstMove = true;
     }

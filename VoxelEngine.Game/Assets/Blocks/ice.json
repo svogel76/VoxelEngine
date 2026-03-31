@@ -1,0 +1,21 @@
+{
+  "id": 7,
+  "name": "ice",
+  "textures": {
+    "top": "ice",
+    "side": "ice",
+    "bottom": "ice"
+  },
+  "properties": {
+    "solid": false,
+    "transparent": true,
+    "replaceable": false,
+    "collides_with_player": false,
+    "max_stack": 64,
+    "tags": [
+      "natural",
+      "frozen"
+    ]
+  },
+  "behaviour": "default"
+}

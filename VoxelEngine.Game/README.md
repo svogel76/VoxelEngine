@@ -1,20 +1,21 @@
 # VoxelEngine.Game
 
-> Das konkrete Spiel auf Basis von `VoxelEngine.Engine`. Enthält Block-Definitionen, spielspezifische Assets und die `IGame`-Implementierung. Dieses Dokument erklärt, wie das Spiel erweitert wird.
+> Das konkrete Spiel auf Basis von `VoxelEngine.Engine`. Enthaelt Block-Definitionen, spielspezifische Assets und die `IGame`-Implementierung. Dieses Dokument erklaert, wie das Spiel erweitert wird.
 
 ## Projektstruktur
 
 ```
 VoxelEngine.Game/
-├── Assets/
-│   ├── Hud/
-│   │   └── hud.json          # HUD-Layout und Element-Konfiguration
-│   ├── Fonts/                # Bitmap-Fonts
-│   └── Textures/             # Block- und Entity-Texturen (ArrayTexture)
-├── Blocks/
-│   └── BlockRegistration.cs  # Alle BlockDefinitions — zentrale Anlaufstelle
-├── VoxelGame.cs              # IGame-Implementierung
-└── Program.cs                # Einstiegspunkt
+|-- Assets/
+|   |-- Blocks/                # Eine JSON-Datei pro BlockDefinition
+|   |-- Hud/
+|   |   `-- hud.json           # HUD-Layout und Element-Konfiguration
+|   |-- Fonts/                 # Bitmap-Fonts
+|   `-- Textures/              # Block-/Entity-Texturen und blocks.manifest.json
+|-- Blocks/
+|   `-- BlockDefinitionLoader.cs # Laedt BlockDefinitions aus Assets/Blocks
+|-- VoxelGame.cs               # IGame-Implementierung
+`-- Program.cs                 # Einstiegspunkt
 ```
 
 ## Einstiegspunkt
@@ -26,30 +27,35 @@ new EngineRunner().Run(new VoxelGame());
 
 `VoxelGame` implementiert `IGame` und verdrahtet alle spielspezifischen Systeme mit der Engine.
 
-## Einen neuen Block hinzufügen
+## Einen neuen Block hinzufuegen
 
-Alle Blöcke werden in `Blocks/BlockRegistration.cs` registriert — nirgendwo sonst.
+Alle Bloecke werden als JSON-Dateien in `Assets/Blocks/` definiert und von `Blocks/BlockDefinitionLoader.cs` geladen.
 
-**Schritt 1** — BlockDefinition anlegen:
+**Schritt 1** - Block-JSON anlegen:
 
-```csharp
-registry.Register(new BlockDefinition
+```json
 {
-    Id           = 42,
-    Name         = "Sandstone",
-    TextureTop   = 15,   // Layer-Index im Texture2DArray
-    TextureSide  = 15,
-    TextureBottom= 16,
-    MaxStackSize = 64,
-    IsSolid      = true,
-    IsTransparent= false,
-});
+  "id": 42,
+  "name": "sandstone",
+  "textures": {
+    "top": "sandstone",
+    "side": "sandstone",
+    "bottom": "sandstone"
+  },
+  "properties": {
+    "solid": true,
+    "transparent": false,
+    "replaceable": false,
+    "max_stack": 64
+  },
+  "behaviour": "default"
+}
 ```
 
-**Schritt 2** — Textur hinzufügen:
-Die Textur-Layer entsprechen der Reihenfolge in `Assets/Textures/blocks.png` (ArrayTexture-Aufbau). Neuen Layer ans Ende anhängen und den Index in der BlockDefinition setzen.
+**Schritt 2** - Textur hinzufuegen:
+Textur-Namen werden ueber `Assets/Textures/blocks.manifest.json` auf Layer-Indizes gemappt. Neuen Namen in das Manifest eintragen und dann in der Block-JSON referenzieren.
 
-**Schritt 3** — Kompilieren und testen. Kein weiterer Boilerplate nötig — Meshing, Kollision und Serialisierung greifen automatisch.
+**Schritt 3** - Kompilieren und testen. Kein weiterer Boilerplate noetig - Meshing, Kollision und Serialisierung greifen automatisch.
 
 ## Assets
 
@@ -69,47 +75,39 @@ Konfiguriert alle HUD-Elemente deklarativ:
 
 Neue HUD-Elemente implementieren `IHudElement` + `IHudRenderer` in der Engine und werden hier per `"type"` referenziert.
 
-### Texturen
-
-| Datei | Inhalt |
-|---|---|
-| `Textures/blocks.png` | Block-Textur-Atlas (Texture2DArray) |
-| `Textures/entities.png` | Entity-Sprite-Atlas |
-| `Fonts/font.png` | CP437-Bitmap-Font |
-
-## VoxelGame — Lifecycle-Übersicht
+## VoxelGame - Lifecycle-Uebersicht
 
 ```csharp
 public class VoxelGame : IGame
 {
     public void RegisterBlocks(IBlockRegistry registry)
-        // ← BlockRegistration.cs aufrufen
+        // <- BlockDefinitionLoader aufrufen
 
     public void Initialize(IGameContext context)
-        // ← Spieler, Welt, UI initialisieren
+        // <- Spieler, Welt, UI initialisieren
 
     public void Update(double deltaTime)
-        // ← Spiellogik (Input, Physik, Inventar …)
+        // <- Spiellogik (Input, Physik, Inventar ...)
 
     public void Render(double deltaTime)
-        // ← Spielseitiges Rendering (HUD, UI-Overlays …)
+        // <- Spielseitiges Rendering (HUD, UI-Overlays ...)
 
     public void Shutdown()
-        // ← Persistenz flushen, Ressourcen freigeben
+        // <- Persistenz flushen, Ressourcen freigeben
 }
 ```
 
 ## Klimazonen & Spawn-Konfiguration
 
-Klimazonen und Entity-Spawns werden über JSON-Dateien in `Assets/Climate/` definiert — nicht in C#-Code. Neue Klimazone anlegen:
+Klimazonen und Entity-Spawns werden ueber JSON-Dateien in `Assets/Climate/` definiert - nicht in C#-Code. Neue Klimazone anlegen:
 
 1. JSON-Datei in `Assets/Climate/` erstellen (Schema: bestehende Dateien als Vorlage)
-2. Spawn-Einträge direkt in der Klimazonen-JSON pflegen (nicht in Entity-Definitionen)
-3. Kein Code-Änderung nötig — das System lädt alle JSONs automatisch
+2. Spawn-Eintraege direkt in der Klimazonen-JSON pflegen (nicht in Entity-Definitionen)
+3. Kein Code-Aenderung noetig - das System laedt alle JSONs automatisch
 
 ## Konventionen
 
-- Block-IDs sind stabile Zahlen — nie umsortieren (Persistenz-Format speichert IDs)
+- Block-IDs sind stabile Zahlen - nie umsortieren (Persistenz-Format speichert IDs)
 - `MaxStackSize` pro Block setzen (Default 64 wenn weggelassen)
-- Assets sind lose Dateien — kein Embedding, damit sie zur Laufzeit editierbar bleiben
-- Spielspezifische Logik gehört in `VoxelGame.cs` oder eigene Klassen im Game-Projekt — nie in die Engine
+- Assets sind lose Dateien - kein Embedding, damit sie zur Laufzeit editierbar bleiben
+- Spielspezifische Logik gehoert in `VoxelGame.cs` oder eigene Klassen im Game-Projekt - nie in die Engine

@@ -1,0 +1,26 @@
+{
+  "bindings": {
+    "move_forward": "W",
+    "move_backward": "S",
+    "move_left": "A",
+    "move_right": "D",
+    "jump": "Space",
+    "sneak": "ShiftLeft",
+    "block_place": "MouseRight",
+    "block_break": "MouseLeft",
+    "toggle_inventory": "Tab",
+    "hotbar_1": "Number1",
+    "hotbar_2": "Number2",
+    "hotbar_3": "Number3",
+    "hotbar_4": "Number4",
+    "hotbar_5": "Number5",
+    "hotbar_6": "Number6",
+    "hotbar_7": "Number7",
+    "hotbar_8": "Number8",
+    "hotbar_9": "Number9",
+    "hotbar_scroll_up": "ScrollUp",
+    "hotbar_scroll_down": "ScrollDown",
+    "pause": "Escape",
+    "debug_console": "F1"
+  }
+}

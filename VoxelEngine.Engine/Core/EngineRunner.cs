@@ -1,19 +1,16 @@
-﻿using VoxelEngine.World;
+using VoxelEngine.World;
 
 namespace VoxelEngine.Core;
 
 public sealed class EngineRunner
 {
     private readonly EngineSettings _settings;
+    private readonly IKeyBindings _keyBindings;
 
-    public EngineRunner()
-        : this(new EngineSettings { TargetFPS = 60 })
-    {
-    }
-
-    public EngineRunner(EngineSettings settings)
+    public EngineRunner(EngineSettings settings, IKeyBindings keyBindings)
     {
         _settings = settings;
+        _keyBindings = keyBindings;
     }
 
     public void Run(IGame game)
@@ -23,7 +20,7 @@ public sealed class EngineRunner
         BlockRegistry.Clear();
         game.RegisterBlocks(BlockRegistryAdapter.Instance);
 
-        using var engine = new Engine(_settings, game);
+        using var engine = new Engine(_settings, _keyBindings, game);
         engine.Run();
     }
 }

@@ -1,4 +1,6 @@
-﻿using VoxelEngine.Core;
+using VoxelEngine.Core;
 using VoxelEngine.Game;
 
-new EngineRunner().Run(new VoxelGame());
+var settings = EngineSettings.LoadFrom("Assets/");
+var bindings = KeyBindingLoader.LoadFrom("Assets/");
+new EngineRunner(settings, bindings).Run(new VoxelGame());

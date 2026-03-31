@@ -4,7 +4,7 @@ namespace VoxelEngine.World;
 
 public class WorldGenerator
 {
-    public const int SeaLevel = 64;
+    private readonly int _seaLevel;
     private const int TreePlacementSalt = 0x2D51;
     private const int TreeTemplateSalt = 0x1537;
 
@@ -17,6 +17,7 @@ public class WorldGenerator
     {
         _worldSeed = settings.Terrain.Seed;
         _treeInfluenceRadius = settings.TreeInfluenceRadius;
+        _seaLevel = settings.SeaLevel;
         _climateSystem = new ClimateSystem(settings.Terrain, climateDirectory);
     }
 
@@ -74,7 +75,7 @@ public class WorldGenerator
             int worldZ = chunkZ * Chunk.Depth + z;
             ClimateSample sample = _climateSystem.Sample(worldX, worldZ);
 
-            for (int y = 1; y <= SeaLevel; y++)
+            for (int y = 1; y <= _seaLevel; y++)
             {
                 if (chunk.GetBlock(x, y, z) == BlockType.Air)
                     chunk.SetBlock(x, y, z, sample.SeaBlock);
@@ -99,7 +100,7 @@ public class WorldGenerator
         if (treeBlock != BlockType.Air)
             return treeBlock;
 
-        if (worldY <= SeaLevel)
+        if (worldY <= _seaLevel)
             return sample.SeaBlock;
 
         return BlockType.Air;
@@ -165,7 +166,7 @@ public class WorldGenerator
 
         if (!ShouldPlaceTree(worldX, worldZ, zone))
             return false;
-        if (surfaceY <= SeaLevel)
+        if (surfaceY <= _seaLevel)
             return false;
         if (!IsValidTreeSurface(sample.SurfaceBlock, template))
             return false;
@@ -319,3 +320,4 @@ public class WorldGenerator
 
     private readonly record struct TreePlacement(int WorldX, int WorldZ, int SurfaceY, TreeTemplate Template);
 }
+

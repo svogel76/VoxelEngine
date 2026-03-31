@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Silk.NET.Maths;
 using VoxelEngine.Core;
+using VoxelEngine.Game;
 using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Entity.Models;
 using VoxelEngine.Persistence;
@@ -53,6 +54,7 @@ public class EntityCommandTests
 
         return new GameContext(
             settings,
+            new KeyBindings(),
             world,
             player,
             camera,
@@ -90,3 +92,4 @@ public class EntityCommandTests
                 [new VoxelModelVoxel(0, 0, 0, 0, 0, VoxelTint.White)]);
     }
 }
+
