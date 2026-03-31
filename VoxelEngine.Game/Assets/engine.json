@@ -12,6 +12,8 @@
     "gravity": -28.0,
     "max_fall_speed": -50.0,
     "jump_velocity": 8.0,
+    "fall_damage_threshold": 8.0,
+    "fall_damage_multiplier": 0.5,
     "step_height": 1.0,
     "enable_step_up": true,
     "player_height": 1.8,
@@ -26,3 +28,5 @@
     "show_fps": true
   }
 }
+
+

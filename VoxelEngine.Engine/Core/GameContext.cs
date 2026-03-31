@@ -11,6 +11,7 @@ using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
 using VoxelEngine.World.Inventories;
+using System.Numerics;
 
 namespace VoxelEngine.Core;
 
@@ -30,6 +31,7 @@ public class GameContext : IDisposable, IGameContext
     public EntityManager       EntityManager { get; }
     public SpawnManager        SpawnManager  { get; }
     public IEntityModelLibrary EntityModels  { get; }
+    public Vector3             PlayerSpawnPoint { get; }
     public HudRegistry         HudRegistry   { get; } = new HudRegistry();
     public UIStateManager      UI            { get; } = new UIStateManager();
     public IWorldPersistence   Persistence   { get; }
@@ -60,7 +62,8 @@ public class GameContext : IDisposable, IGameContext
         InputHandler        inputHandler,
         WorldGenerator      generator,
         IEntityModelLibrary entityModels,
-        IWorldPersistence   persistence)
+        IWorldPersistence   persistence,
+        Vector3?            playerSpawnPoint = null)
     {
         Settings     = settings;
         KeyBindings  = keyBindings;
@@ -72,6 +75,7 @@ public class GameContext : IDisposable, IGameContext
         Generator    = generator;
         EntityModels = entityModels;
         Persistence  = persistence;
+        PlayerSpawnPoint = playerSpawnPoint ?? player.InternalPosition;
         Console      = new DebugConsole(this);
         ChunkManager = new ChunkManager(world, generator, settings, persistence);
         Time         = new WorldTime { TimeScale = settings.TimeScale };
@@ -200,6 +204,35 @@ public class GameContext : IDisposable, IGameContext
         Time.TimeScale = worldMeta.TimeScale;
     }
 
+    public bool RespawnPlayerIfDead()
+    {
+        var health = Player.GetComponent<HealthComponent>();
+        if (health is null || !health.IsDead)
+            return false;
+
+        Console.Log("You died.");
+        health.RestoreHealth(health.MaxHp);
+
+        var physics = Player.GetComponent<PhysicsComponent>();
+        if (physics is not null)
+        {
+            physics.Teleport(Player, PlayerSpawnPoint);
+            physics.SyncPhysics(Player);
+        }
+        else
+        {
+            Player.InternalPosition = PlayerSpawnPoint;
+            Player.InternalVelocity = Vector3.Zero;
+        }
+
+        Camera.Position = new Silk.NET.Maths.Vector3D<float>(
+            Player.InternalPosition.X,
+            Player.InternalPosition.Y + (physics?.EyeOffset ?? 0f),
+            Player.InternalPosition.Z);
+
+        return true;
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
@@ -217,3 +250,4 @@ public class GameContext : IDisposable, IGameContext
             matrix.M31, matrix.M32, matrix.M33, matrix.M34,
             matrix.M41, matrix.M42, matrix.M43, matrix.M44);
 }
+

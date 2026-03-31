@@ -21,7 +21,7 @@ public class TerrainPhysicsEntityTests
         world.AddChunk(new Chunk(0, 0));
 
         var entity = new global::VoxelEngine.Entity.Entity("test", new Vector3(2f, 10f, 2f));
-        var phys   = new PhysicsComponent(world, Width, Height, settings.Gravity, settings.MaxFallSpeed);
+        var phys   = new PhysicsComponent(world, Width, Height, settings.Gravity, settings.MaxFallSpeed, settings.FallDamageThreshold, settings.FallDamageMultiplier);
         entity.AddComponent(phys);
 
         var manager = new EntityManager(world, settings);
@@ -46,7 +46,7 @@ public class TerrainPhysicsEntityTests
         BuildFloor(world, minX: 1, maxX: 2, minZ: 1, maxZ: 2, y: 0);
 
         var entity = new global::VoxelEngine.Entity.Entity("test", new Vector3(1.5f, 4f, 1.5f));
-        var phys   = new PhysicsComponent(world, Width, Height, settings.Gravity, settings.MaxFallSpeed);
+        var phys   = new PhysicsComponent(world, Width, Height, settings.Gravity, settings.MaxFallSpeed, settings.FallDamageThreshold, settings.FallDamageMultiplier);
         entity.AddComponent(phys);
 
         var manager = new EntityManager(world, settings);
@@ -70,3 +70,4 @@ public class TerrainPhysicsEntityTests
             world.SetBlock(x, y, z, BlockType.Stone);
     }
 }
+

@@ -172,7 +172,9 @@ public sealed class SpawnManager
             width,
             height,
             _settings.Gravity,
-            _settings.MaxFallSpeed);
+            _settings.MaxFallSpeed,
+            _settings.FallDamageThreshold,
+            _settings.FallDamageMultiplier);
         entity.AddComponent(phys);
 
         // AIComponent (needs PhysicsComponent first so Update order is correct)
@@ -402,3 +404,5 @@ public sealed class SpawnManager
 
     private readonly record struct ManagedSpawnState(string ZoneId, string EntityId);
 }
+
+
