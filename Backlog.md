@@ -8,6 +8,46 @@
 
 ---
 
+## Naechster Meilenstein — Mod/Plugin-System [HOECHSTE PRIORITAET]
+
+> Ziel: Das Spiel ist eine Mod. Engine und Mods kennen sich nur ueber VoxelEngine.Api.
+> Alles andere baut darauf auf — Content, Behaviour, Story, externe Mods.
+
+### Schritt 1 — VoxelEngine.Api extrahieren [Hoch]
+- Neues Class Library Projekt `VoxelEngine.Api` ohne Implementierung
+- Bestehende Interfaces wandern hierher: `IGame` -> `IGameMod`, `IGameContext`,
+  `IBlockRegistry`, `IWorldAccess`, `IInputState`
+- Neue Interfaces: `IGameMod`, `IModContext`, `IEntity`, `IComponent`, `IBehaviour`
+- Engine referenziert Api. Game referenziert Api. Beide kennen sich nicht direkt.
+
+### Schritt 2 — Component System [Hoch]
+- `IComponent` als Basisinterface in Api
+- Konkrete Komponenten: `HealthComponent`, `PhysicsComponent`,
+  `AIComponent`, `DropComponent`, `RenderComponent`
+- Entity-Definition in JSON referenziert Komponenten per Name
+- Ersetzt direkte Vererbungs-Hierarchie
+
+### Schritt 3 — Behaviour Trees in JSON [Mittel]
+- AI-Logik data-driven statt hardcodiertem Zustands-Automat
+- Bausteine: Conditions (`player_near`, `health_low`),
+  Actions (`flee`, `wander`, `idle`, `attack`)
+- Komposition in Entity-JSON
+- Neue Behaviours ohne Engine-Rebuild moeglich
+
+### Schritt 4 — Mod-Loader + IGameMod [Hoch]
+- Engine laedt DLLs zur Laufzeit aus `Mods/`-Ordner
+- `mod.json` Manifest pro Mod (id, name, version, dependencies)
+- `VoxelEngine.Game` wird zur ersten Mod-DLL
+- Mod-Reihenfolge und Abhaengigkeiten werden aufgeloest
+
+### Schritt 5 — Launcher extrahieren [Mittel]
+- Neues Executable `VoxelEngine.Launcher`
+- Laedt Engine, scannt Mods/, startet EngineRunner
+- `VoxelEngine.Game` wird von Executable zu DLL
+- Program.cs enthaelt nur noch Bootstrap-Code
+
+---
+
 ## Phase 2.5 - Debug und Entwicklungswerkzeuge
 
 - [Nice-to-have] Konsolen-Output farbig
@@ -69,12 +109,15 @@
 
 ## Phase 5 - Engine und Architektur [Erledigt]
 
-- [Erledigt] Chunk-Serialisierung - `IWorldPersistence`, `LocalFilePersistence` (Region-Dateien `.vxr`), `InMemoryPersistence`, `SaveDirectory` in `EngineSettings`
+- [Erledigt] Chunk-Serialisierung - `IWorldPersistence`, `LocalFilePersistence`,
+  `InMemoryPersistence`, VXP5-Format
 - [Erledigt] Projekttrennung in `VoxelEngine.Engine` (DLL) und `VoxelEngine.Game` (Exe)
 - [Erledigt] `IGame`-Lifecycle eingefuehrt (`EngineRunner`, `IGame`, `IGameContext`)
+- [Erledigt] Block-Definitionen data-driven (`Assets/Blocks/*.json`, `blocks.manifest.json`)
+- [Erledigt] EngineSettings data-driven (`Assets/engine.json`)
+- [Erledigt] Key Bindings data-driven (`Assets/keybindings.json`)
 - [Nice-to-have] Asset-Management System
 - [Nice-to-have] LOD (entfernte Chunks vereinfacht)
-- [Mittel] Block-Registrierung schrittweise aus Engine-Defaults in `VoxelEngine.Game` verschieben
 
 ---
 
@@ -85,28 +128,23 @@
 - [Erledigt] Spielmenue - Pause, Speichern, Beenden
 
 ### Inventar-System
-- [Erledigt] Item-Icons in Hotbar (Top-Face aus ArrayTexture, `IconRenderer`, batched Draw-Call)
-- [Erledigt] Vollstaendiges Inventar-Fenster (4x9 Slots + Ausruestungs-Slots, Drag and Drop, Shift-Click)
+- [Erledigt] Item-Icons in Hotbar (`IconRenderer`, batched Draw-Call)
+- [Erledigt] Vollstaendiges Inventar-Fenster (4x9 Slots + Ausruestungs-Slots, Drag and Drop)
 - [Nice-to-have] Crafting-System (Rezepte, Crafting-Tisch)
 - [Nice-to-have] Werkzeug-Haltbarkeit
 
 ### Spieler-Erweiterungen
 - [Erledigt] Gesundheits-System (HP, Schaden, Regeneration, Fallschaden)
 - [Erledigt] Hunger-System (beeinflusst Regeneration, Verhungern)
-- [Erledigt] Entity-Basisklasse (`Entity/`, Player erbt davon - Phase-7-ready)
+- [Erledigt] Entity-Basisklasse (`Entity/`, Player erbt davon)
 - [Nice-to-have] Erfahrungspunkte + Level
 - [Nice-to-have] Spieler-Tod + Respawn
-
-### Wasser-Simulation
-- [Mittel] Level-System (1-8), Cellular Automata
-- [Nice-to-have] Volumen-Erhaltung, Stroemung
 
 ### Sound
 - [Nice-to-have] Sound-System (OpenAL via Silk.NET)
 - [Nice-to-have] Umgebungsgeraeusche pro Klimazone
 - [Nice-to-have] Block-Sounds (abbauen, platzieren)
 - [Nice-to-have] Spieler-Sounds (Schritte, Sprung, Landen)
-- [Nice-to-have] Sounds je nach Block unterschiedlich
 
 ---
 
@@ -115,35 +153,30 @@
 > Voraussetzung: Inventar-System [Erledigt]
 
 ### Entity-System Architektur
-- [Erledigt] EntityManager in GameContext (Frustum-Culling, Spatial Hashing)
-- [Erledigt] Entity-Rendering (Voxel-Modelle + Entity-Atlas, batched pro Modelltyp)
+- [Erledigt] EntityManager (Frustum-Culling, Spatial Hashing)
+- [Erledigt] Entity-Rendering (Voxel-Modelle + Entity-Atlas, batched)
 - [Mittel] Entity-Kollision mit Terrain (AABB wie Spieler)
 - [Erledigt] Entity-Spawning pro Klimazone
 - [Nice-to-have] Entity-Persistenz
 - [Nice-to-have] LOD fuer Entities
 
+### Offene Gameplay-Items
+- [Mittel] Block-Pickup (Abbauen -> Inventar)
+- [Mittel] Dekrement beim Platzieren
+- [Mittel] Fog-Command Inversion Bug
+
 ### Vegetation
 - [Mittel] Gras + Blumen als Billboard-Sprites
 - [Nice-to-have] Buesche, Pilze, Farne pro Klimazone
-- [Nice-to-have] Gefaellte Baeume droppen Holz-Items
 
 ### Tiere
-- [Mittel] Tier-Entity (Idle, zufaellige Bewegung, Flucht)
-- [Mittel] Tiere pro Klimazone (Schafe, Woelfe, Kamele, Papageien, Fische...)
 - [Mittel] Ressourcen droppen
-- [Nice-to-have] Tag/Nacht Verhalten, Herden, Zucht
+- [Nice-to-have] Herden, Zucht
 
 ### NPCs und Feinde
 - [Nice-to-have] NPC-Entity (Haendler, Dialog, Handel)
 - [Nice-to-have] Feind-Entity (Aggro, Pathfinding, Kampf)
 - [Nice-to-have] Dorf-Generierung
-
-### Erweiterbarkeits-Architektur
-- [Mittel] Component System (`IComponent`, Physics/Health/AI/Drop/Sprite)
-- [Mittel] EntityRegistry + BiomeRegistry
-- [Mittel] ItemRegistry (Items als eigene Definitionen)
-- [Nice-to-have] Data-Driven Content (Blocks/Entities/Biomes aus JSON)
-- [Nice-to-have] Mod-Support (`Mods/` Ordner, `mod.json` Manifest)
 
 ---
 
@@ -157,8 +190,7 @@
 
 ## Empfohlene Reihenfolge
 ```
-Erledigt:    Phase 5 - Chunk-Serialisierung
-Erledigt:    Phase 6 - Inventar-Fenster + Gesundheit
-Jetzt:       Phase 7 - Entity-System + Tiere
+Jetzt:       Mod/Plugin-System (Schritt 1-5 oben)
+Dann:        Phase 7 - offene Gameplay-Items + Vegetation
 Langfristig: Phase 8 - Multiplayer
 ```
