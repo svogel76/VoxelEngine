@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using VoxelEngine.Game.Blocks;
 using VoxelEngine.World;
 
 namespace VoxelEngine.Tests;
@@ -9,6 +10,6 @@ internal static class TestBootstrap
     internal static void Initialize()
     {
         BlockRegistry.Clear();
-        DefaultBlockRegistration.RegisterDefaults(BlockRegistryAdapter.Instance);
+        new BlockDefinitionLoader("Assets/").LoadInto(BlockRegistryAdapter.Instance);
     }
 }

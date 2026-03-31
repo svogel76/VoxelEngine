@@ -8,8 +8,7 @@ namespace VoxelEngine.Rendering;
 
 public class ChunkRenderer : IDisposable
 {
-    private const int MaxUploadsPerFrame = 16;
-    private const float GhostScale = 1.002f;
+        private const float GhostScale = 1.002f;
 
     // Sicherer Fog-Disable-Wert: weit genug von FLT_MAX entfernt,
     // um NaN durch float.MaxValue-Arithmetik in GLSL zu vermeiden.
@@ -20,6 +19,7 @@ public class ChunkRenderer : IDisposable
     private readonly Shader _shader;
     private readonly ArrayTexture _atlas;
     private readonly int _renderDistance;
+    private readonly int _maxUploadsPerFrame;
 
     /// <summary>Die Block-ArrayTexture — zugänglich für HUD-Renderer (Icons).</summary>
     public ArrayTexture Atlas => _atlas;
@@ -42,6 +42,7 @@ public class ChunkRenderer : IDisposable
         _shader = shader;
         _atlas = new ArrayTexture(gl);
         _renderDistance = settings.RenderDistance;
+        _maxUploadsPerFrame = Math.Max(1, settings.MaxGlUploadsPerFrame);
         FogStartFactor = settings.FogStartFactor;
         FogEndFactor = settings.FogEndFactor;
         _ghostMeshes[BlockType.Grass] = new Mesh(gl, CreateGhostVertices(BlockType.Grass), CreateGhostIndices());
@@ -54,7 +55,7 @@ public class ChunkRenderer : IDisposable
     {
         int uploaded = 0;
 
-        while (uploaded < MaxUploadsPerFrame &&
+        while (uploaded < _maxUploadsPerFrame &&
                chunkManager.TryDequeueResult(out var result))
         {
             var key = (result.ChunkX, result.ChunkZ);
@@ -381,3 +382,4 @@ public class ChunkRenderer : IDisposable
         GC.SuppressFinalize(this);
     }
 }
+

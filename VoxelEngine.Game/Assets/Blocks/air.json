@@ -1,0 +1,20 @@
+{
+  "id": 0,
+  "name": "air",
+  "textures": {
+    "top": "stone",
+    "side": "stone",
+    "bottom": "stone"
+  },
+  "properties": {
+    "solid": false,
+    "transparent": false,
+    "replaceable": true,
+    "collides_with_player": false,
+    "max_stack": 64,
+    "tags": [
+      "empty"
+    ]
+  },
+  "behaviour": "default"
+}

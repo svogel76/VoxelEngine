@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Silk.NET.Maths;
 using VoxelEngine.Core;
+using VoxelEngine.Game;
 using VoxelEngine.Entity.Models;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
@@ -25,6 +26,7 @@ public class GameContextTests
 
         var sourceContext = new GameContext(
             settings,
+            new KeyBindings(),
             world,
             sourcePlayer,
             sourceCamera,
@@ -40,6 +42,7 @@ public class GameContextTests
 
         var destinationContext = new GameContext(
             settings,
+            new KeyBindings(),
             world,
             destinationPlayer,
             destinationCamera,
@@ -81,3 +84,4 @@ public class GameContextTests
             => _model;
     }
 }
+

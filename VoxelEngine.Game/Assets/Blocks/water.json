@@ -1,0 +1,22 @@
+{
+  "id": 5,
+  "name": "water",
+  "textures": {
+    "top": "water",
+    "side": "water",
+    "bottom": "water"
+  },
+  "properties": {
+    "solid": false,
+    "transparent": true,
+    "replaceable": true,
+    "collides_with_player": false,
+    "render_backfaces": true,
+    "max_stack": 64,
+    "tags": [
+      "natural",
+      "liquid"
+    ]
+  },
+  "behaviour": "default"
+}

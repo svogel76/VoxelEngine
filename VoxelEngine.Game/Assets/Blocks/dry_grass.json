@@ -1,0 +1,21 @@
+{
+  "id": 8,
+  "name": "dry_grass",
+  "textures": {
+    "top": "dry_grass_top",
+    "side": "dry_grass_side",
+    "bottom": "dirt"
+  },
+  "properties": {
+    "solid": true,
+    "transparent": false,
+    "replaceable": false,
+    "max_stack": 64,
+    "tags": [
+      "natural",
+      "soil",
+      "dry"
+    ]
+  },
+  "behaviour": "default"
+}

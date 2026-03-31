@@ -1,0 +1,20 @@
+{
+  "id": 3,
+  "name": "stone",
+  "textures": {
+    "top": "stone",
+    "side": "stone",
+    "bottom": "stone"
+  },
+  "properties": {
+    "solid": true,
+    "transparent": false,
+    "replaceable": false,
+    "max_stack": 64,
+    "tags": [
+      "natural",
+      "rock"
+    ]
+  },
+  "behaviour": "default"
+}

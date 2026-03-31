@@ -307,8 +307,8 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
         using var ms = new MemoryStream();
         using var bw = new BinaryWriter(ms, System.Text.Encoding.UTF8, leaveOpen: true);
 
-        // Version 2: enthält Health + Hunger
-        bw.Write('V'); bw.Write('X'); bw.Write('P'); bw.Write('4');
+        // Version 5: breaking persistence change for data-driven block registration.
+        bw.Write('V'); bw.Write('X'); bw.Write('P'); bw.Write('5');
         bw.Write(state.Position.X);
         bw.Write(state.Position.Y);
         bw.Write(state.Position.Z);
@@ -336,7 +336,7 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
             return null;
 
         byte version = br.ReadByte();
-        if (version != (byte)'1' && version != (byte)'2' && version != (byte)'3' && version != (byte)'4')
+        if (version != (byte)'5')
             return null;
 
         float posX    = br.ReadSingle();
@@ -344,7 +344,7 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
         float posZ    = br.ReadSingle();
         float yaw     = -90f;
         float pitch   = 0f;
-        if (version == (byte)'4')
+        if (version == (byte)'5')
         {
             yaw = br.ReadSingle();
             pitch = br.ReadSingle();
@@ -357,7 +357,7 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
         // VXP2+: Health + Hunger; VXP1: Standardwerte
         float health = 20f;
         float hunger = 20f;
-        if ((version == (byte)'2' || version == (byte)'3' || version == (byte)'4') && ms.Position + 8 <= ms.Length)
+        if (version == (byte)'5' && ms.Position + 8 <= ms.Length)
         {
             health = br.ReadSingle();
             hunger = br.ReadSingle();
@@ -365,7 +365,7 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
 
         ItemStackData?[] inventoryGrid = new ItemStackData?[InventoryGrid.TotalSlots];
         ItemStackData?[] equipmentSlots = new ItemStackData?[EquipmentSlots.Count];
-        if (version == (byte)'3' || version == (byte)'4')
+        if (version == (byte)'5')
         {
             inventoryGrid = ReadItemStackList(br, InventoryGrid.TotalSlots);
             equipmentSlots = ReadItemStackList(br, EquipmentSlots.Count);
@@ -464,3 +464,4 @@ public sealed class LocalFilePersistence : IWorldPersistence, IDisposable
         _worldMetaLock.Dispose();
     }
 }
+

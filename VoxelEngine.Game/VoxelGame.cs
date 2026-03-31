@@ -1,4 +1,5 @@
-﻿using VoxelEngine.Core;
+using VoxelEngine.Core;
+using VoxelEngine.Game.Blocks;
 using VoxelEngine.World;
 
 namespace VoxelEngine.Game;
@@ -7,7 +8,7 @@ public sealed class VoxelGame : IGame
 {
     public void RegisterBlocks(IBlockRegistry registry)
     {
-        DefaultBlockRegistration.RegisterDefaults(registry);
+        new BlockDefinitionLoader("Assets/").LoadInto(registry);
     }
 
     public void Initialize(IGameContext context)
