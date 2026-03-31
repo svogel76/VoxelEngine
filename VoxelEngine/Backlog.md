@@ -70,8 +70,11 @@
 ## Phase 5 - Engine und Architektur [Erledigt]
 
 - [Erledigt] Chunk-Serialisierung - `IWorldPersistence`, `LocalFilePersistence` (Region-Dateien `.vxr`), `InMemoryPersistence`, `SaveDirectory` in `EngineSettings`
+- [Erledigt] Projekttrennung in `VoxelEngine.Engine` (DLL) und `VoxelEngine.Game` (Exe)
+- [Erledigt] `IGame`-Lifecycle eingefuehrt (`EngineRunner`, `IGame`, `IGameContext`)
 - [Nice-to-have] Asset-Management System
 - [Nice-to-have] LOD (entfernte Chunks vereinfacht)
+- [Mittel] Block-Registrierung schrittweise aus Engine-Defaults in `VoxelEngine.Game` verschieben
 
 ---
 

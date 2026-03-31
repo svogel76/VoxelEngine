@@ -7,19 +7,16 @@ Implementierung erfolgt in Claude Code.
 
 ## Projektstruktur
 ```
-VoxelEngine/
-|- Core/           # Engine-Infrastruktur, Game Loop, Input, Debug-Konsole, HUD-Registry
-|- Rendering/      # OpenGL + Silk.NET - Shader, Mesh, Chunk-Renderer, HUD-Renderer
-|- World/          # Pure C# - KEIN Silk.NET - Chunks, Physik, Inventar, Registries
-`- Assets/         # Externe Ressourcen: Shader (.glsl), Fonts, hud.json
-VoxelEngine.Tests/  # xUnit + FluentAssertions - spiegelt World/ + Core/
+VoxelEngine.Engine/ # Class Library: Core/, Rendering/, World/, Entity/, Persistence/
+VoxelEngine.Game/   # Executable: Program.cs, VoxelGame, game-spezifische Assets
+VoxelEngine.Tests/  # xUnit + FluentAssertions
 ```
 
 ## Architekturentscheidungen
 - Fixed Timestep Game Loop (60 UPS, konfigurierbar via EngineSettings)
 - EngineSettings als zentrale Konfigurationsklasse (init-properties, keine Magic Numbers)
 - OpenGL only - kein Multi-Backend vorerst
-- Shader als externe `.glsl` Dateien unter `Assets/Shaders/`
+- Shader als Embedded Resources in `VoxelEngine.Engine/Assets/Shaders/`
 - `World/` hat keine Silk.NET-Abhaengigkeiten - pure C# fuer Portabilitaet
 - WorldTime ist zentrale Zeitvariable - alle zeitabhaengigen Systeme bauen darauf auf
 - Multithreading: Chunk-Generierung + Mesh-Building im Background, GL-Uploads nur Main Thread
@@ -29,6 +26,8 @@ VoxelEngine.Tests/  # xUnit + FluentAssertions - spiegelt World/ + Core/
 - Dirty-Flag System: `Chunk.PlayerEdits` + `IsDirty`; `World.PersistedEdits` ueberlebt Unload/Reload
 - HUD-Framework: `IHudElement` + `IHudRenderer`, konfigurierbar via `Assets/Hud/hud.json`
 - Inventar: `Hotbar[9]`, `ItemStack`, `MaxStackSize` pro `BlockDefinition` (Default 64)
+- Engine-Lifecycle laeuft ueber `EngineRunner` + `IGame`:
+  `RegisterBlocks -> Initialize -> Update/Render -> Shutdown`
 
 ## Koordinaten-System
 - Chunk-Koordinate: `Math.Floor(worldCoord / Chunk.Width)`
@@ -47,3 +46,5 @@ VoxelEngine.Tests/  # xUnit + FluentAssertions - spiegelt World/ + Core/
 - Spawn-Balancing pro Klimazone verfeinern (weitere Tiere, Burrow-/Sleep-Profile, Spawn-Orte)
 - Entity-Persistenz fuer klimaabhaengig gespawnte Tiere vorbereiten
 - SpawnManager um Block-/Hang-Praferenzen und Herdenspawns erweitern
+- Follow-up fuer Gameplay/Modding:
+  Block-Registrierung vollstaendig in `VoxelEngine.Game` ziehen (statt Default-Registrierung in Engine)
