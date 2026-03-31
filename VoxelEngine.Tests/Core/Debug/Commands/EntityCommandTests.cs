@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Silk.NET.Maths;
+using System.Numerics;
 using VoxelEngine.Core;
-using VoxelEngine.Game;
 using VoxelEngine.Core.Debug.Commands;
+using VoxelEngine.Entity.Components;
 using VoxelEngine.Entity.Models;
+using VoxelEngine.Game;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
@@ -46,10 +48,17 @@ public class EntityCommandTests
     private static GameContext CreateContext(params string[] modelIds)
     {
         var settings = new EngineSettings();
-        var world = new global::VoxelEngine.World.World();
-        var player = new Player(new System.Numerics.Vector3(0f, 64f, 0f));
-        var camera = new Camera(new Vector3D<float>(player.EyePosition.X, player.EyePosition.Y, player.EyePosition.Z), 16f / 9f, settings);
-        var generator = new WorldGenerator(settings);
+        var world    = new global::VoxelEngine.World.World();
+
+        var player = new global::VoxelEngine.Entity.Entity("player", new Vector3(0f, 64f, 0f));
+        var phys   = new PhysicsComponent(world, 0.6f, 1.8f, settings.Gravity, settings.MaxFallSpeed);
+        phys.EyeOffset = 1.62f;
+        player.AddComponent(phys);
+
+        var eyePos = phys.GetEyePosition(player.InternalPosition);
+        var camera = new Camera(new Vector3D<float>(eyePos.X, eyePos.Y, eyePos.Z), 16f / 9f, settings);
+
+        var generator   = new WorldGenerator(settings);
         var persistence = new InMemoryPersistence();
 
         return new GameContext(
@@ -79,17 +88,11 @@ public class EntityCommandTests
 
         public EntityAtlasDefinition Atlas { get; } = new("Assets/Entities/entity_atlas.png", 4, 2);
 
-        public IReadOnlyCollection<IVoxelModelDefinition> GetAllModels()
-            => _models.Values;
-
-        public IVoxelModelDefinition GetModel(string modelId)
-            => _models[modelId];
+        public IReadOnlyCollection<IVoxelModelDefinition> GetAllModels() => _models.Values;
+        public IVoxelModelDefinition GetModel(string modelId)            => _models[modelId];
 
         private static IVoxelModelDefinition CreateModel(string id)
             => new VoxelModelDefinition(
-                id,
-                0.25f,
-                [new VoxelModelVoxel(0, 0, 0, 0, 0, VoxelTint.White)]);
+                id, 0.25f, [new VoxelModelVoxel(0, 0, 0, 0, 0, VoxelTint.White)]);
     }
 }
-

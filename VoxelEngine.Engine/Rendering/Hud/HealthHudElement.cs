@@ -1,13 +1,9 @@
 using VoxelEngine.Core;
 using VoxelEngine.Core.Hud;
+using VoxelEngine.Entity.Components;
 
 namespace VoxelEngine.Rendering.Hud;
 
-/// <summary>
-/// HUD-Element das den Gesundheitszustand des Spielers spiegelt.
-/// Stellt Health/MaxHealth als normalisierte Ratio zur Verfügung (0..1)
-/// sowie die gerundete Anzahl Herzen für eine Herzleisten-Anzeige.
-/// </summary>
 public sealed class HealthHudElement : IHudElement
 {
     public string Id      => "health";
@@ -20,20 +16,17 @@ public sealed class HealthHudElement : IHudElement
 
     public HudElementConfig Config => _config;
 
-    /// <summary>Aktueller Gesundheitswert (0..MaxHealth).</summary>
     public float Health    { get; private set; }
-    /// <summary>Maximaler Gesundheitswert.</summary>
     public float MaxHealth { get; private set; } = 20f;
-    /// <summary>Anteil Gesundheit als Ratio 0..1.</summary>
     public float Ratio     => MaxHealth > 0f ? Math.Clamp(Health / MaxHealth, 0f, 1f) : 0f;
-    /// <summary>Gesundheit kritisch niedrig (&lt; 20 %).</summary>
     public bool  IsCritical => Ratio < 0.2f;
 
     public void ApplyConfig(HudElementConfig config) => _config = config;
 
     public void Update(GameContext ctx)
     {
-        Health    = ctx.Player.Vitals.Health;
-        MaxHealth = ctx.Player.Vitals.MaxHealth;
+        var health = ctx.Player.GetComponent<HealthComponent>();
+        Health    = health?.CurrentHp  ?? 20f;
+        MaxHealth = health?.MaxHp      ?? 20f;
     }
 }

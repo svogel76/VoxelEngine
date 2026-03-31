@@ -16,8 +16,8 @@ public class ClimateCommand : ICommand
             return;
         }
 
-        int worldX = (int)MathF.Floor(context.Player.Position.X);
-        int worldZ = (int)MathF.Floor(context.Player.Position.Z);
+        int worldX = (int)MathF.Floor(context.Player.InternalPosition.X);
+        int worldZ = (int)MathF.Floor(context.Player.InternalPosition.Z);
         ClimateSample sample = context.Generator.SampleClimate(worldX, worldZ);
 
         context.Console.Log(

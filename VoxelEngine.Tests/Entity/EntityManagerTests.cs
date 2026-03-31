@@ -1,5 +1,7 @@
 using System.Numerics;
 using FluentAssertions;
+using VoxelEngine.Api;
+using VoxelEngine.Api.Entity;
 using VoxelEngine.Core;
 using VoxelEngine.Entity;
 using VoxelEngine.World;
@@ -9,32 +11,31 @@ namespace VoxelEngine.Tests.Entity;
 public class EntityManagerTests
 {
     [Fact]
-    public void AddAndRemove_ManageActiveEntities_AndQueryByType()
+    public void AddAndRemove_ManageActiveEntities()
     {
         // Arrange
         var manager = CreateManager();
 
-        var passive = manager.Create(() => new TestEntity(new Vector3(1f, 2f, 3f)));
-        var active = manager.Create(() => new DerivedTestEntity(new Vector3(4f, 2f, 3f)));
+        var first  = manager.Create(() => new global::VoxelEngine.Entity.Entity("a", new Vector3(1f, 2f, 3f)));
+        var second = manager.Create(() => new global::VoxelEngine.Entity.Entity("b", new Vector3(4f, 2f, 3f)));
 
         // Act
-        bool removed = manager.Remove(passive);
+        bool removed = manager.Remove(first);
 
         // Assert
         removed.Should().BeTrue();
         manager.Count.Should().Be(1);
-        manager.GetAll<DerivedTestEntity>().Should().ContainSingle().Which.Should().BeSameAs(active);
-        manager.GetAll<TestEntity>().Should().ContainSingle().Which.Should().BeSameAs(active);
+        manager.GetAll<global::VoxelEngine.Entity.Entity>().Should().ContainSingle().Which.Should().BeSameAs(second);
     }
 
     [Fact]
     public void GetNearby_ReturnsOnlyEntitiesInsideRadius()
     {
         // Arrange
-        var manager = CreateManager(cellSize: 4f);
-        var near = manager.Create(() => new TestEntity(new Vector3(2f, 1f, 2f)));
-        var edge = manager.Create(() => new TestEntity(new Vector3(4.5f, 1f, 2f), new Vector3(1.5f, 1f, 1f)));
-        manager.Create(() => new TestEntity(new Vector3(20f, 1f, 2f)));
+        var manager  = CreateManager(cellSize: 4f);
+        var near     = manager.Create(() => new global::VoxelEngine.Entity.Entity("near", new Vector3(2f, 1f, 2f)));
+        var edge     = manager.Create(() => new global::VoxelEngine.Entity.Entity("edge", new Vector3(4.5f, 1f, 2f)));
+        manager.Create(() => new global::VoxelEngine.Entity.Entity("far", new Vector3(20f, 1f, 2f)));
 
         // Act
         var nearby = manager.GetNearby(new Vector3(0f, 1f, 2f), radius: 5f);
@@ -50,16 +51,12 @@ public class EntityManagerTests
     {
         // Arrange
         var manager = CreateManager();
-        var visible = manager.Create(() => new TestEntity(
-            new Vector3(-0.5f, -0.5f, -6f),
-            new Vector3(1f, 1f, 1f)));
-        manager.Create(() => new TestEntity(
-            new Vector3(25f, -0.5f, -6f),
-            new Vector3(1f, 1f, 1f)));
+        var visible = manager.Create(() => new global::VoxelEngine.Entity.Entity("visible", new Vector3(-0.5f, -0.5f, -6f)));
+        manager.Create(() => new global::VoxelEngine.Entity.Entity("hidden", new Vector3(25f, -0.5f, -6f)));
 
-        var view = Matrix4x4.CreateLookAt(Vector3.Zero, -Vector3.UnitZ, Vector3.UnitY);
+        var view       = Matrix4x4.CreateLookAt(Vector3.Zero, -Vector3.UnitZ, Vector3.UnitY);
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 2f, 1f, 0.1f, 100f);
-        var frustum = ViewFrustum.FromViewProjection(view * projection);
+        var frustum    = ViewFrustum.FromViewProjection(view * projection);
 
         // Act
         var visibleEntities = manager.GetVisible(frustum);
@@ -75,16 +72,24 @@ public class EntityManagerTests
         var world = new global::VoxelEngine.World.World();
         world.AddChunk(new Chunk(0, 0));
 
-        var manager = new EntityManager(world, new EngineSettings());
-        var loadedEntity = manager.Create(() => new TestEntity(new Vector3(2f, 10f, 2f)));
-        var unloadedEntity = manager.Create(() => new TestEntity(new Vector3(Chunk.Width * 2f + 2f, 10f, 2f)));
+        var manager         = new EntityManager(world, new EngineSettings());
+        var loadedCounter   = new UpdateCounterComponent();
+        var unloadedCounter = new UpdateCounterComponent();
+
+        var loaded   = new global::VoxelEngine.Entity.Entity("loaded",   new Vector3(2f, 10f, 2f));
+        var unloaded = new global::VoxelEngine.Entity.Entity("unloaded", new Vector3(Chunk.Width * 2f + 2f, 10f, 2f));
+
+        loaded.AddComponent(loadedCounter);
+        unloaded.AddComponent(unloadedCounter);
+        manager.Add(loaded);
+        manager.Add(unloaded);
 
         // Act
         manager.Update(0.25);
 
         // Assert
-        loadedEntity.UpdateCallCount.Should().Be(1);
-        unloadedEntity.UpdateCallCount.Should().Be(0);
+        loadedCounter.Count.Should().Be(1);
+        unloadedCounter.Count.Should().Be(0);
     }
 
     private static EntityManager CreateManager(float? cellSize = null)
@@ -96,31 +101,12 @@ public class EntityManagerTests
         return new EntityManager(new global::VoxelEngine.World.World(), settings);
     }
 
-    private class TestEntity : global::VoxelEngine.Entity.Entity, IEntityUpdatable, IEntityBoundsProvider
+    private sealed class UpdateCounterComponent : IComponent
     {
-        private readonly Vector3 _size;
+        public string ComponentId => "test-counter";
+        public int    Count       { get; private set; }
 
-        public int UpdateCallCount { get; private set; }
-
-        public BoundingBox Bounds => new(Position, Position + _size);
-
-        public TestEntity(Vector3 position, Vector3? size = null)
-            : base(position)
-        {
-            _size = size ?? Vector3.Zero;
-        }
-
-        public void Update(double deltaTime)
-        {
-            UpdateCallCount++;
-        }
-    }
-
-    private sealed class DerivedTestEntity : TestEntity
-    {
-        public DerivedTestEntity(Vector3 position)
-            : base(position)
-        {
-        }
+        public void Update(IEntity entity, IModContext context, double deltaTime)
+            => Count++;
     }
 }

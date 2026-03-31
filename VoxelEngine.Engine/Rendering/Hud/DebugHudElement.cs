@@ -46,8 +46,10 @@ public sealed class DebugHudElement : IHudElement
         var wt    = ctx.Time;
         TimeStr   = $"Time: {(int)wt.Time:D2}:{(int)(wt.Time % 1 * 60):D2}";
 
-        SelectedBlock = $"Block: {BlockRegistry.Get(ctx.Player.SelectedBlock).Name}";
-        ReachStr      = $"Reach: {ctx.Player.InteractionReach:F1}";
+        var hotbar    = ctx.Inventory.Hotbar;
+        byte blockType = hotbar.Hotbar[hotbar.SelectedSlot]?.BlockType ?? BlockType.Air;
+        SelectedBlock = $"Block: {BlockRegistry.Get(blockType).Name}";
+        ReachStr      = $"Reach: {ctx.Settings.InteractionReach:F1}";
 
         ConsoleOpen   = ctx.Console.IsOpen;
         ConsoleOutput = ctx.Console.GetOutput();

@@ -4,6 +4,7 @@ using Silk.NET.OpenGL;
 using VoxelEngine.Entity;
 using VoxelEngine.Entity.Models;
 using VoxelEngine.World;
+using VoxelEngine.Entity.Components;
 
 namespace VoxelEngine.Rendering;
 
@@ -68,10 +69,11 @@ public sealed class EntityRenderer : IDisposable
         var batches = new Dictionary<string, List<float>>(StringComparer.OrdinalIgnoreCase);
         foreach (var entity in visibleEntities)
         {
-            if (entity is not IEntityRenderDataProvider renderDataProvider)
-                continue;
+            var render = entity.GetComponent<VoxelEngine.Entity.Components.RenderComponent>();
+            if (render is null) continue;
 
-            var renderInstance = renderDataProvider.GetRenderInstance();
+            float yawRadians = entity.GetComponent<VoxelEngine.Entity.Components.AIComponent>()?.YawRadians ?? 0f;
+            var renderInstance = render.GetRenderInstance(entity.InternalPosition, yawRadians);
             if (!_meshes.ContainsKey(renderInstance.ModelId))
                 continue;
 

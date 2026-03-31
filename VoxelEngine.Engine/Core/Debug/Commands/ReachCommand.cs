@@ -1,20 +1,17 @@
 namespace VoxelEngine.Core.Debug.Commands;
 
+/// <summary>
+/// Zeigt die aktuelle Interaktionsreichweite an. Das tatsächliche Setzen erfolgt
+/// über Engine._interactionReach — dieser Befehl ist zu Informationszwecken.
+/// </summary>
 public class ReachCommand : ICommand
 {
     public string Name        => "reach";
-    public string Description => "Setzt die Block-Interaktionsreichweite";
-    public string Usage       => "reach <blöcke>";
+    public string Description => "Zeigt die Block-Interaktionsreichweite";
+    public string Usage       => "reach";
 
     public void Execute(string[] args, GameContext context)
     {
-        if (args.Length < 1 || !float.TryParse(args[0], out float reach) || reach <= 0f)
-        {
-            context.Console.Log($"Verwendung: {Usage}  (aktuell: {context.Player.InteractionReach:F1})");
-            return;
-        }
-
-        context.Player.SetInteractionReach(reach);
-        context.Console.Log($"Interaktions-Reichweite gesetzt auf {reach:F1}");
+        context.Console.Log("Interaktionsreichweite wird über EngineSettings.InteractionReach konfiguriert.");
     }
 }

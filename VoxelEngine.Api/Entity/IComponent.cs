@@ -1,3 +1,5 @@
+using VoxelEngine.Api;
+
 namespace VoxelEngine.Api.Entity;
 
 public interface IComponent

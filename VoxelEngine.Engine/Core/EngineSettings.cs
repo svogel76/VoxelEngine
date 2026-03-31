@@ -86,6 +86,11 @@ public class EngineSettings
     public float StepUpSmoothingSpeed { get; init; } = 4.0f;
     public bool  EnableStepUp { get; init; } = true;
 
+    // Player body
+    public float PlayerWidth  { get; init; } = 0.6f;
+    public float PlayerHeight { get; init; } = 1.8f;
+    public float EyeHeight    { get; init; } = 1.62f;
+
     // Fog
     /// <summary>Fog beginnt bei diesem Anteil der Render Distance (0.0-1.0)</summary>
     public float FogStartFactor { get; init; } = 0.5f;

@@ -1,5 +1,6 @@
 using System.Numerics;
 using VoxelEngine.Core;
+using VoxelEngine.Entity.Components;
 using VoxelEngine.Entity.Models;
 using VoxelEngine.Entity.Spawning;
 using VoxelEngine.World;
@@ -12,7 +13,6 @@ public sealed class EntityManager
 
     private readonly global::VoxelEngine.World.World _world;
     private readonly float _cellSize;
-    private readonly EntityPhysicsSettings _physicsSettings;
     private readonly List<Entity> _entities = new();
     private readonly Dictionary<Entity, TrackedEntityState> _trackedEntities = new();
     private readonly Dictionary<(int X, int Y, int Z), HashSet<Entity>> _spatialHash = new();
@@ -43,15 +43,13 @@ public sealed class EntityManager
         _ = frustumProvider;
         _ = random;
 
-        _world = world;
+        _world    = world;
         _cellSize = settings.EntitySpatialHashCellSize;
-        _physicsSettings = new EntityPhysicsSettings(settings.Gravity, settings.MaxFallSpeed);
     }
 
-    public T Create<T>(Func<T> factory) where T : Entity
+    public Entity Create(Func<Entity> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
-
         var entity = factory();
         Add(entity);
         return entity;
@@ -84,10 +82,13 @@ public sealed class EntityManager
         return true;
     }
 
-    public IReadOnlyList<Entity> GetAll()
-        => _entities;
+    public IReadOnlyList<Entity> GetAll() => _entities;
 
-    public IReadOnlyList<T> GetAll<T>() where T : Entity
+    /// <summary>
+    /// Gibt alle Entities zurück. Da Entity sealed ist, ist GetAll&lt;T&gt; äquivalent zu GetAll()
+    /// wenn T == Entity. Für Abwärtskompatibilität mit Tests erhalten.
+    /// </summary>
+    public IReadOnlyList<T> GetAll<T>() where T : class
         => _entities.OfType<T>().ToList();
 
     public IReadOnlyList<Entity> GetNearby(Vector3 position, float radius)
@@ -97,7 +98,7 @@ public sealed class EntityManager
 
         RefreshAllTrackedEntities();
 
-        var result = new List<Entity>();
+        var result     = new List<Entity>();
         var candidates = new HashSet<Entity>();
 
         foreach (var cell in GetCellsForSphere(position, radius))
@@ -119,7 +120,7 @@ public sealed class EntityManager
         return result;
     }
 
-    public IReadOnlyList<T> GetNearby<T>(Vector3 position, float radius) where T : Entity
+    public IReadOnlyList<T> GetNearby<T>(Vector3 position, float radius) where T : class
         => GetNearby(position, radius).OfType<T>().ToList();
 
     public IReadOnlyList<Entity> GetVisible(ViewFrustum frustum)
@@ -143,13 +144,7 @@ public sealed class EntityManager
         foreach (var entity in _entities.ToArray())
         {
             if (IsInLoadedChunk(entity))
-            {
-                if (entity is TerrainPhysicsEntity terrainPhysicsEntity)
-                    terrainPhysicsEntity.ApplyTerrainPhysics(_world, _physicsSettings, deltaTime);
-
-                if (entity is IEntityUpdatable updatable)
-                    updatable.Update(deltaTime);
-            }
+                entity.Update(NullModContext.Instance, deltaTime);
 
             if (_trackedEntities.ContainsKey(entity))
                 RefreshTrackedEntity(entity);
@@ -167,7 +162,7 @@ public sealed class EntityManager
     private void RefreshTrackedEntity(Entity entity)
     {
         var currentState = _trackedEntities[entity];
-        var nextState = CreateTrackedState(entity);
+        var nextState    = CreateTrackedState(entity);
 
         if (currentState.Bounds.Equals(nextState.Bounds) && currentState.Cells.SetEquals(nextState.Cells))
             return;
@@ -201,16 +196,19 @@ public sealed class EntityManager
     private TrackedEntityState CreateTrackedState(Entity entity)
     {
         var bounds = GetEntityBounds(entity);
-        var cells = GetCellsForBounds(bounds);
+        var cells  = GetCellsForBounds(bounds);
         return new TrackedEntityState(bounds, cells);
     }
 
     private static BoundingBox GetEntityBounds(Entity entity)
     {
-        if (entity is IEntityBoundsProvider boundsProvider)
-            return boundsProvider.Bounds;
+        // Bounds aus PhysicsComponent (falls vorhanden)
+        var phys = entity.GetComponent<PhysicsComponent>();
+        if (phys is not null)
+            return phys.Bounds;
 
-        return new BoundingBox(entity.Position, entity.Position);
+        // Fallback: Punkt-Bounds an Entity-Position
+        return new BoundingBox(entity.InternalPosition, entity.InternalPosition);
     }
 
     private HashSet<(int X, int Y, int Z)> GetCellsForBounds(BoundingBox bounds)
@@ -258,7 +256,6 @@ public sealed class EntityManager
                 bucket = new HashSet<Entity>();
                 _spatialHash.Add(cell, bucket);
             }
-
             bucket.Add(entity);
         }
     }
@@ -282,8 +279,7 @@ public sealed class EntityManager
         float dy = center.Y < bounds.Min.Y ? bounds.Min.Y - center.Y : center.Y > bounds.Max.Y ? center.Y - bounds.Max.Y : 0f;
         float dz = center.Z < bounds.Min.Z ? bounds.Min.Z - center.Z : center.Z > bounds.Max.Z ? center.Z - bounds.Max.Z : 0f;
 
-        float distanceSquared = dx * dx + dy * dy + dz * dz;
-        return distanceSquared <= radius * radius;
+        return dx * dx + dy * dy + dz * dz <= radius * radius;
     }
 
     private static float GetUpperBoundCoordinate(float max, float min)

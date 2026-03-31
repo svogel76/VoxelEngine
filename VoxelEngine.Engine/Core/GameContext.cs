@@ -1,7 +1,10 @@
+using VoxelEngine.Api;
+using VoxelEngine.Api.Entity;
 using VoxelEngine.Core.Debug;
 using VoxelEngine.Core.Hud;
 using VoxelEngine.Core.UI;
 using VoxelEngine.Entity;
+using VoxelEngine.Entity.Components;
 using VoxelEngine.Entity.Models;
 using VoxelEngine.Entity.Spawning;
 using VoxelEngine.Persistence;
@@ -13,29 +16,33 @@ namespace VoxelEngine.Core;
 
 public class GameContext : IDisposable, IGameContext
 {
-    public EngineSettings    Settings      { get; }
-    public IKeyBindings      KeyBindings   { get; }
-    public World.World       World         { get; }
-    public Player            Player        { get; }
-    public Camera            Camera        { get; }
-    public Renderer          Renderer      { get; }
-    public InputHandler      Input         { get; }
-    public DebugConsole      Console       { get; }
-    public WorldGenerator    Generator     { get; }
-    public ChunkManager      ChunkManager  { get; }
-    public WorldTime         Time          { get; }
-    public EntityManager     EntityManager { get; }
-    public SpawnManager      SpawnManager  { get; }
-    public IEntityModelLibrary EntityModels { get; }
-    public HudRegistry       HudRegistry   { get; } = new HudRegistry();
-    public UIStateManager    UI            { get; } = new UIStateManager();
-    public IWorldPersistence Persistence   { get; }
-    IBlockRegistry IGameContext.BlockRegistry => BlockRegistryAdapter.Instance;
-    IWorldAccess IGameContext.World => World;
-    IInputState IGameContext.Input => Input;
-    IKeyBindings IGameContext.KeyBindings => KeyBindings;
+    public EngineSettings      Settings      { get; }
+    public IKeyBindings        KeyBindings   { get; }
+    public World.World         World         { get; }
+    public Entity.Entity       Player        { get; }
+    public Camera              Camera        { get; }
+    public Renderer            Renderer      { get; }
+    public InputHandler        Input         { get; }
+    public DebugConsole        Console       { get; }
+    public WorldGenerator      Generator     { get; }
+    public ChunkManager        ChunkManager  { get; }
+    public WorldTime           Time          { get; }
+    public EntityManager       EntityManager { get; }
+    public SpawnManager        SpawnManager  { get; }
+    public IEntityModelLibrary EntityModels  { get; }
+    public HudRegistry         HudRegistry   { get; } = new HudRegistry();
+    public UIStateManager      UI            { get; } = new UIStateManager();
+    public IWorldPersistence   Persistence   { get; }
 
-    public PlayerInventory   Inventory     { get; private set; } = null!;
+    // Explicit interface implementations
+    IBlockRegistry IGameContext.BlockRegistry => BlockRegistryAdapter.Instance;
+    IWorldAccess   IGameContext.World         => World;
+    IInputState    IGameContext.Input         => Input;
+    IKeyBindings   IGameContext.KeyBindings   => KeyBindings;
+    IEntity        IGameContext.Player        => Player;
+
+    /// <summary>Standalone Spieler-Inventar (nicht an Entity-Klasse gebunden).</summary>
+    public PlayerInventory Inventory { get; }
 
     public BlockRaycastHit?       TargetedBlock    { get; set; }
     public BlockPlacementPreview? PlacementPreview { get; set; }
@@ -47,7 +54,7 @@ public class GameContext : IDisposable, IGameContext
         EngineSettings      settings,
         IKeyBindings        keyBindings,
         World.World         world,
-        Player              player,
+        Entity.Entity       player,
         Camera              camera,
         Renderer            renderer,
         InputHandler        inputHandler,
@@ -68,26 +75,26 @@ public class GameContext : IDisposable, IGameContext
         Console      = new DebugConsole(this);
         ChunkManager = new ChunkManager(world, generator, settings, persistence);
         Time         = new WorldTime { TimeScale = settings.TimeScale };
+        Inventory    = new PlayerInventory(new global::VoxelEngine.World.Inventory());
+
         EntityManager = new EntityManager(
-            world,
-            settings,
-            generator,
-            Time,
-            entityModels,
-            () => Player.Position,
+            world, settings, generator, Time, entityModels,
+            () => Player.InternalPosition,
             () => global::VoxelEngine.Entity.ViewFrustum.FromViewProjection(ToNumerics(Camera.ViewMatrix * Camera.ProjectionMatrix)));
+
         SpawnManager = new SpawnManager(
-            world,
-            EntityManager,
-            settings,
-            generator,
-            Time,
-            entityModels,
-            () => Player.Position,
+            world, EntityManager, settings, generator, Time, entityModels,
+            () => Player.InternalPosition,
             () => global::VoxelEngine.Entity.ViewFrustum.FromViewProjection(ToNumerics(Camera.ViewMatrix * Camera.ProjectionMatrix)));
+
         EntityManager.SpawnManager = SpawnManager;
         Time.SetTime(settings.InitialTime);
-        Inventory = new PlayerInventory(player.Inventory);
+
+        // Hotbar mit Startzustand befüllen
+        Inventory.SetSlot(SlotAddress.Hotbar(0), new ItemStack(BlockType.Grass, 10));
+        Inventory.SetSlot(SlotAddress.Hotbar(1), new ItemStack(BlockType.Dirt,  10));
+        Inventory.SetSlot(SlotAddress.Hotbar(2), new ItemStack(BlockType.Stone, 10));
+        Inventory.SetSlot(SlotAddress.Hotbar(3), new ItemStack(BlockType.Sand,  10));
     }
 
     public bool TryDequeueResult(out ChunkResult result) =>
@@ -100,7 +107,7 @@ public class GameContext : IDisposable, IGameContext
         var hotbar = new ItemStackData?[global::VoxelEngine.World.Inventory.HotbarSize];
         for (int i = 0; i < global::VoxelEngine.World.Inventory.HotbarSize; i++)
         {
-            var stack = Player.Inventory.Hotbar[i];
+            var stack = Inventory.Hotbar.Hotbar[i];
             hotbar[i] = stack is null ? null : new ItemStackData(stack.BlockType, stack.Count);
         }
 
@@ -118,23 +125,22 @@ public class GameContext : IDisposable, IGameContext
             equipmentSlots[i] = stack is null ? null : new ItemStackData(stack.BlockType, stack.Count);
         }
 
+        var phys   = Player.GetComponent<PhysicsComponent>();
+        var health = Player.GetComponent<HealthComponent>();
+
         var playerState = new PlayerState(
-            Player.Position,
+            Player.InternalPosition,
             Camera.Yaw,
             Camera.Pitch,
-            Player.FlyMode,
-            Player.Inventory.SelectedSlot,
+            phys?.FlyMode ?? false,
+            Inventory.Hotbar.SelectedSlot,
             hotbar,
             inventoryGrid,
             equipmentSlots,
-            Player.Vitals.Health,
-            Player.Vitals.Hunger);
+            health?.CurrentHp ?? 20f,
+            20f);
 
-        var worldMeta = new WorldMeta(
-            Time.Time,
-            Time.DayCount,
-            Settings.Terrain.Seed,
-            Time.TimeScale);
+        var worldMeta = new WorldMeta(Time.Time, Time.DayCount, Settings.Terrain.Seed, Time.TimeScale);
 
         await Persistence.SavePlayerStateAsync(playerState).ConfigureAwait(false);
         await Persistence.SaveWorldMetaAsync(worldMeta).ConfigureAwait(false);
@@ -143,21 +149,37 @@ public class GameContext : IDisposable, IGameContext
     public async Task<(PlayerState? Player, WorldMeta? World)> LoadGameStateAsync()
     {
         var playerState = await Persistence.LoadPlayerStateAsync().ConfigureAwait(false);
-        var worldMeta = await Persistence.LoadWorldMetaAsync().ConfigureAwait(false);
+        var worldMeta   = await Persistence.LoadWorldMetaAsync().ConfigureAwait(false);
         return (playerState, worldMeta);
     }
 
     public void ApplyLoadedState(PlayerState playerState, WorldMeta worldMeta)
     {
-        Player.Teleport(playerState.Position);
-        Camera.Position = new Silk.NET.Maths.Vector3D<float>(Player.EyePosition.X, Player.EyePosition.Y, Player.EyePosition.Z);
+        var phys   = Player.GetComponent<PhysicsComponent>();
+        var health = Player.GetComponent<HealthComponent>();
+
+        if (phys is not null)
+        {
+            phys.Teleport(Player, playerState.Position);
+            phys.SetFlyMode(playerState.FlyMode);
+        }
+        else
+        {
+            Player.InternalPosition = playerState.Position;
+        }
+
         Camera.SetRotation(playerState.Yaw, playerState.Pitch);
-        Player.SetFlyMode(playerState.FlyMode);
-        Player.Inventory.SelectSlot(playerState.SelectedSlot);
+        Camera.Position = new Silk.NET.Maths.Vector3D<float>(
+            Player.InternalPosition.X,
+            Player.InternalPosition.Y + (phys?.EyeOffset ?? 0f),
+            Player.InternalPosition.Z);
+
+        Inventory.Hotbar.SelectSlot(playerState.SelectedSlot);
+
         for (int i = 0; i < global::VoxelEngine.World.Inventory.HotbarSize; i++)
         {
             var data = i < playerState.Hotbar.Count ? playerState.Hotbar[i] : null;
-            Player.Inventory.SetSlot(i, data is null ? null : new ItemStack(data.BlockType, data.Count));
+            Inventory.SetSlot(SlotAddress.Hotbar(i), data is null ? null : new ItemStack(data.BlockType, data.Count));
         }
 
         for (int i = 0; i < InventoryGrid.TotalSlots; i++)
@@ -172,8 +194,7 @@ public class GameContext : IDisposable, IGameContext
             Inventory.Equipment.Set((EquipmentSlotType)i, data is null ? null : new ItemStack(data.BlockType, data.Count));
         }
 
-        Player.Vitals.RestoreHealth(playerState.Health);
-        Player.Vitals.RestoreHunger(playerState.Hunger);
+        health?.RestoreHealth(playerState.Health);
 
         Time.Restore(worldMeta.Time, worldMeta.DayCount);
         Time.TimeScale = worldMeta.TimeScale;
@@ -181,9 +202,7 @@ public class GameContext : IDisposable, IGameContext
 
     public void Dispose()
     {
-        if (_disposed)
-            return;
-
+        if (_disposed) return;
         _disposed = true;
         ChunkManager.Dispose();
         Renderer.Dispose();

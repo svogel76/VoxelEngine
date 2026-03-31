@@ -25,9 +25,9 @@ public sealed class HotbarHudElement : IHudElement
 
     public void Update(GameContext ctx)
     {
-        var hotbar = ctx.Player.Inventory.Hotbar;
+        var hotbar = ctx.Inventory.Hotbar.Hotbar;
         for (int i = 0; i < Inventory.HotbarSize; i++)
             Slots[i] = hotbar[i];
-        SelectedSlot = ctx.Player.Inventory.SelectedSlot;
+        SelectedSlot = ctx.Inventory.Hotbar.SelectedSlot;
     }
 }

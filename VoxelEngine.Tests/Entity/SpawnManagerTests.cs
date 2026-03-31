@@ -99,7 +99,7 @@ public class SpawnManagerTests
             setup.EntityManager.Update(0.1);
 
             // Assert
-            setup.EntityManager.GetAll<AnimalEntity>().Should().HaveCount(1);
+            setup.EntityManager.GetAll<global::VoxelEngine.Entity.Entity>().Should().HaveCount(1);
         }
         finally
         {
@@ -208,8 +208,8 @@ public class SpawnManagerTests
             // Arrange
             var setup = CreateSpawnSetup(directory, timeOfDay: 12.0, spawnTickInterval: 0f);
             setup.EntityManager.Update(0.1);
-            AnimalEntity entity = setup.EntityManager.GetAll<AnimalEntity>().Single();
-            setup.PlayerPosition = entity.Position + new Vector3(1f, 0f, 1f);
+            global::VoxelEngine.Entity.Entity entity = setup.EntityManager.GetAll<global::VoxelEngine.Entity.Entity>().Single();
+            setup.PlayerPosition = entity.InternalPosition + new Vector3(1f, 0f, 1f);
 
             // Act
             setup.EntityManager.Update(0.1);
@@ -276,8 +276,9 @@ public class SpawnManagerTests
 
             // Assert
             setup.EntityManager.Count.Should().Be(1);
-            setup.EntityManager.GetAll<AnimalEntity>().Should().ContainSingle()
-                .Which.MovementState.Should().Be(AnimalMovementState.Sleep);
+            setup.EntityManager.GetAll<global::VoxelEngine.Entity.Entity>().Should().ContainSingle()
+                .Which.GetComponent<VoxelEngine.Entity.Components.AIComponent>()!.State
+                .Should().Be(AnimalMovementState.Sleep);
         }
         finally
         {

@@ -3,6 +3,8 @@ using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Core.Hud;
 using VoxelEngine.Core.UI;
 using VoxelEngine.Core.UI.Panels;
+using VoxelEngine.Entity;
+using VoxelEngine.Entity.Components;
 using VoxelEngine.Entity.Models;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
@@ -19,30 +21,33 @@ namespace VoxelEngine.Core;
 
 public class Engine : IDisposable
 {
+    private const float SpawnClearance = 2f;
+
     private readonly IWindow        _window;
     private readonly EngineSettings _settings;
     private readonly double         _fixedDelta;
     private readonly IKeyBindings   _keyBindings;
     private readonly IGameMod       _game;
 
-    private GL                   _gl           = null!;
-    private IInputContext        _inputContext = null!;
-    private GameContext          _context      = null!;
-    private DebugOverlay         _debugOverlay = null!;
-    private LocalFilePersistence _persistence  = null!;
-    private PauseMenuPanel       _pauseMenu    = null!;
+    private GL                   _gl             = null!;
+    private IInputContext        _inputContext   = null!;
+    private GameContext          _context        = null!;
+    private EngineModContext     _modContext     = null!;
+    private DebugOverlay         _debugOverlay   = null!;
+    private LocalFilePersistence _persistence    = null!;
+    private PauseMenuPanel       _pauseMenu      = null!;
     private InventoryPanel       _inventoryPanel = null!;
 
     private readonly Stopwatch _frameTimer = new();
 
-    private double _accumulator = 0.0;
-    private double _fpsTimer    = 0.0;
-    private double _fps         = 0.0;
-    private int    _frameCount  = 0;
+    private float  _interactionReach = 5f;
+    private double _accumulator      = 0.0;
+    private double _fpsTimer         = 0.0;
+    private double _fps              = 0.0;
+    private int    _frameCount       = 0;
     private bool   _closed;
 
-    // Spawn-Schutz: FlyMode temporaer aktiv bis der Chunk unter dem Spieler geladen ist,
-    // damit der Spieler nicht durch ungeladene Chunks faellt.
+    // Spawn-Schutz
     private bool _waitingForChunkLoad = false;
     private bool _spawnFlyMode        = false;
 
@@ -56,15 +61,14 @@ public class Engine : IDisposable
     private bool _prevDown      = false;
     private bool _prevTab       = false;
 
-    // Eingabe-Buffer fuer Debug-Konsole (Silk.NET-spezifisch)
     private string _consoleInput = "";
 
     public Engine(EngineSettings settings, IKeyBindings keyBindings, IGameMod game)
     {
-        _settings   = settings;
+        _settings    = settings;
         _keyBindings = keyBindings;
-        _game       = game;
-        _fixedDelta = 1.0 / settings.TargetUPS;
+        _game        = game;
+        _fixedDelta  = 1.0 / settings.TargetUPS;
 
         var options = WindowOptions.Default with
         {
@@ -92,7 +96,6 @@ public class Engine : IDisposable
         _inputContext = _window.CreateInput();
         var input     = new InputHandler(_inputContext);
 
-        // Zeichen-Input fuer Konsole
         input.Keyboard.KeyChar += (_, c) =>
         {
             if (_context?.Console.IsOpen == true)
@@ -106,23 +109,48 @@ public class Engine : IDisposable
         var world     = new World.World();
         var generator = new WorldGenerator(_settings);
         var playerStart = CreatePlayerStartPosition(generator, camX, camY, camZ);
-        var player = new Player(playerStart, vitalsConfig: _settings.Vitals);
-        player.SetInteractionReach(_settings.InteractionReach);
-        var camera = new Camera(ToSilk(player.EyePosition), aspectRatio, _settings);
+
+        _interactionReach = _settings.InteractionReach;
+
+        // Spieler als plain Entity — Komponenten werden in VoxelGame.Initialize() hinzugefügt
+        var playerEntity = new Entity.Entity("player", playerStart);
+
+        var camera = new Camera(
+            new Vector3D<float>(playerStart.X, playerStart.Y + _settings.EyeHeight, playerStart.Z),
+            aspectRatio,
+            _settings);
 
         _persistence = new LocalFilePersistence(_settings.SaveDirectory);
-        _context = new GameContext(_settings, _keyBindings, world, player, camera, renderer, input, generator, entityModels, _persistence);
+        _context     = new GameContext(_settings, _keyBindings, world, playerEntity, camera, renderer, input, generator, entityModels, _persistence);
+        _modContext  = new EngineModContext(_context);
+
+        // Spieler-Komponenten hinzufügen
+        var playerPhys = new Entity.Components.PhysicsComponent(
+            world,
+            _settings.PlayerWidth, _settings.PlayerHeight,
+            _settings.Gravity, _settings.MaxFallSpeed,
+            _settings.StepHeight, _settings.EnableStepUp,
+            _settings.StepUpMaxVisualDrop, _settings.StepUpSmoothingSpeed);
+        playerPhys.EyeOffset = _settings.EyeHeight;
+        playerEntity.AddComponent(playerPhys);
+        playerEntity.AddComponent(new Entity.Components.HealthComponent(20f));
+        playerEntity.AddComponent(new Entity.Components.InputComponent(
+            input, _keyBindings, camera, _settings.MovementSpeed, _settings.JumpVelocity));
+        playerEntity.AddComponent(new Entity.Components.CameraComponent(camera));
 
         // Spielerstand + Welt-Metadaten laden (falls vorhanden)
         var (savedPlayer, savedWorld) = _context.LoadGameStateAsync().GetAwaiter().GetResult();
+
+        // Mod initialisieren
+        _game.Initialize(_context);
+
         if (savedPlayer is not null && savedWorld is not null)
             _context.ApplyLoadedState(savedPlayer, savedWorld);
 
-        // Spawn-Schutz: FlyMode aktivieren bis der Chunk unter dem Spieler geladen ist.
-        // Verhindert, dass der Spieler nicht durch ungeladene Chunks faellt (Hintergrund-Generierung
-        // ist asynchron und kann beim ersten Update() noch nicht fertig sein).
-        _spawnFlyMode = _context.Player.FlyMode;
-        _context.Player.SetFlyMode(true);
+        // Spawn-Schutz
+        var phys = _context.Player.GetComponent<PhysicsComponent>();
+        _spawnFlyMode = phys?.FlyMode ?? false;
+        phys?.SetFlyMode(true);
         _waitingForChunkLoad = true;
 
         _context.Console.Register(new HelpCommand(_context.Console));
@@ -171,16 +199,17 @@ public class Engine : IDisposable
         _inventoryPanel.Atlas = _context.Renderer.Atlas;
         _context.UI.Register(_inventoryPanel);
 
-        _context.ChunkManager.PrimeInitialChunks(player.Position.X, player.Position.Z, _settings.InitialChunkLoadRadius);
+        _context.ChunkManager.PrimeInitialChunks(
+            _context.Player.InternalPosition.X,
+            _context.Player.InternalPosition.Z,
+            _settings.InitialChunkLoadRadius);
 
-        _game.Initialize(_context);
         _frameTimer.Start();
     }
 
     private void OnUpdate(double deltaTime)
     {
         _accumulator += deltaTime;
-
         while (_accumulator >= _fixedDelta)
         {
             Update(_fixedDelta);
@@ -188,29 +217,27 @@ public class Engine : IDisposable
         }
     }
 
-    private void OnRender(double deltaTime)
-    {
-        Render(deltaTime);
-    }
+    private void OnRender(double deltaTime) => Render(deltaTime);
 
     private void Update(double fixedDelta)
     {
+        var phys = _context.Player.GetComponent<PhysicsComponent>();
+
         if (_waitingForChunkLoad)
         {
-            int cx = (int)Math.Floor(_context.Player.Position.X / Chunk.Width);
-            int cz = (int)Math.Floor(_context.Player.Position.Z / Chunk.Depth);
+            var pos = _context.Player.InternalPosition;
+            int cx  = (int)Math.Floor(pos.X / Chunk.Width);
+            int cz  = (int)Math.Floor(pos.Z / Chunk.Depth);
             if (_context.World.GetChunk(cx, cz) is not null)
             {
-                _context.Player.SetFlyMode(_spawnFlyMode);
-                if (!_spawnFlyMode)
-                    _context.Player.SyncPhysics(_context.World);
+                phys?.SetFlyMode(_spawnFlyMode);
+                if (!_spawnFlyMode) phys?.SyncPhysics(_context.Player);
                 _waitingForChunkLoad = false;
             }
         }
 
         bool f1Now = _context.Input.IsKeyPressed(_keyBindings.DebugConsole);
-        if (f1Now && !_prevF1)
-            _context.Console.Toggle();
+        if (f1Now && !_prevF1) _context.Console.Toggle();
         _prevF1 = f1Now;
 
         if (_context.Console.IsOpen)
@@ -218,11 +245,7 @@ public class Engine : IDisposable
             _context.Input.ClearTransientMouseState();
 
             bool escNow = _context.Input.IsKeyPressed(_keyBindings.Pause);
-            if (escNow && !_prevEscape)
-            {
-                _context.Console.Toggle();
-                _consoleInput = "";
-            }
+            if (escNow && !_prevEscape) { _context.Console.Toggle(); _consoleInput = ""; }
             _prevEscape = escNow;
 
             bool bsNow = _context.Input.IsKeyPressed(Key.Backspace);
@@ -231,92 +254,62 @@ public class Engine : IDisposable
             _prevBackspace = bsNow;
 
             bool enterNow = _context.Input.IsKeyPressed(Key.Enter);
-            if (enterNow && !_prevEnter)
-            {
-                _context.Console.Execute(_consoleInput);
-                _consoleInput = "";
-            }
+            if (enterNow && !_prevEnter) { _context.Console.Execute(_consoleInput); _consoleInput = ""; }
             _prevEnter = enterNow;
 
             bool upNow = _context.Input.IsKeyPressed(Key.Up);
-            if (upNow && !_prevUp)
-            {
-                var result = _context.Console.NavigateHistoryUp(_consoleInput);
-                if (result is not null)
-                    _consoleInput = result;
-            }
+            if (upNow && !_prevUp) { var result = _context.Console.NavigateHistoryUp(_consoleInput); if (result is not null) _consoleInput = result; }
             _prevUp = upNow;
 
             bool downNow = _context.Input.IsKeyPressed(Key.Down);
-            if (downNow && !_prevDown)
-            {
-                var result = _context.Console.NavigateHistoryDown();
-                if (result is not null)
-                    _consoleInput = result;
-            }
+            if (downNow && !_prevDown) { var result = _context.Console.NavigateHistoryDown(); if (result is not null) _consoleInput = result; }
             _prevDown = downNow;
 
             bool tabNow = _context.Input.IsKeyPressed(Key.Tab);
-            if (tabNow && !_prevTab)
-            {
-                var result = _context.Console.Autocomplete(_consoleInput);
-                if (result is not null)
-                    _consoleInput = result;
-            }
+            if (tabNow && !_prevTab) { var result = _context.Console.Autocomplete(_consoleInput); if (result is not null) _consoleInput = result; }
             _prevTab = tabNow;
 
             return;
         }
 
-        _prevEscape    = false;
-        _prevBackspace = false;
-        _prevEnter     = false;
-        _prevUp        = false;
-        _prevDown      = false;
-        _prevTab       = false;
+        _prevEscape = _prevBackspace = _prevEnter = _prevUp = _prevDown = _prevTab = false;
 
         bool uiConsuming = _context.UI.Update(_context);
 
-        if (_context.ShutdownRequested)
-        {
-            _window.Close();
-            return;
-        }
-
-        if (uiConsuming)
-        {
-            _context.Input.ClearTransientMouseState();
-            return;
-        }
+        if (_context.ShutdownRequested) { _window.Close(); return; }
+        if (uiConsuming) { _context.Input.ClearTransientMouseState(); return; }
 
         _context.Time.Update(fixedDelta);
 
+        // Maus-Eingabe → Camera
         var (deltaX, deltaY) = _context.Input.GetMouseDelta();
         _context.Camera.ProcessMouseMovement(deltaX, deltaY);
-        _context.Player.ProcessInput(
-            ReadPlayerInput(),
-            ToNumerics(_context.Camera.Front),
-            ToNumerics(_context.Camera.Right),
-            ToNumerics(_context.Camera.Up),
-            _context.Camera.MovementSpeed,
-            BuildPhysicsSettings(),
-            _context.World,
-            fixedDelta);
-        _context.Player.UpdateVitals(fixedDelta);
-        _context.Camera.Position = ToSilk(_context.Player.EyePosition);
+
+        // Spieler-Entity Update (InputComponent, CameraComponent, PhysicsComponent)
+        _context.Player.Update(_modContext, fixedDelta);
+
+        // Eye-Position für Raycast
+        var eyePos = phys is not null
+            ? phys.GetEyePosition(_context.Player.InternalPosition)
+            : _context.Player.InternalPosition;
+
         _context.TargetedBlock = BlockRaycaster.Raycast(
             _context.World,
-            _context.Player.EyePosition,
+            eyePos,
             ToNumerics(_context.Camera.Front),
-            _context.Player.InteractionReach,
-            ShouldIgnoreWaterForRaycast());
+            _interactionReach,
+            ShouldIgnoreWaterForRaycast(eyePos));
         _context.PlacementPreview = null;
 
-        int scrollSteps = _context.Input.ConsumeScrollSteps();
-        int hotbarDelta = MapHotbarScroll(scrollSteps);
-        if (hotbarDelta != 0)
-            _context.Player.CycleSelectedBlock(hotbarDelta);
+        // Hotbar-Scroll
+        int scrollSteps   = _context.Input.ConsumeScrollSteps();
+        int hotbarDelta   = MapHotbarScroll(scrollSteps);
+        if (hotbarDelta > 0)
+            for (int i = 0; i < hotbarDelta; i++) _context.Inventory.Hotbar.SelectNext();
+        else if (hotbarDelta < 0)
+            for (int i = 0; i < -hotbarDelta; i++) _context.Inventory.Hotbar.SelectPrevious();
 
+        // Nummernrasten-Hotbar
         if (_settings.EnableHotbarNumberKeys)
         {
             Key[] numKeys = [_keyBindings.Hotbar1, _keyBindings.Hotbar2, _keyBindings.Hotbar3, _keyBindings.Hotbar4, _keyBindings.Hotbar5,
@@ -324,22 +317,23 @@ public class Engine : IDisposable
             for (int i = 0; i < 9; i++)
             {
                 bool numNow = _context.Input.IsKeyPressed(numKeys[i]);
-                if (numNow && !_prevNum[i])
-                    _context.Player.Inventory.SelectSlot(i);
+                if (numNow && !_prevNum[i]) _context.Inventory.Hotbar.SelectSlot(i);
                 _prevNum[i] = numNow;
             }
         }
 
         if (_context.Input.ConsumeMouseClicks(_keyBindings.BlockBreak) > 0)
-            TryBreakTargetedBlock();
+            TryBreakTargetedBlock(eyePos);
 
         int rightClicks = _context.Input.ConsumeMouseClicks(_keyBindings.BlockPlace);
         if (rightClicks > 0)
-            TryPlaceSelectedBlock();
+            TryPlaceSelectedBlock(phys, eyePos);
         else
-            _context.PlacementPreview = GetPlacementPreview();
+            _context.PlacementPreview = GetPlacementPreview(phys, eyePos);
 
-        _context.ChunkManager.Update(_context.Player.Position.X, _context.Player.Position.Z);
+        _context.ChunkManager.Update(
+            _context.Player.InternalPosition.X,
+            _context.Player.InternalPosition.Z);
 
         foreach (var (x, z) in _context.ChunkManager.UnloadedThisUpdate)
             _context.Renderer.RemoveChunkMesh(x, z);
@@ -370,9 +364,7 @@ public class Engine : IDisposable
 
     private void Close()
     {
-        if (_closed)
-            return;
-
+        if (_closed) return;
         _closed = true;
         _context?.SaveGameStateAsync().GetAwaiter().GetResult();
         _game.Shutdown();
@@ -381,7 +373,7 @@ public class Engine : IDisposable
         _debugOverlay?.Dispose();
         _context?.Dispose();
         _persistence?.Dispose();
-        Console.WriteLine("Engine closing.");
+        System.Console.WriteLine("Engine closing.");
     }
 
     public void Dispose()
@@ -391,147 +383,89 @@ public class Engine : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private PlayerInput ReadPlayerInput()
+    private void TryBreakTargetedBlock(Vector3 eyePos)
     {
-        float forward = 0f;
-        float right = 0f;
-        float up = 0f;
-
-        if (_context.Input.IsKeyPressed(_keyBindings.MoveForward))
-            forward += 1f;
-        if (_context.Input.IsKeyPressed(_keyBindings.MoveBackward))
-            forward -= 1f;
-        if (_context.Input.IsKeyPressed(_keyBindings.MoveRight))
-            right += 1f;
-        if (_context.Input.IsKeyPressed(_keyBindings.MoveLeft))
-            right -= 1f;
-        bool jump = _context.Input.IsKeyPressed(_keyBindings.Jump);
-        if (_context.Player.FlyMode && jump)
-            up += 1f;
-        if (_context.Input.IsKeyPressed(_keyBindings.Sneak))
-            up -= 1f;
-
-        return new PlayerInput(forward, right, up, jump);
-    }
-
-    private static Vector3 CreatePlayerStartPosition(WorldGenerator generator, float startX, float startEyeY, float startZ)
-    {
-        int surfaceHeight = generator.GetSurfaceHeight((int)MathF.Floor(startX), (int)MathF.Floor(startZ));
-        float minFeetY = surfaceHeight + Player.SpawnClearance;
-        float configuredFeetY = startEyeY - Player.EyeHeight;
-        return new Vector3(startX, MathF.Max(configuredFeetY, minFeetY), startZ);
-    }
-
-    private static Vector3 ToNumerics(Vector3D<float> vector)
-        => new(vector.X, vector.Y, vector.Z);
-
-    private static Vector3D<float> ToSilk(Vector3 vector)
-        => new(vector.X, vector.Y, vector.Z);
-
-    private PlayerPhysicsSettings BuildPhysicsSettings()
-        => new(
-            _settings.Gravity,
-            _settings.MaxFallSpeed,
-            _settings.JumpVelocity,
-            _settings.StepHeight,
-            _settings.StepUpMaxVisualDrop,
-            _settings.StepUpSmoothingSpeed,
-            _settings.EnableStepUp);
-
-    private void TryBreakTargetedBlock()
-    {
-        if (_context.TargetedBlock is not { } hit)
-            return;
-
-        if (hit.BlockType == BlockType.Water)
-            return;
+        if (_context.TargetedBlock is not { } hit) return;
+        if (hit.BlockType == BlockType.Water) return;
 
         var removedBlock = _context.World.GetBlock(hit.BlockPosition.X, hit.BlockPosition.Y, hit.BlockPosition.Z);
         _context.World.SetBlock(hit.BlockPosition.X, hit.BlockPosition.Y, hit.BlockPosition.Z, BlockType.Air);
         _context.ChunkManager.EnqueueBlockUpdate(hit.BlockPosition.X, hit.BlockPosition.Z);
-        _context.Player.Inventory.TryAdd(removedBlock);
+        _context.Inventory.Hotbar.TryAdd(removedBlock);
         _context.TargetedBlock = BlockRaycaster.Raycast(
-            _context.World,
-            _context.Player.EyePosition,
-            ToNumerics(_context.Camera.Front),
-            _context.Player.InteractionReach,
-            ShouldIgnoreWaterForRaycast());
+            _context.World, eyePos, ToNumerics(_context.Camera.Front),
+            _interactionReach, ShouldIgnoreWaterForRaycast(eyePos));
     }
 
-    private void TryPlaceSelectedBlock()
+    private void TryPlaceSelectedBlock(PhysicsComponent? phys, Vector3 eyePos)
     {
-        if (_context.TargetedBlock is not { } hit)
-            return;
+        if (_context.TargetedBlock is not { } hit) return;
 
-        int slot = _context.Player.Inventory.SelectedSlot;
-        var stack = _context.Player.Inventory.Hotbar[slot];
-        if (stack is null)
-            return;
+        int    slot  = _context.Inventory.Hotbar.SelectedSlot;
+        var    stack = _context.Inventory.Hotbar.Hotbar[slot];
+        if (stack is null) return;
 
         BlockPosition placement = GetPlacementTarget(hit);
-        if (placement.Y < 0 || placement.Y >= Chunk.Height)
-            return;
+        if (placement.Y < 0 || placement.Y >= Chunk.Height) return;
 
-        if (_context.Player.WouldIntersectBlock(placement))
-            return;
+        bool playerIntersects = phys?.WouldIntersectBlock(_context.Player, placement.X, placement.Y, placement.Z) ?? false;
+        if (playerIntersects) return;
 
-        if (!BlockRegistry.IsReplaceable(_context.World.GetBlock(placement.X, placement.Y, placement.Z)))
-            return;
+        if (!BlockRegistry.IsReplaceable(_context.World.GetBlock(placement.X, placement.Y, placement.Z))) return;
 
         _context.World.SetBlock(placement.X, placement.Y, placement.Z, stack.BlockType);
         _context.ChunkManager.EnqueueBlockUpdate(placement.X, placement.Z);
-        _context.Player.Inventory.TryRemove(slot, 1);
+        _context.Inventory.Hotbar.TryRemove(slot, 1);
         _context.TargetedBlock = BlockRaycaster.Raycast(
-            _context.World,
-            _context.Player.EyePosition,
-            ToNumerics(_context.Camera.Front),
-            _context.Player.InteractionReach,
-            ShouldIgnoreWaterForRaycast());
+            _context.World, eyePos, ToNumerics(_context.Camera.Front),
+            _interactionReach, ShouldIgnoreWaterForRaycast(eyePos));
         _context.PlacementPreview = null;
     }
 
-    private BlockPlacementPreview? GetPlacementPreview()
+    private BlockPlacementPreview? GetPlacementPreview(PhysicsComponent? phys, Vector3 eyePos)
     {
-        if (_context.TargetedBlock is not { } hit)
-            return null;
+        if (_context.TargetedBlock is not { } hit) return null;
 
-        var stack = _context.Player.Inventory.Hotbar[_context.Player.Inventory.SelectedSlot];
-        if (stack is null)
-            return null;
+        var stack = _context.Inventory.Hotbar.Hotbar[_context.Inventory.Hotbar.SelectedSlot];
+        if (stack is null) return null;
 
         BlockPosition placement = GetPlacementTarget(hit);
-        if (placement.Y < 0 || placement.Y >= Chunk.Height)
-            return null;
+        if (placement.Y < 0 || placement.Y >= Chunk.Height) return null;
 
-        if (_context.Player.WouldIntersectBlock(placement))
-            return null;
+        bool playerIntersects = phys?.WouldIntersectBlock(_context.Player, placement.X, placement.Y, placement.Z) ?? false;
+        if (playerIntersects) return null;
 
-        if (!BlockRegistry.IsReplaceable(_context.World.GetBlock(placement.X, placement.Y, placement.Z)))
-            return null;
+        if (!BlockRegistry.IsReplaceable(_context.World.GetBlock(placement.X, placement.Y, placement.Z))) return null;
 
         return new BlockPlacementPreview(placement, stack.BlockType);
     }
 
     private static BlockPosition GetPlacementTarget(BlockRaycastHit hit) =>
-        BlockRegistry.IsReplaceable(hit.BlockType)
-            ? hit.BlockPosition
-            : hit.PlacementPosition;
+        BlockRegistry.IsReplaceable(hit.BlockType) ? hit.BlockPosition : hit.PlacementPosition;
 
     private int MapHotbarScroll(int scrollSteps)
     {
-        if (scrollSteps == 0)
-            return 0;
-
+        if (scrollSteps == 0) return 0;
         int direction = _keyBindings.HotbarScrollUp == ScrollBinding.Up ? 1 : -1;
         return scrollSteps * direction;
     }
 
-    private bool ShouldIgnoreWaterForRaycast()
+    private bool ShouldIgnoreWaterForRaycast(Vector3 eyePos)
     {
-        var eyePosition = _context.Player.EyePosition;
-        int x = (int)MathF.Floor(eyePosition.X);
-        int y = (int)MathF.Floor(eyePosition.Y);
-        int z = (int)MathF.Floor(eyePosition.Z);
+        int x = (int)MathF.Floor(eyePos.X);
+        int y = (int)MathF.Floor(eyePos.Y);
+        int z = (int)MathF.Floor(eyePos.Z);
         return _context.World.GetBlock(x, y, z) == BlockType.Water;
     }
+
+    private Vector3 CreatePlayerStartPosition(WorldGenerator generator, float startX, float startEyeY, float startZ)
+    {
+        int   surfaceHeight   = generator.GetSurfaceHeight((int)MathF.Floor(startX), (int)MathF.Floor(startZ));
+        float minFeetY        = surfaceHeight + SpawnClearance;
+        float configuredFeetY = startEyeY - _settings.EyeHeight;
+        return new Vector3(startX, MathF.Max(configuredFeetY, minFeetY), startZ);
+    }
+
+    private static Vector3 ToNumerics(Vector3D<float> vector) => new(vector.X, vector.Y, vector.Z);
+    private static Vector3D<float> ToSilk(Vector3 vector) => new(vector.X, vector.Y, vector.Z);
 }

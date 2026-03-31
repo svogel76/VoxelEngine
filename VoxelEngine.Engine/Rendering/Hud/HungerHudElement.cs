@@ -1,5 +1,6 @@
 using VoxelEngine.Core;
 using VoxelEngine.Core.Hud;
+using VoxelEngine.Entity.Components;
 
 namespace VoxelEngine.Rendering.Hud;
 
@@ -35,12 +36,11 @@ public sealed class HungerHudElement : IHudElement
 
     public void Update(GameContext ctx)
     {
-        Hunger    = ctx.Player.Vitals.Hunger;
-        MaxHunger = ctx.Player.Vitals.MaxHunger;
+        // Hunger ist nicht implementiert — immer voll
+        Hunger    = MaxHunger;
 
         // Regeneration ist aktiv wenn Hunger hoch UND Health nicht voll
-        float health    = ctx.Player.Vitals.Health;
-        float maxHealth = ctx.Player.Vitals.MaxHealth;
-        IsRegenerating  = Ratio >= 0.9f && health < maxHealth;
+        var health = ctx.Player.GetComponent<HealthComponent>();
+        IsRegenerating = Ratio >= 0.9f && (health is null || health.CurrentHp < health.MaxHp);
     }
 }

@@ -1,10 +1,12 @@
 using Silk.NET.Maths;
-using VoxelEngine.World;
+using VoxelEngine.Entity.Components;
 
 namespace VoxelEngine.Core.Debug.Commands;
 
 public class TeleportCommand : ICommand
 {
+    private const float DefaultEyeHeight = 1.62f;
+
     public string Name        => "tp";
     public string Description => "Teleportiert den Spieler zur Ziel-Augposition";
     public string Usage       => "tp <x> <y> <z>";
@@ -25,7 +27,11 @@ public class TeleportCommand : ICommand
             return;
         }
 
-        context.Player.Teleport(new System.Numerics.Vector3(x, y - Player.EyeHeight, z));
+        var phys = context.Player.GetComponent<PhysicsComponent>();
+        float feetY = y - (phys?.EyeOffset ?? DefaultEyeHeight);
+        phys?.Teleport(context.Player, new System.Numerics.Vector3(x, feetY, z));
+        if (phys is null) context.Player.InternalPosition = new System.Numerics.Vector3(x, feetY, z);
+
         context.Camera.Position = new Vector3D<float>(x, y, z);
         context.Console.Log($"Teleportiert nach ({x:F2}, {y:F2}, {z:F2})");
     }
