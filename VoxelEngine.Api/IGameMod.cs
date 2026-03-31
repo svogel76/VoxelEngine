@@ -1,8 +1,8 @@
-﻿using VoxelEngine.World;
+using VoxelEngine.Api.World;
 
-namespace VoxelEngine.Core;
+namespace VoxelEngine.Api;
 
-public interface IGame
+public interface IGameMod
 {
     void RegisterBlocks(IBlockRegistry registry);
     void Initialize(IGameContext context);

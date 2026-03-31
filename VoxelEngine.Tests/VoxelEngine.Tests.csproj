@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\VoxelEngine.Api\VoxelEngine.Api.csproj" />
     <ProjectReference Include="..\VoxelEngine.Engine\VoxelEngine.Engine.csproj" />
     <ProjectReference Include="..\VoxelEngine.Game\VoxelEngine.Game.csproj" />
   </ItemGroup>

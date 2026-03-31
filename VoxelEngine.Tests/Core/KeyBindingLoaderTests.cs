@@ -1,5 +1,4 @@
 using FluentAssertions;
-using VoxelEngine.Core;
 using VoxelEngine.Game;
 
 namespace VoxelEngine.Tests.Core;
@@ -42,21 +41,21 @@ public sealed class KeyBindingLoaderTests : IDisposable
 
         var bindings = KeyBindingLoader.LoadFrom(_tempRoot);
 
-        bindings.MoveForward.Should().Be(Silk.NET.Input.Key.Up);
-        bindings.MoveBackward.Should().Be(Silk.NET.Input.Key.Down);
-        bindings.MoveLeft.Should().Be(Silk.NET.Input.Key.Left);
-        bindings.MoveRight.Should().Be(Silk.NET.Input.Key.Right);
-        bindings.Jump.Should().Be(Silk.NET.Input.Key.Space);
-        bindings.Sneak.Should().Be(Silk.NET.Input.Key.ControlLeft);
-        bindings.BlockPlace.Should().Be(Silk.NET.Input.MouseButton.Right);
-        bindings.BlockBreak.Should().Be(Silk.NET.Input.MouseButton.Middle);
-        bindings.ToggleInventory.Should().Be(Silk.NET.Input.Key.I);
-        bindings.Hotbar1.Should().Be(Silk.NET.Input.Key.F1);
-        bindings.Hotbar9.Should().Be(Silk.NET.Input.Key.F9);
+        bindings.MoveForward.Should().Be(Key.Up);
+        bindings.MoveBackward.Should().Be(Key.Down);
+        bindings.MoveLeft.Should().Be(Key.Left);
+        bindings.MoveRight.Should().Be(Key.Right);
+        bindings.Jump.Should().Be(Key.Space);
+        bindings.Sneak.Should().Be(Key.ControlLeft);
+        bindings.BlockPlace.Should().Be(MouseButton.Right);
+        bindings.BlockBreak.Should().Be(MouseButton.Middle);
+        bindings.ToggleInventory.Should().Be(Key.I);
+        bindings.Hotbar1.Should().Be(Key.F1);
+        bindings.Hotbar9.Should().Be(Key.F9);
         bindings.HotbarScrollUp.Should().Be(ScrollBinding.Down);
         bindings.HotbarScrollDown.Should().Be(ScrollBinding.Up);
-        bindings.Pause.Should().Be(Silk.NET.Input.Key.P);
-        bindings.DebugConsole.Should().Be(Silk.NET.Input.Key.GraveAccent);
+        bindings.Pause.Should().Be(Key.P);
+        bindings.DebugConsole.Should().Be(Key.GraveAccent);
     }
 
     [Fact]
@@ -73,7 +72,7 @@ public sealed class KeyBindingLoaderTests : IDisposable
 
         var bindings = KeyBindingLoader.LoadFrom(_tempRoot);
 
-        bindings.MoveForward.Should().Be(Silk.NET.Input.Key.Up);
+        bindings.MoveForward.Should().Be(Key.Up);
         bindings.MoveBackward.Should().Be(defaults.MoveBackward);
         bindings.BlockBreak.Should().Be(defaults.BlockBreak);
         bindings.ToggleInventory.Should().Be(defaults.ToggleInventory);
@@ -110,7 +109,7 @@ public sealed class KeyBindingLoaderTests : IDisposable
 
         var bindings = KeyBindingLoader.LoadFrom(_tempRoot);
 
-        bindings.Pause.Should().Be(Silk.NET.Input.Key.P);
+        bindings.Pause.Should().Be(Key.P);
         bindings.MoveForward.Should().Be(defaults.MoveForward);
     }
 

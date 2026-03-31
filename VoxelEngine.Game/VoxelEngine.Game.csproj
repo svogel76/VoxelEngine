@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\VoxelEngine.Api\VoxelEngine.Api.csproj" />
     <ProjectReference Include="..\VoxelEngine.Engine\VoxelEngine.Engine.csproj" />
   </ItemGroup>
 

@@ -8,39 +8,39 @@
 
 ---
 
-## Naechster Meilenstein — Mod/Plugin-System [HOECHSTE PRIORITAET]
+## Naechster Meilenstein - Mod/Plugin-System [HOECHSTE PRIORITAET]
 
 > Ziel: Das Spiel ist eine Mod. Engine und Mods kennen sich nur ueber VoxelEngine.Api.
-> Alles andere baut darauf auf — Content, Behaviour, Story, externe Mods.
+> Alles andere baut darauf auf - Content, Behaviour, Story, externe Mods.
 
-### Schritt 1 — VoxelEngine.Api extrahieren [Hoch]
-- Neues Class Library Projekt `VoxelEngine.Api` ohne Implementierung
-- Bestehende Interfaces wandern hierher: `IGame` -> `IGameMod`, `IGameContext`,
+### Schritt 1 - VoxelEngine.Api extrahieren [Erledigt]
+- [Erledigt] Neues Class Library Projekt `VoxelEngine.Api` ohne Implementierung
+- [Erledigt] Bestehende Interfaces wandern hierher: `IGame` -> `IGameMod`, `IGameContext`,
   `IBlockRegistry`, `IWorldAccess`, `IInputState`
-- Neue Interfaces: `IGameMod`, `IModContext`, `IEntity`, `IComponent`, `IBehaviour`
-- Engine referenziert Api. Game referenziert Api. Beide kennen sich nicht direkt.
+- [Erledigt] Neue Interfaces: `IGameMod`, `IModContext`, `IEntity`, `IComponent`, `IBehaviour`
+- [Erledigt] Engine referenziert Api. Game referenziert Api. Beide kennen sich nur ueber Api.
 
-### Schritt 2 — Component System [Hoch]
+### Schritt 2 - Component System [Hoch]
 - `IComponent` als Basisinterface in Api
 - Konkrete Komponenten: `HealthComponent`, `PhysicsComponent`,
   `AIComponent`, `DropComponent`, `RenderComponent`
 - Entity-Definition in JSON referenziert Komponenten per Name
 - Ersetzt direkte Vererbungs-Hierarchie
 
-### Schritt 3 — Behaviour Trees in JSON [Mittel]
+### Schritt 3 - Behaviour Trees in JSON [Mittel]
 - AI-Logik data-driven statt hardcodiertem Zustands-Automat
 - Bausteine: Conditions (`player_near`, `health_low`),
   Actions (`flee`, `wander`, `idle`, `attack`)
 - Komposition in Entity-JSON
 - Neue Behaviours ohne Engine-Rebuild moeglich
 
-### Schritt 4 — Mod-Loader + IGameMod [Hoch]
+### Schritt 4 - Mod-Loader + IGameMod [Hoch]
 - Engine laedt DLLs zur Laufzeit aus `Mods/`-Ordner
 - `mod.json` Manifest pro Mod (id, name, version, dependencies)
 - `VoxelEngine.Game` wird zur ersten Mod-DLL
 - Mod-Reihenfolge und Abhaengigkeiten werden aufgeloest
 
-### Schritt 5 — Launcher extrahieren [Mittel]
+### Schritt 5 - Launcher extrahieren [Mittel]
 - Neues Executable `VoxelEngine.Launcher`
 - Laedt Engine, scannt Mods/, startet EngineRunner
 - `VoxelEngine.Game` wird von Executable zu DLL

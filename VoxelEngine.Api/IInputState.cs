@@ -1,6 +1,6 @@
-using Silk.NET.Input;
+using VoxelEngine.Api.Input;
 
-namespace VoxelEngine.Core;
+namespace VoxelEngine.Api;
 
 public interface IInputState
 {

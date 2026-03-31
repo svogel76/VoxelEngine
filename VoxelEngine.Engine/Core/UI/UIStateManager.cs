@@ -5,7 +5,7 @@ public class UIStateManager
     private readonly Dictionary<string, IUIPanel> _registered = new();
     private readonly Stack<IUIPanel> _stack = new();
     private IUIPanel? _gameMenu;
-    private readonly HashSet<Silk.NET.Input.Key> _keysHeldLastFrame = new();
+    private readonly HashSet<Key> _keysHeldLastFrame = new();
 
     public bool IsAnyPanelOpen => _stack.Count > 0;
 

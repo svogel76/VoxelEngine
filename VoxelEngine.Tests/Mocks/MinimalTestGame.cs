@@ -1,10 +1,8 @@
-using VoxelEngine.Core;
 using VoxelEngine.Game.Blocks;
-using VoxelEngine.World;
 
 namespace VoxelEngine.Tests.Mocks;
 
-public sealed class MinimalTestGame : IGame
+public sealed class MinimalTestGame : IGameMod
 {
     private readonly string? _assetRoot;
 

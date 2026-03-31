@@ -13,7 +13,7 @@ public sealed class EngineRunner
         _keyBindings = keyBindings;
     }
 
-    public void Run(IGame game)
+    public void Run(IGameMod game)
     {
         ArgumentNullException.ThrowIfNull(game);
 

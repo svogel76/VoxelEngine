@@ -1,9 +1,4 @@
-using System.Diagnostics;
-using System.Numerics;
-using Silk.NET.Input;
-using Silk.NET.Maths;
-using Silk.NET.OpenGL;
-using Silk.NET.Windowing;
+using VoxelEngine.Api.Input;
 using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Core.Hud;
 using VoxelEngine.Core.UI;
@@ -13,6 +8,12 @@ using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.Rendering.Hud;
 using VoxelEngine.World;
+using Silk.NET.Input;
+using Silk.NET.Maths;
+using Silk.NET.OpenGL;
+using Silk.NET.Windowing;
+using System.Diagnostics;
+using System.Numerics;
 
 namespace VoxelEngine.Core;
 
@@ -22,7 +23,7 @@ public class Engine : IDisposable
     private readonly EngineSettings _settings;
     private readonly double         _fixedDelta;
     private readonly IKeyBindings   _keyBindings;
-    private readonly IGame          _game;
+    private readonly IGameMod       _game;
 
     private GL                   _gl           = null!;
     private IInputContext        _inputContext = null!;
@@ -40,8 +41,8 @@ public class Engine : IDisposable
     private int    _frameCount  = 0;
     private bool   _closed;
 
-    // Spawn-Schutz: FlyMode temporär aktiv bis der Chunk unter dem Spieler geladen ist,
-    // damit der Spieler nicht durch ungeladene Chunks fällt.
+    // Spawn-Schutz: FlyMode temporaer aktiv bis der Chunk unter dem Spieler geladen ist,
+    // damit der Spieler nicht durch ungeladene Chunks faellt.
     private bool _waitingForChunkLoad = false;
     private bool _spawnFlyMode        = false;
 
@@ -55,10 +56,10 @@ public class Engine : IDisposable
     private bool _prevDown      = false;
     private bool _prevTab       = false;
 
-    // Eingabe-Buffer für Debug-Konsole (Silk.NET-spezifisch)
+    // Eingabe-Buffer fuer Debug-Konsole (Silk.NET-spezifisch)
     private string _consoleInput = "";
 
-    public Engine(EngineSettings settings, IKeyBindings keyBindings, IGame game)
+    public Engine(EngineSettings settings, IKeyBindings keyBindings, IGameMod game)
     {
         _settings   = settings;
         _keyBindings = keyBindings;
@@ -91,7 +92,7 @@ public class Engine : IDisposable
         _inputContext = _window.CreateInput();
         var input     = new InputHandler(_inputContext);
 
-        // Zeichen-Input für Konsole
+        // Zeichen-Input fuer Konsole
         input.Keyboard.KeyChar += (_, c) =>
         {
             if (_context?.Console.IsOpen == true)
@@ -118,7 +119,7 @@ public class Engine : IDisposable
             _context.ApplyLoadedState(savedPlayer, savedWorld);
 
         // Spawn-Schutz: FlyMode aktivieren bis der Chunk unter dem Spieler geladen ist.
-        // Verhindert, dass der Spieler durch ungeladene Chunks fällt (Hintergrund-Generierung
+        // Verhindert, dass der Spieler nicht durch ungeladene Chunks faellt (Hintergrund-Generierung
         // ist asynchron und kann beim ersten Update() noch nicht fertig sein).
         _spawnFlyMode = _context.Player.FlyMode;
         _context.Player.SetFlyMode(true);
@@ -141,35 +142,28 @@ public class Engine : IDisposable
 
         _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight);
 
-        // Hotbar-Element im HudRegistry registrieren + Renderer einbinden
         var hotbarElement  = new HotbarHudElement();
         _context.HudRegistry.Register(hotbarElement);
         var hotbarRenderer = new HotbarHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
-        // Atlas-Referenz setzen — ChunkRenderer ist zu diesem Zeitpunkt bereits initialisiert
         hotbarRenderer.Atlas = _context.Renderer.Atlas;
         _debugOverlay.HudManager.RegisterRenderer("hotbar", hotbarRenderer);
 
-        // Health-HUD-Element + Renderer
         var healthElement  = new HealthHudElement();
         _context.HudRegistry.Register(healthElement);
         var healthRenderer = new HealthHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
         _debugOverlay.HudManager.RegisterRenderer("health", healthRenderer);
 
-        // Hunger-HUD-Element + Renderer
         var hungerElement  = new HungerHudElement();
         _context.HudRegistry.Register(hungerElement);
         var hungerRenderer = new HungerHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
         _debugOverlay.HudManager.RegisterRenderer("hunger", hungerRenderer);
 
-        // hud.json laden (nach allen Registrierungen)
         _context.HudRegistry.LoadConfig("Assets/Hud/hud.json");
 
-        // Pause-Menü registrieren (Spielmenü-Sonderfall: nur über Escape erreichbar)
         _pauseMenu = new PauseMenuPanel();
         _pauseMenu.InitRenderer(_gl);
         _context.UI.Register(_pauseMenu, isGameMenu: true);
 
-        // Inventar-Panel registrieren (Toggle: E)
         var invFont     = new BitmapFont(_gl, "Assets/Fonts/font.png");
         var invText     = new TextRenderer(_gl, invFont, _settings.WindowWidth, _settings.WindowHeight);
         var invIcon     = new IconRenderer(_gl);
@@ -201,7 +195,6 @@ public class Engine : IDisposable
 
     private void Update(double fixedDelta)
     {
-        // Spawn-Schutz: warten bis der Chunk unter dem Spieler tatsächlich geladen ist.
         if (_waitingForChunkLoad)
         {
             int cx = (int)Math.Floor(_context.Player.Position.X / Chunk.Width);
@@ -215,7 +208,6 @@ public class Engine : IDisposable
             }
         }
 
-        // F1 — Konsole öffnen/schließen
         bool f1Now = _context.Input.IsKeyPressed(_keyBindings.DebugConsole);
         if (f1Now && !_prevF1)
             _context.Console.Toggle();
@@ -225,7 +217,6 @@ public class Engine : IDisposable
         {
             _context.Input.ClearTransientMouseState();
 
-            // Escape — Konsole schließen
             bool escNow = _context.Input.IsKeyPressed(_keyBindings.Pause);
             if (escNow && !_prevEscape)
             {
@@ -234,13 +225,11 @@ public class Engine : IDisposable
             }
             _prevEscape = escNow;
 
-            // Backspace — letztes Zeichen entfernen
             bool bsNow = _context.Input.IsKeyPressed(Key.Backspace);
             if (bsNow && !_prevBackspace && _consoleInput.Length > 0)
                 _consoleInput = _consoleInput[..^1];
             _prevBackspace = bsNow;
 
-            // Enter — Kommando ausführen
             bool enterNow = _context.Input.IsKeyPressed(Key.Enter);
             if (enterNow && !_prevEnter)
             {
@@ -249,7 +238,6 @@ public class Engine : IDisposable
             }
             _prevEnter = enterNow;
 
-            // Pfeil hoch — History rückwärts
             bool upNow = _context.Input.IsKeyPressed(Key.Up);
             if (upNow && !_prevUp)
             {
@@ -259,7 +247,6 @@ public class Engine : IDisposable
             }
             _prevUp = upNow;
 
-            // Pfeil runter — History vorwärts
             bool downNow = _context.Input.IsKeyPressed(Key.Down);
             if (downNow && !_prevDown)
             {
@@ -269,7 +256,6 @@ public class Engine : IDisposable
             }
             _prevDown = downNow;
 
-            // Tab — Autocomplete
             bool tabNow = _context.Input.IsKeyPressed(Key.Tab);
             if (tabNow && !_prevTab)
             {
@@ -289,11 +275,8 @@ public class Engine : IDisposable
         _prevDown      = false;
         _prevTab       = false;
 
-        // UI-Zustandsautomat: verarbeitet Panel-Tasten und Escape.
-        // Gibt true zurück wenn ein Panel offen ist → Gameplay-Input pausieren.
         bool uiConsuming = _context.UI.Update(_context);
 
-        // ShutdownRequested kann von UI-Panels gesetzt werden (z.B. "Beenden"-Button).
         if (_context.ShutdownRequested)
         {
             _window.Close();
@@ -334,7 +317,6 @@ public class Engine : IDisposable
         if (hotbarDelta != 0)
             _context.Player.CycleSelectedBlock(hotbarDelta);
 
-        // Zifferntasten 1-9 für direkten Hotbar-Slot-Auswahl
         if (_settings.EnableHotbarNumberKeys)
         {
             Key[] numKeys = [_keyBindings.Hotbar1, _keyBindings.Hotbar2, _keyBindings.Hotbar3, _keyBindings.Hotbar4, _keyBindings.Hotbar5,
@@ -357,16 +339,13 @@ public class Engine : IDisposable
         else
             _context.PlacementPreview = GetPlacementPreview();
 
-        // Chunk-Manager: Laden/Entladen
         _context.ChunkManager.Update(_context.Player.Position.X, _context.Player.Position.Z);
 
-        // Meshes für entladene Chunks entfernen
         foreach (var (x, z) in _context.ChunkManager.UnloadedThisUpdate)
             _context.Renderer.RemoveChunkMesh(x, z);
 
         _context.EntityManager.Update(fixedDelta);
         _game.Update(fixedDelta);
-
     }
 
     private void Render(double frameTime)
@@ -395,12 +374,8 @@ public class Engine : IDisposable
             return;
 
         _closed = true;
-        // Spielerstand + Welt-Metadaten speichern
         _context?.SaveGameStateAsync().GetAwaiter().GetResult();
         _game.Shutdown();
-        // GL-Kontext ist hier noch aktiv — alle OpenGL-Ressourcen hier freigeben
-        // _inputContext wird von Silk.NET/GLFW intern disposed wenn das Fenster schließt —
-        // manuelles Dispose hier würde eine ObjectDisposedException auslösen.
         _pauseMenu?.Dispose();
         _inventoryPanel?.Dispose();
         _debugOverlay?.Dispose();
@@ -411,7 +386,6 @@ public class Engine : IDisposable
 
     public void Dispose()
     {
-        // Closing-Handler abmelden damit _window.Dispose() kein zweites Close() auslöst
         _window.Closing -= Close;
         _window.Dispose();
         GC.SuppressFinalize(this);
@@ -561,6 +535,3 @@ public class Engine : IDisposable
         return _context.World.GetBlock(x, y, z) == BlockType.Water;
     }
 }
-
-
-

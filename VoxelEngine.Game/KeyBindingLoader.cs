@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Silk.NET.Input;
-using VoxelEngine.Core;
 
 namespace VoxelEngine.Game;
 

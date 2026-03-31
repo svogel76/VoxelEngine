@@ -1,4 +1,4 @@
-﻿namespace VoxelEngine.World;
+namespace VoxelEngine.Api.World;
 
 public interface IWorldAccess
 {

@@ -1,9 +1,10 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelEngine.Engine", "VoxelEngine.Engine\VoxelEngine.Engine.csproj", "{CE8F73EE-DF97-46C8-9E94-96258070D726}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelEngine.Api", "VoxelEngine.Api\VoxelEngine.Api.csproj", "{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelEngine.Game", "VoxelEngine.Game\VoxelEngine.Game.csproj", "{A9BCC73D-F5B5-4BB4-BCF1-F43FB617F93E}"
 EndProject
@@ -31,6 +32,18 @@ Global
 		{CE8F73EE-DF97-46C8-9E94-96258070D726}.Release|x64.Build.0 = Release|Any CPU
 		{CE8F73EE-DF97-46C8-9E94-96258070D726}.Release|x86.ActiveCfg = Release|Any CPU
 		{CE8F73EE-DF97-46C8-9E94-96258070D726}.Release|x86.Build.0 = Release|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Debug|x64.Build.0 = Debug|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Debug|x86.Build.0 = Debug|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Release|x64.ActiveCfg = Release|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Release|x64.Build.0 = Release|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Release|x86.ActiveCfg = Release|Any CPU
+		{D3197BBA-AE61-4E2F-B81A-3EA6E0E3BA89}.Release|x86.Build.0 = Release|Any CPU
 		{A9BCC73D-F5B5-4BB4-BCF1-F43FB617F93E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A9BCC73D-F5B5-4BB4-BCF1-F43FB617F93E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A9BCC73D-F5B5-4BB4-BCF1-F43FB617F93E}.Debug|x64.ActiveCfg = Debug|Any CPU

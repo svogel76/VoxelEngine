@@ -1,6 +1,3 @@
-using Silk.NET.Input;
-using VoxelEngine.Core;
-
 namespace VoxelEngine.Game;
 
 public sealed class KeyBindings : IKeyBindings

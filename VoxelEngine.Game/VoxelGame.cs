@@ -1,10 +1,8 @@
-using VoxelEngine.Core;
 using VoxelEngine.Game.Blocks;
-using VoxelEngine.World;
 
 namespace VoxelEngine.Game;
 
-public sealed class VoxelGame : IGame
+public sealed class VoxelGame : IGameMod
 {
     public void RegisterBlocks(IBlockRegistry registry)
     {

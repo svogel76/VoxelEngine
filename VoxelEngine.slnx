@@ -1,4 +1,5 @@
-﻿<Solution>
+<Solution>
+  <Project Path="VoxelEngine.Api/VoxelEngine.Api.csproj" />
   <Project Path="VoxelEngine.Engine/VoxelEngine.Engine.csproj" />
   <Project Path="VoxelEngine.Game/VoxelEngine.Game.csproj" />
   <Project Path="VoxelEngine.Tests/VoxelEngine.Tests.csproj" />
