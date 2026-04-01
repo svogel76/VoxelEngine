@@ -1,6 +1,11 @@
 {
   "id": "desert",
-  "terrain": { "baseHeight": 62, "amplitude": 10, "frequency": 0.006, "octaves": 3 },
+  "terrain": {
+    "baseHeight": 64,
+    "amplitude": 38,
+    "frequency": 0.004,
+    "octaves": 4
+  },
   "blocks": { "surface": "sand", "subsurface": "sand", "stone": "stone", "sea": "water" },
   "snowLine": 2147483647,
   "trees": { "density": 0.004, "template": "cactus" },

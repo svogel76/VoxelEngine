@@ -1,6 +1,11 @@
 {
   "id": "steppe",
-  "terrain": { "baseHeight": 66, "amplitude": 14, "frequency": 0.0075, "octaves": 3 },
+  "terrain": {
+    "baseHeight": 66,
+    "amplitude": 20,
+    "frequency": 0.005,
+    "octaves": 3
+  },
   "blocks": { "surface": "dry_grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
   "snowLine": 2147483647,
   "trees": { "density": 0.004, "template": "shrub" },

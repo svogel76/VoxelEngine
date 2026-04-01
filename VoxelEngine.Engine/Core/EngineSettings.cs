@@ -21,6 +21,7 @@ public class EngineSettings
 
     // Camera
     public float MovementSpeed    { get; init; } = 5.0f;
+    public float FlySpeed         { get; init; } = 0f;   // 0 = 2× MovementSpeed
     public float MouseSensitivity { get; init; } = 0.1f;
     public float Fov              { get; init; } = 75.0f;
     public float NearPlane        { get; init; } = 0.1f;

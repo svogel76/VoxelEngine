@@ -1,6 +1,11 @@
 {
   "id": "tropics",
-  "terrain": { "baseHeight": 72, "amplitude": 26, "frequency": 0.01, "octaves": 4 },
+  "terrain": {
+    "baseHeight": 76,
+    "amplitude": 45,
+    "frequency": 0.006,
+    "octaves": 5
+  },
   "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
   "snowLine": 2147483647,
   "trees": { "density": 0.022, "template": "mega_tropical" },

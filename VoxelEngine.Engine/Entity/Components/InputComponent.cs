@@ -15,22 +15,29 @@ public sealed class InputComponent : IComponent
     private readonly IInputState   _input;
     private readonly IKeyBindings  _keyBindings;
     private readonly Camera        _camera;
-    private readonly float         _moveSpeed;
     private readonly float         _jumpVelocity;
 
     public string ComponentId => "input";
+
+    /// <summary>Laufgeschwindigkeit in Blöcken/Sekunde. Zur Laufzeit änderbar.</summary>
+    public float WalkSpeed { get; set; }
+
+    /// <summary>Fluggeschwindigkeit in Blöcken/Sekunde. Zur Laufzeit änderbar.</summary>
+    public float FlySpeed  { get; set; }
 
     public InputComponent(
         IInputState  input,
         IKeyBindings keyBindings,
         Camera       camera,
-        float        moveSpeed,
-        float        jumpVelocity)
+        float        walkSpeed,
+        float        jumpVelocity,
+        float        flySpeed = 0f)
     {
         _input        = input        ?? throw new ArgumentNullException(nameof(input));
         _keyBindings  = keyBindings  ?? throw new ArgumentNullException(nameof(keyBindings));
         _camera       = camera       ?? throw new ArgumentNullException(nameof(camera));
-        _moveSpeed    = moveSpeed;
+        WalkSpeed     = walkSpeed;
+        FlySpeed      = flySpeed > 0f ? flySpeed : walkSpeed * 2f;
         _jumpVelocity = jumpVelocity;
     }
 
@@ -65,13 +72,15 @@ public sealed class InputComponent : IComponent
         var lookRight   = new Vector3(_camera.Right.X, _camera.Right.Y, _camera.Right.Z);
         var lookUp      = new Vector3(_camera.Up.X,    _camera.Up.Y,    _camera.Up.Z);
 
+        float activeSpeed = phys.FlyMode ? FlySpeed : WalkSpeed;
+
         phys.ProcessPlayerInput(
             entity,
             new PlayerInput(forward, right, up, jump),
             lookForward,
             lookRight,
             lookUp,
-            _moveSpeed,
+            activeSpeed,
             deltaTime);
 
         if (jump && phys.IsOnGround)
