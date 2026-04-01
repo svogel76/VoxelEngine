@@ -56,7 +56,7 @@ public class EngineSettings
     public int InitialChunkLoadRadius { get; init; } = 3;
 
     /// <summary>Maximale Baum-Ausdehnung in Bloecken fuer Chunk- und Sample-Queries</summary>
-    public int TreeInfluenceRadius { get; init; } = 8;
+    public int TreeInfluenceRadius { get; init; } = 16;
 
     /// <summary>Zellgroesse des Entity-Spatial-Hashings in Weltbloecken.</summary>
     public float EntitySpatialHashCellSize { get; init; } = Chunk.Width;

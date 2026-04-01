@@ -9,7 +9,7 @@ public class WorldGeneratorTests
     private const int WorldSeed = 12_345;
     private const int ChunkX = 8;
     private const int ChunkZ = 6;
-    private const ulong ExpectedChunkFingerprint = 13861771328127086115ul;
+    private const ulong ExpectedChunkFingerprint = 5187773064207754119ul;
 
     [Fact]
     public void GenerateChunk_SameSeedAcrossIndependentGenerators_ProducesIdenticalBlocks()
