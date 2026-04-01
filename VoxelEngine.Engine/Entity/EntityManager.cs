@@ -1,4 +1,5 @@
 using System.Numerics;
+using VoxelEngine.Api;
 using VoxelEngine.Core;
 using VoxelEngine.Entity.Components;
 using VoxelEngine.Entity.Models;
@@ -18,6 +19,7 @@ public sealed class EntityManager
     private readonly Dictionary<(int X, int Y, int Z), HashSet<Entity>> _spatialHash = new();
 
     public SpawnManager? SpawnManager { get; set; }
+    public IModContext UpdateContext { get; set; } = NullModContext.Instance;
     public int Count => _entities.Count;
 
     public EntityManager(
@@ -43,7 +45,7 @@ public sealed class EntityManager
         _ = frustumProvider;
         _ = random;
 
-        _world    = world;
+        _world = world;
         _cellSize = settings.EntitySpatialHashCellSize;
     }
 
@@ -84,10 +86,6 @@ public sealed class EntityManager
 
     public IReadOnlyList<Entity> GetAll() => _entities;
 
-    /// <summary>
-    /// Gibt alle Entities zurück. Da Entity sealed ist, ist GetAll&lt;T&gt; äquivalent zu GetAll()
-    /// wenn T == Entity. Für Abwärtskompatibilität mit Tests erhalten.
-    /// </summary>
     public IReadOnlyList<T> GetAll<T>() where T : class
         => _entities.OfType<T>().ToList();
 
@@ -98,7 +96,7 @@ public sealed class EntityManager
 
         RefreshAllTrackedEntities();
 
-        var result     = new List<Entity>();
+        var result = new List<Entity>();
         var candidates = new HashSet<Entity>();
 
         foreach (var cell in GetCellsForSphere(position, radius))
@@ -144,7 +142,7 @@ public sealed class EntityManager
         foreach (var entity in _entities.ToArray())
         {
             if (IsInLoadedChunk(entity))
-                entity.Update(NullModContext.Instance, deltaTime);
+                entity.Update(UpdateContext, deltaTime);
 
             if (_trackedEntities.ContainsKey(entity))
                 RefreshTrackedEntity(entity);
@@ -162,7 +160,7 @@ public sealed class EntityManager
     private void RefreshTrackedEntity(Entity entity)
     {
         var currentState = _trackedEntities[entity];
-        var nextState    = CreateTrackedState(entity);
+        var nextState = CreateTrackedState(entity);
 
         if (currentState.Bounds.Equals(nextState.Bounds) && currentState.Cells.SetEquals(nextState.Cells))
             return;
@@ -196,18 +194,16 @@ public sealed class EntityManager
     private TrackedEntityState CreateTrackedState(Entity entity)
     {
         var bounds = GetEntityBounds(entity);
-        var cells  = GetCellsForBounds(bounds);
+        var cells = GetCellsForBounds(bounds);
         return new TrackedEntityState(bounds, cells);
     }
 
     private static BoundingBox GetEntityBounds(Entity entity)
     {
-        // Bounds aus PhysicsComponent (falls vorhanden)
         var phys = entity.GetComponent<PhysicsComponent>();
         if (phys is not null)
             return phys.Bounds;
 
-        // Fallback: Punkt-Bounds an Entity-Position
         return new BoundingBox(entity.InternalPosition, entity.InternalPosition);
     }
 

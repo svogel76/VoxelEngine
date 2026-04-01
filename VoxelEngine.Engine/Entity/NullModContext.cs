@@ -5,7 +5,7 @@ using VoxelEngine.Api.World;
 namespace VoxelEngine.Entity;
 
 /// <summary>
-/// Leerer IModContext fÃ¼r Engine-interne Komponenten, die keinen Mod-Zugriff benÃ¶tigen.
+/// Leerer IModContext für Engine-interne Komponenten, die keinen Mod-Zugriff benötigen.
 /// </summary>
 internal sealed class NullModContext : IModContext
 {
@@ -13,11 +13,15 @@ internal sealed class NullModContext : IModContext
 
     private NullModContext() { }
 
-    public string             ModId            => string.Empty;
+    public string ModId => string.Empty;
     public IComponentRegistry ComponentRegistry => throw new NotSupportedException();
-    public IBlockRegistry     BlockRegistry    => throw new NotSupportedException();
-    public IWorldAccess       World            => throw new NotSupportedException();
-    public IInputState        Input            => throw new NotSupportedException();
-    public IKeyBindings       KeyBindings      => throw new NotSupportedException();
-    public IEntity            Player           => throw new NotSupportedException();
+    public IBehaviourRegistry BehaviourRegistry => throw new NotSupportedException();
+    public IBlockRegistry BlockRegistry => throw new NotSupportedException();
+    public IWorldAccess World => throw new NotSupportedException();
+    public IInputState Input => throw new NotSupportedException();
+    public IKeyBindings KeyBindings => throw new NotSupportedException();
+    public IEntity Player => throw new NotSupportedException();
+    public double WorldTimeHours => throw new NotSupportedException();
+    public bool IsDay => throw new NotSupportedException();
+    public bool IsNight => throw new NotSupportedException();
 }
