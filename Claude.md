@@ -3,19 +3,18 @@
 ## Projektziel
 Voxel-Engine im Minecraft-Stil mit Silk.NET und OpenGL in C# (.NET 10).
 Architekturentscheidungen werden im Chat besprochen, Implementierung erfolgt in Claude Code.
-Langfristiges Ziel: vollstaendiges Mod/Plugin-System - das Spiel selbst ist eine Mod.
+Das Spiel selbst ist eine Mod - die Engine kennt kein spezifisches Spiel.
 
-## Projektstruktur (Zielzustand)
+## Projektstruktur
 ```
-VoxelEngine.Engine/   # Class Library: Core/, Rendering/, World/, Entity/, Persistence/
-VoxelEngine.Api/      # Class Library: oeffentliche Interfaces fuer Engine und Mods (kein Impl.)
-VoxelEngine.Game/     # Mod-DLL: IGameMod-Implementierung, Bloecke, Assets
-VoxelEngine.Launcher/ # Executable: laedt Engine + Mods, startet EngineRunner
+VoxelEngine.Api/      # Interfaces only — keine Implementierung
+VoxelEngine.Engine/   # Core, Rendering, World, Entity, Persistence
+VoxelEngine.Game/     # Mod-DLL: IGameMod, Bloecke, Assets → Mods/VoxelGame/
+VoxelEngine.Launcher/ # Executable: 2-Zeilen Bootstrap (ModLoader + EngineRunner)
 VoxelEngine.Tests/    # xUnit + FluentAssertions
+Mods/VoxelGame/       # Laufzeit-Ausgabe: VoxelGame.dll + Assets
+Run/                  # Startverzeichnis (gitignored)
 ```
-
-Aktueller Stand: VoxelEngine.Api ist als Vertrags-Assembly extrahiert.
-VoxelEngine.Game ist noch Executable (wird kuenftig Mod-DLL), spricht Vertrags-Typen aber ueber VoxelEngine.Api.
 
 ## Architekturentscheidungen
 - Fixed Timestep Game Loop (60 UPS, konfigurierbar via EngineSettings / engine.json)
@@ -36,31 +35,16 @@ VoxelEngine.Game ist noch Executable (wird kuenftig Mod-DLL), spricht Vertrags-T
 - HUD-Framework: `IHudElement` + `IHudRenderer`, konfigurierbar via `Assets/Hud/hud.json`
 - Inventar: `Hotbar[9]`, `ItemStack`, `MaxStackSize` pro `BlockDefinition` (Default 64)
 - Engine-Lifecycle: `EngineRunner` + `IGameMod`:
-  `RegisterBlocks -> Initialize -> Update/Render -> Shutdown`
+  `RegisterBlocks -> RegisterComponents -> RegisterBehaviours -> Initialize -> Update/Render -> Shutdown`
 - Persistence: VXP5-Format (breaking change gegenueber VXP4 - keine Migration)
-
-## Mod-System Architektur (naechster Meilenstein)
-```
-VoxelEngine.Api.dll          <- einzige Abhaengigkeit fuer Mods
-    IGameMod                 <- Einstiegspunkt jeder Mod (inkl. VoxelGame)
-    IModContext              <- Zugriff auf Engine-Systeme fuer Mods
-    IComponent / IBehaviour  <- Bausteine fuer Entity-Logik
-    IEntity, IGameContext    <- bestehende Interfaces sind hier extrahiert
-    IBlockRegistry, IWorldAccess, IInputState, IKeyBindings
-
-Mods/
-    VoxelGame.dll            <- das Spiel als erste Mod
-    MeineMod.dll             <- externe Mod, gleichberechtigt
-
-mod.json pro Mod:
-    { "id": "voxelgame", "name": "VoxelGame", "version": "1.0.0", "dependencies": [] }
-```
-
-## Naechste Schritte
-- Schritt 4 des Backlogs ist umgesetzt: Mod-Loader + `mod.json`-Aufloesung laden `VoxelEngine.Game` aus `Mods/` als DLL
-- Naechster Fokus ist Schritt 5: Launcher-Projekt extrahieren und Bootstrap aus `VoxelEngine.Game` herausziehen
-- Behaviour Trees sind datengetrieben ueber `ai.behaviour_tree` in Entity-JSON verfuegbar
-- Naechster Ausbau: mehr Mod-registrierbare Conditions/Actions (z. B. `attack`, Herdentrieb, Kontextsensoren)
+- Alle Entities sind plain `Entity`-Instanzen, zusammengesetzt aus `IComponent`-Implementierungen
+- Behaviour Trees sind datengetrieben via JSON (`IBehaviourNode`, `BehaviourRegistry`);
+  Conditions und Actions werden per Name aus der Registry aufgeloest
+- Mod-Loader scannt `Mods/` zur Laufzeit, laedt Assemblies in dieselbe AppDomain,
+  liest `mod.json` und loest Abhaengigkeiten auf
+- Jede Mod erhaelt einen eigenen `IModContext` mit `AssetBasePath` als Wurzel fuer Assets
+- `VoxelEngine.Game` ist eine Mod - keine Sonder-Privilegien gegenueber externen Mods
+- Der Launcher referenziert nur `VoxelEngine.Engine` - keinerlei Spiellogik
 
 ## Koordinaten-System
 - Chunk-Koordinate: `Math.Floor(worldCoord / Chunk.Width)`
@@ -77,5 +61,3 @@ mod.json pro Mod:
 
 ## Neue Debug-Kommandos
 Jedes Kommando als eigene Klasse in `Core/Debug/Commands/` - nie inline.
-
-

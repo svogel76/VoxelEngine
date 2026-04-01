@@ -8,7 +8,7 @@
 
 ---
 
-## Naechster Meilenstein - Mod/Plugin-System [HOECHSTE PRIORITAET]
+## Mod/Plugin-System Meilenstein [Erledigt]
 
 > Ziel: Das Spiel ist eine Mod. Engine und Mods kennen sich nur ueber VoxelEngine.Api.
 > Alles andere baut darauf auf - Content, Behaviour, Story, externe Mods.
@@ -20,31 +20,31 @@
 - [Erledigt] Neue Interfaces: `IGameMod`, `IModContext`, `IEntity`, `IComponent`, `IBehaviour`
 - [Erledigt] Engine referenziert Api. Game referenziert Api. Beide kennen sich nur ueber Api.
 
-### Schritt 2 - Component System [Hoch]
-- `IComponent` als Basisinterface in Api
-- Konkrete Komponenten: `HealthComponent`, `PhysicsComponent`,
+### Schritt 2 - Component System [Erledigt]
+- [Erledigt] `IComponent` als Basisinterface in Api
+- [Erledigt] Konkrete Komponenten: `HealthComponent`, `PhysicsComponent`,
   `AIComponent`, `DropComponent`, `RenderComponent`
-- Entity-Definition in JSON referenziert Komponenten per Name
-- Ersetzt direkte Vererbungs-Hierarchie
+- [Erledigt] Entity-Definition in JSON referenziert Komponenten per Name
+- [Erledigt] Ersetzt direkte Vererbungs-Hierarchie
 
-### Schritt 3 - Behaviour Trees in JSON [Mittel]
-- AI-Logik data-driven statt hardcodiertem Zustands-Automat
-- Bausteine: Conditions (`player_near`, `health_low`),
-  Actions (`flee`, `wander`, `idle`, `attack`)
-- Komposition in Entity-JSON
-- Neue Behaviours ohne Engine-Rebuild moeglich
+### Schritt 3 - Behaviour Trees in JSON [Erledigt]
+- [Erledigt] AI-Logik data-driven statt hardcodiertem Zustands-Automat
+- [Erledigt] Bausteine: Conditions (`player_near`, `health_low`, `is_night`, `is_day`),
+  Actions (`flee`, `wander`, `idle`)
+- [Erledigt] Komposition in Entity-JSON
+- [Erledigt] Neue Behaviours ohne Engine-Rebuild moeglich
 
-### Schritt 4 - Mod-Loader + IGameMod [Hoch]
-- Engine laedt DLLs zur Laufzeit aus `Mods/`-Ordner
-- `mod.json` Manifest pro Mod (id, name, version, dependencies)
-- `VoxelEngine.Game` wird zur ersten Mod-DLL
-- Mod-Reihenfolge und Abhaengigkeiten werden aufgeloest
+### Schritt 4 - Mod-Loader + IGameMod [Erledigt]
+- [Erledigt] Engine laedt DLLs zur Laufzeit aus `Mods/`-Ordner
+- [Erledigt] `mod.json` Manifest pro Mod (id, name, version, dependencies)
+- [Erledigt] `VoxelEngine.Game` ist die erste Mod-DLL (Ausgabe: `Mods/VoxelGame/`)
+- [Erledigt] Mod-Reihenfolge und Abhaengigkeiten werden aufgeloest
 
-### Schritt 5 - Launcher extrahieren [Mittel]
-- Neues Executable `VoxelEngine.Launcher`
-- Laedt Engine, scannt Mods/, startet EngineRunner
-- `VoxelEngine.Game` wird von Executable zu DLL
-- Program.cs enthaelt nur noch Bootstrap-Code
+### Schritt 5 - Launcher extrahieren [Erledigt]
+- [Erledigt] Neues Executable `VoxelEngine.Launcher`
+- [Erledigt] Laedt Engine, scannt Mods/, startet EngineRunner (2-Zeilen Bootstrap)
+- [Erledigt] `VoxelEngine.Game` ist reine Class Library (kein Executable)
+- [Erledigt] `VoxelEngine.Launcher` referenziert nur `VoxelEngine.Engine`
 
 ---
 
@@ -116,6 +116,11 @@
 - [Erledigt] Block-Definitionen data-driven (`Assets/Blocks/*.json`, `blocks.manifest.json`)
 - [Erledigt] EngineSettings data-driven (`Assets/engine.json`)
 - [Erledigt] Key Bindings data-driven (`Assets/keybindings.json`)
+- [Erledigt] Component System (`IComponent`, Entity als Komposition)
+- [Erledigt] Behaviour Trees (`IBehaviourNode`, `BehaviourRegistry`, JSON-driven)
+- [Erledigt] Mod-Loader + `IGameMod` (`Mods/`-Ordner, `mod.json`, Lifecycle)
+- [Erledigt] `VoxelEngine.Launcher` als eigenstaendiger Bootstrap
+- [Erledigt] `VoxelEngine.Api` als oeffentliche Vertragsschicht
 - [Nice-to-have] Asset-Management System
 - [Nice-to-have] LOD (entfernte Chunks vereinfacht)
 
@@ -190,7 +195,11 @@
 
 ## Empfohlene Reihenfolge
 ```
-Jetzt:       Mod/Plugin-System (Schritt 1-5 oben)
-Dann:        Phase 7 - offene Gameplay-Items + Vegetation
+Erledigt:    Mod/Plugin-System Meilenstein (Schritte 1-5)
+Jetzt:       Phase 7 - offene Gameplay-Items
+               - Block-Pickup (Abbauen -> Inventar)
+               - Dekrement beim Platzieren
+               - Fog-Command Inversion Bug
+Dann:        Phase 7 - Vegetation + Tiere vervollstaendigen
 Langfristig: Phase 8 - Multiplayer
 ```
