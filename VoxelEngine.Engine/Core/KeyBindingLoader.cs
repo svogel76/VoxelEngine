@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace VoxelEngine.Game;
+namespace VoxelEngine.Core;
 
 public static class KeyBindingLoader
 {

@@ -4,7 +4,6 @@ using System.Numerics;
 using VoxelEngine.Core;
 using VoxelEngine.Entity.Components;
 using VoxelEngine.Entity.Models;
-using VoxelEngine.Game;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
@@ -88,4 +87,5 @@ public class GameContextTests
         public IVoxelModelDefinition GetModel(string modelId)            => _model;
     }
 }
+
 

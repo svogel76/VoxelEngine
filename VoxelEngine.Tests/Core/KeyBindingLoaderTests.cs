@@ -1,5 +1,5 @@
 using FluentAssertions;
-using VoxelEngine.Game;
+using VoxelEngine.Core;
 
 namespace VoxelEngine.Tests.Core;
 
@@ -125,3 +125,4 @@ public sealed class KeyBindingLoaderTests : IDisposable
         File.WriteAllText(Path.Combine(_tempRoot, "keybindings.json"), content);
     }
 }
+

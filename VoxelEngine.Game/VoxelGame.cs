@@ -1,16 +1,37 @@
+using VoxelEngine.Api;
+using VoxelEngine.Api.Entity;
 using VoxelEngine.Game.Blocks;
 
 namespace VoxelEngine.Game;
 
-public sealed class VoxelGame : IGameMod
+public sealed class VoxelGame : IGameMod, IModAssetAware
 {
-    public void RegisterBlocks(IBlockRegistry registry)
+    private string _assetBasePath = Path.GetFullPath(Path.Combine("Mods", "VoxelGame", "Assets"));
+
+    public string Id => "voxelgame";
+
+    public void SetAssetBasePath(string assetBasePath)
     {
-        new BlockDefinitionLoader("Assets/").LoadInto(registry);
+        ArgumentException.ThrowIfNullOrWhiteSpace(assetBasePath);
+        _assetBasePath = Path.GetFullPath(assetBasePath);
     }
 
-    public void Initialize(IGameContext context)
+    public void RegisterComponents(IComponentRegistry registry)
     {
+    }
+
+    public void RegisterBehaviours(IBehaviourRegistry registry)
+    {
+    }
+
+    public void RegisterBlocks(IBlockRegistry registry)
+    {
+        new BlockDefinitionLoader(_assetBasePath).LoadInto(registry);
+    }
+
+    public void Initialize(IModContext context)
+    {
+        _assetBasePath = context.AssetBasePath;
     }
 
     public void Update(double deltaTime)

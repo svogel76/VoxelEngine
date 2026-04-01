@@ -1,0 +1,7 @@
+{
+  "id": "voxelgame",
+  "name": "VoxelGame",
+  "version": "1.0.0",
+  "entry_class": "VoxelEngine.Game.VoxelGame",
+  "dependencies": []
+}

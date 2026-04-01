@@ -10,6 +10,16 @@ internal static class TestBootstrap
     internal static void Initialize()
     {
         BlockRegistry.Clear();
-        new BlockDefinitionLoader("Assets/").LoadInto(BlockRegistryAdapter.Instance);
+
+        string candidate = Path.GetFullPath(Path.Combine("Mods", "VoxelGame", "Assets"));
+        if (!Directory.Exists(candidate))
+        {
+            candidate = Path.GetFullPath(Path.Combine(
+                AppContext.BaseDirectory,
+                "..", "..", "..", "..",
+                "Mods", "VoxelGame", "Assets"));
+        }
+
+        new BlockDefinitionLoader(candidate).LoadInto(BlockRegistryAdapter.Instance);
     }
 }

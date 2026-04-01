@@ -1,4 +1,4 @@
-namespace VoxelEngine.Game;
+namespace VoxelEngine.Core;
 
 public sealed class KeyBindings : IKeyBindings
 {

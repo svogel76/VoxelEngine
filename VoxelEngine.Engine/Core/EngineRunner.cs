@@ -8,34 +8,61 @@ namespace VoxelEngine.Core;
 
 public sealed class EngineRunner
 {
-    private readonly EngineSettings _settings;
-    private readonly IKeyBindings _keyBindings;
+    private readonly EngineSettings? _settingsOverride;
+    private readonly IKeyBindings? _keyBindingsOverride;
+
+    public EngineRunner()
+    {
+    }
 
     public EngineRunner(EngineSettings settings, IKeyBindings keyBindings)
     {
-        _settings = settings;
-        _keyBindings = keyBindings;
+        _settingsOverride = settings;
+        _keyBindingsOverride = keyBindings;
     }
 
-    public void Run(IGameMod game)
+    public void Run(IReadOnlyList<IGameMod> mods)
     {
-        ArgumentNullException.ThrowIfNull(game);
+        ArgumentNullException.ThrowIfNull(mods);
+        if (mods.Count == 0)
+            throw new InvalidOperationException("At least one mod must be loaded before running the engine.");
+
+        IGameMod primaryMod = mods[0];
+        string primaryAssetBasePath = ResolveAssetBasePath(primaryMod);
+        EngineSettings settings = _settingsOverride ?? EngineSettings.LoadFrom(primaryAssetBasePath);
+        IKeyBindings keyBindings = _keyBindingsOverride ?? KeyBindingLoader.LoadFrom(primaryAssetBasePath);
 
         BlockRegistry.Clear();
-        RegisterEngineComponents();
+        RegisterEngineComponents(settings);
         RegisterEngineBehaviours();
-        game.RegisterBlocks(BlockRegistryAdapter.Instance);
 
-        using var engine = new Engine(_settings, _keyBindings, game);
+        foreach (IGameMod mod in mods)
+            mod.RegisterComponents(EngineModContext.Registry);
+
+        foreach (IGameMod mod in mods)
+            mod.RegisterBehaviours(EngineModContext.BehaviourTreeRegistry);
+
+        foreach (IGameMod mod in mods)
+            mod.RegisterBlocks(BlockRegistryAdapter.Instance);
+
+        using var engine = new Engine(settings, keyBindings, mods, primaryAssetBasePath);
         engine.Run();
     }
 
-    private void RegisterEngineComponents()
+    private static string ResolveAssetBasePath(IGameMod mod)
+    {
+        if (mod is ModLoader.IModAssetProvider assetProvider)
+            return assetProvider.AssetBasePath;
+
+        return Path.GetFullPath(Path.Combine("Mods", mod.Id, "Assets"));
+    }
+
+    private static void RegisterEngineComponents(EngineSettings settings)
     {
         var registry = EngineModContext.Registry;
 
         registry.Register("health", config => HealthComponent.FromJson(config));
-        registry.Register("physics", config => PhysicsComponent.FromJson(config, null!, _settings));
+        registry.Register("physics", config => PhysicsComponent.FromJson(config, null!, settings));
         registry.Register("ai", config => AIComponent.FromJson(config, EngineModContext.BehaviourTreeRegistry));
         registry.Register("drops", config => DropComponent.FromJson(config));
         registry.Register("render", config => RenderComponent.FromJson(config));

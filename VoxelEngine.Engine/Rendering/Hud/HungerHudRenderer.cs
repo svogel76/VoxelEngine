@@ -22,10 +22,10 @@ public sealed class HungerHudRenderer : IHudRenderer
     private const float IconSize = 9f;
     private const float IconGap  = 2f;
 
-    public HungerHudRenderer(GL gl, EngineSettings settings, int windowWidth, int windowHeight)
+    public HungerHudRenderer(GL gl, EngineSettings settings, int windowWidth, int windowHeight, string fontPath)
     {
         _settings = settings;
-        var font  = new BitmapFont(gl, "Assets/Fonts/font.png");
+        var font  = new BitmapFont(gl, fontPath);
         _text     = new TextRenderer(gl, font, windowWidth, windowHeight);
     }
 
@@ -113,3 +113,4 @@ public sealed class HungerHudRenderer : IHudRenderer
         GC.SuppressFinalize(this);
     }
 }
+
