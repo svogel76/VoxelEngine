@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>VoxelEngine.Launcher</AssemblyName>
+    <!-- Ausgabe ins Solution-Root neben Mods/ -->
+    <OutputPath>..\Run\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!-- Nur Engine — kein Game, kein Api -->
+  <ItemGroup>
+    <ProjectReference Include="..\VoxelEngine.Engine\VoxelEngine.Engine.csproj" />
+  </ItemGroup>
+
+  <!-- Game muss vor Launcher gebaut sein (Mods/VoxelGame/VoxelGame.dll) -->
+  <ItemGroup>
+    <ProjectReference Include="..\VoxelEngine.Game\VoxelEngine.Game.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

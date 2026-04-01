@@ -4,6 +4,7 @@
 # Build-Ausgaben
 bin/
 obj/
+Run/
 
 # User-spezifische Visual Studio Dateien
 *.user

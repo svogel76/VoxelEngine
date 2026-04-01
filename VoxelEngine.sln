@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelEngine.Api", "VoxelEng
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelEngine.Game", "VoxelEngine.Game\VoxelEngine.Game.csproj", "{A9BCC73D-F5B5-4BB4-BCF1-F43FB617F93E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelEngine.Launcher", "VoxelEngine.Launcher\VoxelEngine.Launcher.csproj", "{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VoxelEngine.Tests", "VoxelEngine.Tests\VoxelEngine.Tests.csproj", "{37EF0E78-152A-42F0-8FF6-136768BC5B8D}"
 EndProject
 Global
@@ -56,6 +58,18 @@ Global
 		{A9BCC73D-F5B5-4BB4-BCF1-F43FB617F93E}.Release|x64.Build.0 = Release|Any CPU
 		{A9BCC73D-F5B5-4BB4-BCF1-F43FB617F93E}.Release|x86.ActiveCfg = Release|Any CPU
 		{A9BCC73D-F5B5-4BB4-BCF1-F43FB617F93E}.Release|x86.Build.0 = Release|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Debug|x64.Build.0 = Debug|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Debug|x86.Build.0 = Debug|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Release|x64.ActiveCfg = Release|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Release|x64.Build.0 = Release|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Release|x86.ActiveCfg = Release|Any CPU
+		{B1E2F3A4-C5D6-47E8-9F0A-1B2C3D4E5F6A}.Release|x86.Build.0 = Release|Any CPU
 		{37EF0E78-152A-42F0-8FF6-136768BC5B8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{37EF0E78-152A-42F0-8FF6-136768BC5B8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{37EF0E78-152A-42F0-8FF6-136768BC5B8D}.Debug|x64.ActiveCfg = Debug|Any CPU
