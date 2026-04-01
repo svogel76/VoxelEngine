@@ -3,6 +3,6 @@
   "terrain": { "baseHeight": 62, "amplitude": 10, "frequency": 0.006, "octaves": 3 },
   "blocks": { "surface": "sand", "subsurface": "sand", "stone": "stone", "sea": "water" },
   "snowLine": 2147483647,
-  "trees": { "density": 0.003, "template": "cactus" },
+  "trees": { "density": 0.004, "template": "cactus" },
   "spawns": []
 }

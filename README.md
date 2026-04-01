@@ -1,73 +1,123 @@
 # VoxelEngine
 
-> Eine prozedural generierte Voxel-Engine im Minecraft-Stil, gebaut mit C# und OpenGL (Silk.NET). Schwerpunkte: performantes Greedy-Meshing, dynamischer Tageszyklus mit Atmosphäre, multithreading-basierte Chunk-Verwaltung sowie eine saubere Engine/Game-Trennung für Wiederverwendbarkeit und Testbarkeit.
+> Eine prozedural generierte Voxel-Engine im Minecraft-Stil, gebaut mit C# und OpenGL (Silk.NET). Schwerpunkte: performantes Greedy-Meshing, dynamischer Tageszyklus mit Atmosphäre, multithreading-basierte Chunk-Verwaltung sowie eine saubere Engine/Mod-Trennung — das Spiel selbst ist eine Mod.
 
 ## 🗂 Projektstruktur
 
 ```
 VoxelEngine.sln
+├── VoxelEngine.Api/                  # Interfaces only — keine Implementierung
+│   └── IGameMod, IGameContext, IComponent, IBehaviourNode, IModContext, ...
+│
 ├── VoxelEngine.Engine/               # Class Library — wiederverwendbarer Engine-Kern
 │   ├── Assets/
 │   │   └── Shaders/                  # GLSL-Shader (embedded resource)
 │   ├── Core/                         # Game Loop, Input, Konfiguration, HUD-Framework
 │   │   └── Debug/
 │   │       └── Commands/             # Debug-Konsolen-Befehle
-│   ├── Entity/                       # Entity-Basisklassen, EntityManager
+│   ├── Entity/                       # Entity, EntityManager, IComponent-Implementierungen
 │   ├── Persistence/                  # IWorldPersistence, LocalFilePersistence
 │   ├── Rendering/                    # OpenGL-Rendering (Shader, Mesh, Renderer, Skybox)
 │   ├── World/                        # Chunks, Generator, Physik, Registries
-│   ├── IGame.cs                      # Zentraler Vertrag zwischen Engine und Spiel
-│   ├── IGameContext.cs               # Engine-Zugriff für das Spiel (World, Input, Registry)
-│   ├── IBlockRegistry.cs
-│   ├── IWorldAccess.cs
-│   ├── IInputState.cs
-│   └── EngineRunner.cs               # Lifecycle-Steuerung (RegisterBlocks → Init → Loop → Shutdown)
+│   ├── BehaviourRegistry.cs          # IBehaviourNode-Lookup (Conditions + Actions)
+│   └── EngineRunner.cs               # Lifecycle (RegisterBlocks → Init → Loop → Shutdown)
 │
-├── VoxelEngine.Game/                 # Executable — spielspezifischer Code
-│   ├── Assets/                       # Texturen, hud.json, Fonts
+├── VoxelEngine.Game/                 # Mod-DLL → Mods/VoxelGame/VoxelGame.dll
+│   ├── Assets/                       # Texturen, hud.json, Fonts, Keybindings
 │   ├── Blocks/                       # BlockDefinitions & Registrierung
-│   ├── VoxelGame.cs                  # IGame-Implementierung
-│   └── Program.cs                    # Einstiegspunkt: new EngineRunner().Run(new VoxelGame())
+│   └── VoxelGame.cs                  # IGameMod-Implementierung
 │
-└── VoxelEngine.Tests/                # xUnit + FluentAssertions
-    └── Mocks/
-        ├── MinimalTestGame.cs        # No-Op IGame-Stub für Unit Tests
-        └── TestBootstrap.cs          # Block-Registrierung für Tests
+├── VoxelEngine.Launcher/             # Executable — 2-Zeilen Bootstrap
+│   └── Program.cs                    # ModLoader().LoadAll() + EngineRunner().Run()
+│
+├── VoxelEngine.Tests/                # xUnit + FluentAssertions
+│   └── Mocks/
+│       ├── MinimalTestGame.cs        # No-Op IGameMod-Stub
+│       └── TestBootstrap.cs          # Block-Registrierung fuer Tests
+│
+├── Mods/
+│   └── VoxelGame/                    # Laufzeit-Ausgabe von VoxelEngine.Game
+│       ├── VoxelGame.dll
+│       ├── mod.json
+│       └── Assets/
+│
+└── Run/                              # Startverzeichnis von VoxelEngine.Launcher (gitignored)
 ```
 
 ## 🏛 Architektur-Überblick
 
-### Engine/Game-Trennung
+### Engine/Mod-Trennung
 
-Die Engine (`VoxelEngine.Engine.dll`) ist ein eigenständiges Class Library ohne spielspezifischen Code. Ein Spiel implementiert das `IGame`-Interface und übergibt sich selbst dem `EngineRunner`:
+Die Engine (`VoxelEngine.Engine.dll`) kennt keinerlei spielspezifischen Code. Mods implementieren `IGameMod` aus `VoxelEngine.Api` — der einzigen Abhängigkeit für alle Mods:
 
 ```csharp
-// Program.cs
-new EngineRunner().Run(new VoxelGame());
+// Program.cs (VoxelEngine.Launcher)
+var mods = new ModLoader().LoadAll("Mods/");
+new EngineRunner().Run(mods);
 ```
 
 Der `EngineRunner` steuert den vollständigen Lifecycle:
 
 ```
 RegisterBlocks(IBlockRegistry)
-  → Initialize(IGameContext)
-    → Update(deltaTime) + Render(deltaTime)  [Game Loop]
-      → Shutdown()
+  → RegisterComponents(IComponentRegistry)
+    → RegisterBehaviours(IBehaviourRegistry)
+      → Initialize(IGameContext)
+        → Update(deltaTime) + Render(deltaTime)  [Game Loop]
+          → Shutdown()
 ```
 
-Das Spiel kommuniziert mit der Engine ausschließlich über Interfaces (`IGameContext`, `IBlockRegistry`, `IWorldAccess`, `IInputState`) — nie direkt über Engine-Klassen.
+### Component System
 
-### IGame-Interface
+Alle Entities sind plain `Entity`-Instanzen, zusammengesetzt aus `IComponent`-Implementierungen. Keine Vererbungshierarchie — Verhalten kommt aus Komponenten:
 
-```csharp
-public interface IGame {
-    void RegisterBlocks(IBlockRegistry registry);
-    void Initialize(IGameContext context);
-    void Update(double deltaTime);
-    void Render(double deltaTime);
-    void Shutdown();
+```json
+{
+  "type": "animal",
+  "components": [
+    { "type": "health", "max": 10 },
+    { "type": "physics", "mass": 1.0 },
+    { "type": "ai", "behaviour_tree": "wander_flee" },
+    { "type": "drops", "items": ["wood"] },
+    { "type": "render", "model": "cow.vox" }
+  ]
 }
 ```
+
+Neue Komponenten werden per `IComponentRegistry.Register(name, factory)` angemeldet — keine Engine-Änderung nötig.
+
+### Behaviour Trees
+
+AI-Logik ist datengetrieben via JSON — kein hardcodierter Zustands-Automat. Conditions und Actions werden per Name aus der `BehaviourRegistry` aufgelöst:
+
+```json
+{
+  "type": "selector",
+  "children": [
+    { "type": "sequence", "children": [
+      { "type": "player_near", "radius": 8 },
+      { "type": "flee", "speed": 4.0, "radius": 12 }
+    ]},
+    { "type": "wander", "speed": 1.5, "radius": 20, "pause_seconds": 3 }
+  ]
+}
+```
+
+Neue Conditions/Actions via `IBehaviourRegistry.RegisterCondition/RegisterAction` — kein Rebuild.
+
+### Mod System
+
+`ModLoader` scannt `Mods/` zur Laufzeit, liest `mod.json` (id, name, version, dependencies), löst die Ladereihenfolge auf und lädt Assemblies in dieselbe AppDomain. Jede Mod erhält einen `IModContext` mit `AssetBasePath`:
+
+```
+Mods/
+  VoxelGame/
+    VoxelGame.dll    ← implementiert IGameMod
+    mod.json         ← { "id": "voxelgame", "version": "1.0.0", "dependencies": [] }
+    Assets/          ← alles relativ zu AssetBasePath
+```
+
+`VoxelEngine.Game` ist eine gewöhnliche Mod — keine Sonder-Privilegien.
 
 ### Chunk-System
 
@@ -91,11 +141,11 @@ Der `GreedyMeshBuilder` verwendet einen 3-Achsen-Sweep, der benachbarte, identis
 
 ### Persistenz
 
-`IWorldPersistence` abstrahiert die Speicherebene. `LocalFilePersistence` schreibt binäre Region-Dateien (VXP4-Format). `InMemoryPersistence` dient für Tests. Dirty-Flag-System (`Chunk.PlayerEdits`, `IsDirty`) stellt sicher, dass nur veränderte Chunks geschrieben werden.
+`IWorldPersistence` abstrahiert die Speicherebene. `LocalFilePersistence` schreibt binäre Region-Dateien (VXP5-Format). `InMemoryPersistence` dient für Tests. Dirty-Flag-System (`Chunk.PlayerEdits`, `IsDirty`) stellt sicher, dass nur veränderte Chunks geschrieben werden.
 
 ### Entity-System
 
-`EntityManager` verwaltet Entities mit Spatial Hashing und Frustum-Culling. Entities nutzen eine Zustands-Maschine (Idle/Wander/Flee) mit tag-/nachtzeitabhängigem Verhalten. Spawn-Konfiguration erfolgt datengetrieben über Klimazonen-JSON.
+`EntityManager` verwaltet Entities mit Spatial Hashing und Frustum-Culling. Entities sind Kompositionen aus `IComponent`-Instanzen; AI-Verhalten läuft über datengetriebene Behaviour Trees. Spawn-Konfiguration erfolgt über Klimazonen-JSON.
 
 ### Beleuchtung & Atmosphäre
 
@@ -118,7 +168,7 @@ git clone https://github.com/svogel76/VoxelEngine
 cd VoxelEngine
 
 dotnet build
-dotnet run --project VoxelEngine.Game/VoxelEngine.Game.csproj
+dotnet run --project VoxelEngine.Launcher/VoxelEngine.Launcher.csproj
 ```
 
 **Tests**
@@ -137,7 +187,7 @@ dotnet test VoxelEngine.Tests/VoxelEngine.Tests.csproj
 | Linke Maustaste | Block abbauen |
 | Rechte Maustaste | Block platzieren |
 | 1–9 / Mausrad | Hotbar-Slot wählen |
-| Tab | Inventar öffnen/schließen |
+| E | Inventar öffnen/schließen |
 | Escape | Pause-Menü |
 | F1 | Debug-Konsole öffnen/schließen |
 
@@ -147,14 +197,14 @@ In der Konsole `help` eingeben für eine Liste aller Befehle.
 
 | Dokument | Beschreibung |
 |---|---|
-| [Backlog.md](VoxelEngine.Engine/Backlog.md) | Offene Aufgaben & priorisierte Features nach Phasen |
-| [Claude.md](VoxelEngine.Engine/Claude.md) | Architekturentscheidungen & Konventionen |
-| [Docs/Rendering/AmbientOcclusion.md](VoxelEngine.Engine/Docs/Rendering/AmbientOcclusion.md) | Vertex-AO-Implementierung |
-| [Docs/Rendering/Fog.md](VoxelEngine.Engine/Docs/Rendering/Fog.md) | Linearer Nebel: Parameter, Farbmischung |
-| [Docs/Rendering/GreedyMeshing.md](VoxelEngine.Engine/Docs/Rendering/GreedyMeshing.md) | 3-Achsen-Sweep, UV-Kachelung |
-| [Docs/Rendering/MultiThreading.md](VoxelEngine.Engine/Docs/Rendering/MultiThreading.md) | Producer-Consumer-Muster, GPU-Upload |
-| [Docs/World/ClimateZones.md](VoxelEngine.Engine/Docs/World/ClimateZones.md) | Klimazonen (Temperatur, Feuchtigkeit, Köppen) |
-| [Docs/World/WorldTime.md](VoxelEngine.Engine/Docs/World/WorldTime.md) | 24-Stunden-Uhr, Tageszyklus |
+| [Backlog.md](Backlog.md) | Offene Aufgaben & priorisierte Features nach Phasen |
+| [Claude.md](Claude.md) | Architekturentscheidungen & Konventionen |
+| [VoxelEngine.Engine/Docs/Rendering/AmbientOcclusion.md](VoxelEngine.Engine/Docs/Rendering/AmbientOcclusion.md) | Vertex-AO-Implementierung |
+| [VoxelEngine.Engine/Docs/Rendering/Fog.md](VoxelEngine.Engine/Docs/Rendering/Fog.md) | Linearer Nebel: Parameter, Farbmischung |
+| [VoxelEngine.Engine/Docs/Rendering/GreedyMeshing.md](VoxelEngine.Engine/Docs/Rendering/GreedyMeshing.md) | 3-Achsen-Sweep, UV-Kachelung |
+| [VoxelEngine.Engine/Docs/Rendering/MultiThreading.md](VoxelEngine.Engine/Docs/Rendering/MultiThreading.md) | Producer-Consumer-Muster, GPU-Upload |
+| [VoxelEngine.Engine/Docs/World/ClimateZones.md](VoxelEngine.Engine/Docs/World/ClimateZones.md) | Klimazonen (Temperatur, Feuchtigkeit, Köppen) |
+| [VoxelEngine.Engine/Docs/World/WorldTime.md](VoxelEngine.Engine/Docs/World/WorldTime.md) | 24-Stunden-Uhr, Tageszyklus |
 
 ## 🔧 Technologien
 
@@ -173,17 +223,20 @@ Laufzeitumgebung: **.NET 10.0**, Sprache: **C# 13** mit aktivierter Nullable-Ana
 ## 📋 Status
 
 **Abgeschlossen**
-- Engine/Game-Trennung: `VoxelEngine.Engine` (DLL) + `VoxelEngine.Game` (EXE)
-- `IGame`-Interface mit `EngineRunner`-Lifecycle
+- Engine/Mod-Trennung: `VoxelEngine.Api` (Interfaces), `VoxelEngine.Engine` (Kern), `VoxelEngine.Game` (Mod-DLL), `VoxelEngine.Launcher` (Bootstrap-Exe)
+- Mod/Plugin-System vollständig: `ModLoader`, `IGameMod`, `mod.json`, `IModContext` mit `AssetBasePath`
+- Component System: `IComponent`, `HealthComponent`, `PhysicsComponent`, `AIComponent`, `DropComponent`, `RenderComponent`
+- Behaviour Trees: `IBehaviourNode`, `BehaviourRegistry`, JSON-datengetrieben
 - Engine-Loop, Kamera, Eingabe, Shader-System (Shader als Embedded Resources)
 - Chunk-Struktur, Weltgenerator, Noise-basiertes Terrain, Klimazonen
 - Greedy-Meshing mit Ambient-Occlusion, Frustum-Culling, Diffuse-Beleuchtung
-- Multithreading (Hintergrund-Generierung + Meshing), Chunk-Persistenz (VXP4)
+- Multithreading (Hintergrund-Generierung + Meshing), Chunk-Persistenz (VXP5)
 - Debug-Konsole, HUD-Framework (JSON-konfigurierbar), Bitmap-Font
 - Prozeduraler Himmel, Tageszyklus, Sonne/Mond/Sterne, Nebel, Transparenz
 - Inventar (Hotbar, Drag & Drop, Equipment-Slots), Health/Hunger-System
-- Entity-System mit Spatial Hashing, `.vox`-Rendering, Bewegungs-KI
+- Entity-System mit Spatial Hashing, `.vox`-Rendering, Komponenten-AI
 
 **In Arbeit (Phase 7)**
 - Block-Pickup (Abbauen → Inventar) und Dekrement beim Platzieren
-- Verbleibende Entity/AI-Features
+- Fog-Command Inversion Bug
+- Verbleibende Vegetation + Tier-Features

@@ -300,12 +300,16 @@ public sealed class ClimateSystem
     private static TreeTemplate ResolveTreeTemplate(string templateName, string climateId)
         => templateName.ToLowerInvariant() switch
         {
-            "oak" => TreeTemplate.Oak(),
-            "spruce" => TreeTemplate.Spruce(),
-            "cactus" => TreeTemplate.Cactus(),
-            "palm" => TreeTemplate.Palm(),
-            "acacia" => TreeTemplate.Acacia(),
-            "shrub" => TreeTemplate.Shrub(),
+            "oak"          => TreeTemplate.Oak(),
+            "large_oak"    => TreeTemplate.LargeOak(),
+            "spruce"       => TreeTemplate.Spruce(),
+            "tall_spruce"  => TreeTemplate.TallSpruce(),
+            "cactus"       => TreeTemplate.Cactus(),
+            "palm"         => TreeTemplate.Palm(),
+            "tropical"     => TreeTemplate.Tropical(),
+            "mega_tropical"=> TreeTemplate.MegaTropical(),
+            "acacia"       => TreeTemplate.Acacia(),
+            "shrub"        => TreeTemplate.Shrub(),
             _ => throw new FormatException($"Climate zone '{climateId}' references unknown tree template '{templateName}'.")
         };
 

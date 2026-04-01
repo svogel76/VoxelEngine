@@ -186,8 +186,10 @@ public class WorldGenerator
         if (zone.TreeTemplate.Name != "cactus")
             return zone.TreeTemplate;
 
+        // Kakteen: 3, 5, 7 oder 9 Blöcke hoch (gewichtet zu mehr Mittelgröße)
         var rng = CreateTreeRandom(worldX, worldZ, TreeTemplateSalt);
-        return TreeTemplate.Cactus(rng.Next(3, 6));
+        int height = rng.Next(10) switch { < 2 => 3, < 5 => 5, < 8 => 7, _ => 9 };
+        return TreeTemplate.Cactus(height);
     }
 
     private Random CreateTreeRandom(int worldX, int worldZ, int salt)
