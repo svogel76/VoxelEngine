@@ -3,15 +3,15 @@ namespace VoxelEngine.World;
 public sealed class ClimateSystem
 {
     private const string DefaultClimateDirectory = "Assets/Climate";
-    private const float TemperatureLatitudeSpan = 1800f;
-    private const float TemperatureNoiseFrequency = 0.0011f;
-    private const float TemperatureNoiseStrength = 0.20f;
-    private const float HumidityNoiseFrequency = 0.0014f;
+    private const float TemperatureLatitudeSpan = 3600f;   // doppelt so großräumige Klimazonen
+    private const float TemperatureNoiseFrequency = 0.0008f; // langsamere Übergangs-Noise
+    private const float TemperatureNoiseStrength = 0.18f;
+    private const float HumidityNoiseFrequency = 0.0010f;
     private const float ColdTemperateBoundary = 0.38f;
     private const float TemperateHotBoundary = 0.68f;
-    private const float TemperatureBlendWidth = 0.06f;
+    private const float TemperatureBlendWidth = 0.10f;    // sanftere Übergänge
     private const float HumidityBoundary = 0.52f;
-    private const float HumidityBlendWidth = 0.18f;
+    private const float HumidityBlendWidth = 0.24f;       // breitere Blend-Zonen
     private const int ClimateSeedOffset = 10_000;
 
     private readonly FastNoiseLite _temperatureNoise;
