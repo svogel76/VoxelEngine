@@ -152,8 +152,9 @@ public class Engine : IDisposable
         playerPhys.EyeOffset = _settings.EyeHeight;
         playerEntity.AddComponent(playerPhys);
         playerEntity.AddComponent(new Entity.Components.HealthComponent(20f));
-        playerEntity.AddComponent(new Entity.Components.InputComponent(
-            input, _keyBindings, camera, _settings.MovementSpeed, _settings.JumpVelocity));
+        var inputComponent = new Entity.Components.InputComponent(
+            input, _keyBindings, camera, _settings.MovementSpeed, _settings.JumpVelocity, _settings.FlySpeed);
+        playerEntity.AddComponent(inputComponent);
         playerEntity.AddComponent(new Entity.Components.CameraComponent(camera));
 
         // Spielerstand + Welt-Metadaten laden (falls vorhanden)
@@ -187,6 +188,8 @@ public class Engine : IDisposable
         _context.Console.Register(new HudCommand(_context.HudRegistry));
         _context.Console.Register(new EntityCommand());
         _context.Console.Register(new DamageCommand());
+        _context.Console.Register(new SpeedCommand(inputComponent));
+        _context.Console.Register(new FlySpeedCommand(inputComponent));
 
         _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight, Path.Combine(_primaryAssetBasePath, "Fonts", "font.png"));
 
