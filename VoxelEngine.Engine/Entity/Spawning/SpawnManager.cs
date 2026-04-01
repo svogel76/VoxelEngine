@@ -23,7 +23,6 @@ public sealed class SpawnManager
     private readonly Random _random;
     private readonly Dictionary<(string ZoneId, string EntityId), double> _spawnTimers = new();
     private readonly Dictionary<Entity, ManagedSpawnState> _managedSpawnStates = new();
-    private bool? _lastIsDay;
     private double _spawnTickAccumulator;
 
     public SpawnManager(
@@ -54,27 +53,23 @@ public sealed class SpawnManager
         if (settings.EntityDespawnProtectionRadius < 0f)
             throw new ArgumentOutOfRangeException(nameof(settings), "Entity despawn protection radius must be non-negative.");
 
-        _world                  = world;
-        _entityManager          = entityManager;
-        _settings               = settings;
-        _generator              = generator;
-        _worldTime              = worldTime;
-        _entityModels           = entityModels;
+        _world = world;
+        _entityManager = entityManager;
+        _settings = settings;
+        _generator = generator;
+        _worldTime = worldTime;
+        _entityModels = entityModels;
         _playerPositionProvider = playerPositionProvider;
-        _frustumProvider        = frustumProvider;
-        _maxSpawnDistance       = settings.MaxSpawnDistance;
-        _spawnTickInterval      = settings.SpawnTickInterval;
+        _frustumProvider = frustumProvider;
+        _maxSpawnDistance = settings.MaxSpawnDistance;
+        _spawnTickInterval = settings.SpawnTickInterval;
         _spawnPlacementAttempts = settings.EntitySpawnPlacementAttempts;
         _despawnProtectionRadius = settings.EntityDespawnProtectionRadius;
-        _random                 = random ?? new Random(settings.Terrain.Seed ^ 0x5F3759DF);
-        _lastIsDay              = worldTime.IsDay;
+        _random = random ?? new Random(settings.Terrain.Seed ^ 0x5F3759DF);
     }
 
     public void Tick(double deltaTime)
     {
-        HandleDayNightTransition();
-        HandleDeferredBurrowTransitions();
-
         if (_spawnPlacementAttempts == 0 || _maxSpawnDistance <= 0f)
             return;
 
@@ -95,7 +90,7 @@ public sealed class SpawnManager
     private void RunPeriodicChecks(double deltaTime)
     {
         Vector3 playerPosition = _playerPositionProvider();
-        ViewFrustum? frustum   = _frustumProvider?.Invoke();
+        ViewFrustum? frustum = _frustumProvider?.Invoke();
 
         DespawnDistantEntities(playerPosition, frustum);
 
@@ -117,7 +112,7 @@ public sealed class SpawnManager
         if (spawnInterval <= 0f)
             return true;
 
-        var key   = (zoneId, entityId);
+        var key = (zoneId, entityId);
         double timer = _spawnTimers.GetValueOrDefault(key) + deltaTime;
         if (timer < spawnInterval)
         {
@@ -144,16 +139,10 @@ public sealed class SpawnManager
             return;
         }
 
-        if (model.Metadata.Behaviour is null)
-            return;
-        if (GetTimeOfDayActivity(model.Metadata.Behaviour, _worldTime) == EntityTimeOfDayActivity.Burrow)
-            return;
-
         if (!TryFindSpawnPosition(zone, spawn, model, playerPosition, frustum, out var spawnPosition))
             return;
 
         var entity = BuildEntityFromModel(model, spawnPosition, new Random(_random.Next()));
-        entity.GetComponent<AIComponent>()?.ApplyTimeOfDay(_worldTime.IsDay);
         entity.GetComponent<PhysicsComponent>()?.SyncPhysics(entity);
 
         _entityManager.Add(entity);
@@ -164,8 +153,7 @@ public sealed class SpawnManager
     {
         var entity = new Entity(model.Id, spawnPosition);
 
-        // PhysicsComponent
-        float width  = model.PlacementBounds.Max.X - model.PlacementBounds.Min.X;
+        float width = model.PlacementBounds.Max.X - model.PlacementBounds.Min.X;
         float height = model.PlacementBounds.Max.Y - model.PlacementBounds.Min.Y;
         var phys = new PhysicsComponent(
             _world,
@@ -177,22 +165,15 @@ public sealed class SpawnManager
             _settings.FallDamageMultiplier);
         entity.AddComponent(phys);
 
-        // AIComponent (needs PhysicsComponent first so Update order is correct)
-        if (model.Metadata.Behaviour is not null)
+        bool hasBehaviourTree = model.Metadata.Ai?.HasBehaviourTree == true;
+        if (hasBehaviourTree)
         {
-            var ai = new AIComponent(
-                _world,
-                model.Metadata.Behaviour,
-                _playerPositionProvider,
-                yawRadians: 0f,
-                random: random);
-            entity.AddComponent(ai);
+            var tree = BehaviourTreeLoader.Load(model.Metadata.Ai!.BehaviourTree, EngineModContext.BehaviourTreeRegistry);
+            entity.AddComponent(new AIComponent(tree));
         }
 
-        // HealthComponent
-        entity.AddComponent(new HealthComponent(model.Metadata.Behaviour is not null ? 8f : 1f));
+        entity.AddComponent(new HealthComponent(hasBehaviourTree ? 8f : 1f));
 
-        // DropComponent
         if (model.Metadata.Drops is { Count: > 0 })
         {
             var drops = model.Metadata.Drops
@@ -201,7 +182,6 @@ public sealed class SpawnManager
             entity.AddComponent(new DropComponent(drops));
         }
 
-        // RenderComponent
         entity.AddComponent(new RenderComponent(model.Id, model.Metadata.Display?.Scale ?? 1f));
 
         entity.IsActive = true;
@@ -218,11 +198,11 @@ public sealed class SpawnManager
     {
         spawnPosition = default;
 
-        float minDistance        = Math.Clamp(spawn.MinSpawnDistance, 0f, _maxSpawnDistance);
+        float minDistance = Math.Clamp(spawn.MinSpawnDistance, 0f, _maxSpawnDistance);
         float minDistanceSquared = minDistance * minDistance;
         float maxDistanceSquared = _maxSpawnDistance * _maxSpawnDistance;
-        float modelHeight        = model.PlacementBounds.Max.Y - model.PlacementBounds.Min.Y;
-        int   requiredHeadroom   = Math.Max(1, (int)MathF.Ceiling(modelHeight));
+        float modelHeight = model.PlacementBounds.Max.Y - model.PlacementBounds.Min.Y;
+        int requiredHeadroom = Math.Max(1, (int)MathF.Ceiling(modelHeight));
 
         for (int attempt = 0; attempt < _spawnPlacementAttempts; attempt++)
         {
@@ -267,9 +247,9 @@ public sealed class SpawnManager
 
     private Vector2 SampleRingOffset(float minDistanceSquared, float maxDistanceSquared)
     {
-        float angle         = _random.NextSingle() * MathF.Tau;
+        float angle = _random.NextSingle() * MathF.Tau;
         float radiusSquared = minDistanceSquared + (maxDistanceSquared - minDistanceSquared) * _random.NextSingle();
-        float radius        = MathF.Sqrt(radiusSquared);
+        float radius = MathF.Sqrt(radiusSquared);
         return new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * radius;
     }
 
@@ -291,7 +271,7 @@ public sealed class SpawnManager
 
     private void DespawnDistantEntities(Vector3 playerPosition, ViewFrustum? frustum)
     {
-        float despawnDistance        = _maxSpawnDistance + _despawnProtectionRadius;
+        float despawnDistance = _maxSpawnDistance + _despawnProtectionRadius;
         float despawnDistanceSquared = despawnDistance * despawnDistance;
 
         foreach (var entity in _managedSpawnStates.Keys.ToArray())
@@ -323,58 +303,6 @@ public sealed class SpawnManager
         return !IntersectsSphere(bounds, playerPosition, _despawnProtectionRadius);
     }
 
-    private void HandleDayNightTransition()
-    {
-        bool isDay = _worldTime.IsDay;
-        if (_lastIsDay is null) { _lastIsDay = isDay; return; }
-        if (_lastIsDay == isDay) return;
-
-        _lastIsDay = isDay;
-        ViewFrustum? frustum       = _frustumProvider?.Invoke();
-        Vector3 playerPosition     = _playerPositionProvider();
-
-        foreach (var entity in _managedSpawnStates.Keys.ToArray())
-            ApplyManagedEntityTimeOfDay(entity, frustum, playerPosition, isDay);
-    }
-
-    private void HandleDeferredBurrowTransitions()
-    {
-        ViewFrustum? frustum   = _frustumProvider?.Invoke();
-        Vector3 playerPosition = _playerPositionProvider();
-
-        foreach (var entity in _managedSpawnStates.Keys.ToArray())
-        {
-            var ai = entity.GetComponent<AIComponent>();
-            if (ai is null) continue;
-            if (ai.GetTimeOfDayActivity(_worldTime.IsDay) != EntityTimeOfDayActivity.Burrow)
-                continue;
-
-            ApplyManagedEntityTimeOfDay(entity, frustum, playerPosition, _worldTime.IsDay);
-        }
-    }
-
-    private void ApplyManagedEntityTimeOfDay(Entity entity, ViewFrustum? frustum, Vector3 playerPosition, bool isDay)
-    {
-        var ai = entity.GetComponent<AIComponent>();
-        if (ai is null) return;
-
-        EntityTimeOfDayActivity desiredActivity = ai.GetTimeOfDayActivity(isDay);
-        if (desiredActivity == EntityTimeOfDayActivity.Burrow)
-        {
-            BoundingBox bounds    = GetEntityBounds(entity);
-            bool        isVisible = frustum is not null && frustum.IsVisible(bounds);
-            bool        isProtected = IntersectsSphere(bounds, playerPosition, _despawnProtectionRadius);
-            if (isVisible || isProtected) return;
-
-            ai.ApplyTimeOfDay(isDay);
-            _managedSpawnStates.Remove(entity);
-            _entityManager.Remove(entity);
-            return;
-        }
-
-        ai.ApplyTimeOfDay(isDay);
-    }
-
     private static BoundingBox GetEntityBounds(Entity entity)
     {
         var phys = entity.GetComponent<PhysicsComponent>();
@@ -382,16 +310,13 @@ public sealed class SpawnManager
         return new BoundingBox(entity.InternalPosition, entity.InternalPosition);
     }
 
-    private static EntityTimeOfDayActivity GetTimeOfDayActivity(EntityBehaviourMetadata behaviour, WorldTime worldTime)
-        => worldTime.IsDay ? behaviour.DayActivity : behaviour.NightActivity;
-
     private static bool IsActivityActive(SpawnActivity activity, WorldTime worldTime)
         => activity switch
         {
-            SpawnActivity.Any      => true,
-            SpawnActivity.Diurnal  => worldTime.IsDay,
+            SpawnActivity.Any => true,
+            SpawnActivity.Diurnal => worldTime.IsDay,
             SpawnActivity.Nocturnal => worldTime.IsNight,
-            _                      => true
+            _ => true
         };
 
     private static bool IntersectsSphere(BoundingBox bounds, Vector3 center, float radius)
@@ -404,5 +329,3 @@ public sealed class SpawnManager
 
     private readonly record struct ManagedSpawnState(string ZoneId, string EntityId);
 }
-
-

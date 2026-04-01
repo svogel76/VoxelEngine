@@ -14,15 +14,51 @@
       "death": null
     }
   },
-  "behaviour": {
-    "moveSpeed": 3.0,
-    "fleeSpeed": 6.0,
-    "fleeRadius": 8.0,
-    "idleTimeMin": 2.0,
-    "idleTimeMax": 6.0,
-    "wanderRadius": 12.0,
-    "dayActivity": "active",
-    "nightActivity": "sleep"
+  "ai": {
+    "behaviour_tree": {
+      "type": "selector",
+      "children": [
+        {
+          "type": "sequence",
+          "children": [
+            {
+              "type": "condition",
+              "name": "health_low",
+              "threshold": 0.3
+            },
+            {
+              "type": "action",
+              "name": "flee",
+              "speed": 6.0,
+              "radius": 8.0
+            }
+          ]
+        },
+        {
+          "type": "sequence",
+          "children": [
+            {
+              "type": "condition",
+              "name": "player_near",
+              "radius": 8.0
+            },
+            {
+              "type": "action",
+              "name": "flee",
+              "speed": 4.0,
+              "radius": 10.0
+            }
+          ]
+        },
+        {
+          "type": "action",
+          "name": "wander",
+          "speed": 3.0,
+          "radius": 12.0,
+          "pause_seconds": 2.0
+        }
+      ]
+    }
   },
   "sounds": {
     "idle": null,

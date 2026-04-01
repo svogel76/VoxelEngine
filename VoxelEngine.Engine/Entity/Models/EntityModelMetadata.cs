@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace VoxelEngine.Entity.Models;
 
 public sealed class EntityModelMetadata
@@ -5,7 +8,7 @@ public sealed class EntityModelMetadata
     public static EntityModelMetadata Empty { get; } = new();
 
     public EntityDisplayMetadata Display { get; init; } = new();
-    public EntityBehaviourMetadata? Behaviour { get; init; }
+    public EntityAiMetadata? Ai { get; init; }
     public EntitySoundMetadata Sounds { get; init; } = new();
     public IReadOnlyList<EntityDropMetadata> Drops { get; init; } = [];
 
@@ -25,6 +28,14 @@ public sealed class EntityModelMetadata
 
     public EntityModelBounds? GetLegacyBoundsOverride()
         => Bounds;
+}
+
+public sealed class EntityAiMetadata
+{
+    [JsonPropertyName("behaviour_tree")]
+    public JsonElement BehaviourTree { get; init; }
+
+    public bool HasBehaviourTree => BehaviourTree.ValueKind is not JsonValueKind.Undefined and not JsonValueKind.Null;
 }
 
 public sealed class EntityDisplayMetadata
@@ -49,18 +60,6 @@ public sealed class EntityAnimationMetadata
     public string? Flee { get; init; }
     public string? Hit { get; init; }
     public string? Death { get; init; }
-}
-
-public sealed class EntityBehaviourMetadata
-{
-    public float MoveSpeed { get; init; }
-    public float FleeSpeed { get; init; }
-    public float FleeRadius { get; init; }
-    public float IdleTimeMin { get; init; }
-    public float IdleTimeMax { get; init; }
-    public float WanderRadius { get; init; }
-    public EntityTimeOfDayActivity DayActivity { get; init; } = EntityTimeOfDayActivity.Active;
-    public EntityTimeOfDayActivity NightActivity { get; init; } = EntityTimeOfDayActivity.Active;
 }
 
 public sealed class EntitySoundMetadata

@@ -1,8 +1,14 @@
 using System.Numerics;
+using System.Text.Json;
 using FluentAssertions;
+using VoxelEngine.Api;
+using VoxelEngine.Api.Entity;
+using VoxelEngine.Api.World;
 using VoxelEngine.Core;
 using VoxelEngine.Entity;
-using VoxelEngine.Entity.AI;
+using VoxelEngine.Entity.BehaviourTree.Actions;
+using VoxelEngine.Entity.BehaviourTree.Conditions;
+using VoxelEngine.Entity.Components;
 using VoxelEngine.Entity.Models;
 using VoxelEngine.Entity.Spawning;
 using VoxelEngine.World;
@@ -18,13 +24,10 @@ public class SpawnManagerTests
 
         try
         {
-            // Arrange
             var setup = CreateSpawnSetup(directory, timeOfDay: 12.0);
 
-            // Act
             setup.EntityManager.Update(0.1);
 
-            // Assert
             setup.EntityManager.Count.Should().Be(1);
         }
         finally
@@ -40,13 +43,10 @@ public class SpawnManagerTests
 
         try
         {
-            // Arrange
             var setup = CreateSpawnSetup(directory, timeOfDay: 22.0);
 
-            // Act
             setup.EntityManager.Update(0.1);
 
-            // Assert
             setup.EntityManager.Count.Should().Be(0);
         }
         finally
@@ -62,19 +62,12 @@ public class SpawnManagerTests
 
         try
         {
-            // Arrange
             var setup = CreateSpawnSetup(directory, timeOfDay: 12.0, spawnTickInterval: 5f);
 
-            // Act
             setup.EntityManager.Update(4.9);
-
-            // Assert
             setup.EntityManager.Count.Should().Be(0);
 
-            // Act
             setup.EntityManager.Update(0.1);
-
-            // Assert
             setup.EntityManager.Count.Should().Be(1);
         }
         finally
@@ -90,15 +83,12 @@ public class SpawnManagerTests
 
         try
         {
-            // Arrange
             var setup = CreateSpawnSetup(directory, timeOfDay: 12.0, spawnTickInterval: 0f);
 
-            // Act
             setup.EntityManager.Update(0.1);
             setup.EntityManager.Update(0.1);
             setup.EntityManager.Update(0.1);
 
-            // Assert
             setup.EntityManager.GetAll<global::VoxelEngine.Entity.Entity>().Should().HaveCount(1);
         }
         finally
@@ -114,31 +104,18 @@ public class SpawnManagerTests
 
         try
         {
-            // Arrange
             var setup = CreateSpawnSetup(directory, timeOfDay: 12.0, spawnTickInterval: 5f);
 
-            // Act
             setup.EntityManager.Update(5.0);
-
-            // Assert
             setup.EntityManager.Count.Should().Be(0);
 
-            // Act
             setup.EntityManager.Update(5.0);
-
-            // Assert
             setup.EntityManager.Count.Should().Be(1);
 
-            // Act
             setup.EntityManager.Update(5.0);
-
-            // Assert
             setup.EntityManager.Count.Should().Be(1);
 
-            // Act
             setup.EntityManager.Update(5.0);
-
-            // Assert
             setup.EntityManager.Count.Should().Be(2);
         }
         finally
@@ -154,17 +131,14 @@ public class SpawnManagerTests
 
         try
         {
-            // Arrange
             var setup = CreateSpawnSetup(
                 directory,
                 timeOfDay: 12.0,
                 spawnTickInterval: 0f,
                 frustumFactory: position => CreateOverheadFrustum(position));
 
-            // Act
             setup.EntityManager.Update(0.1);
 
-            // Assert
             setup.EntityManager.Count.Should().Be(0);
         }
         finally
@@ -180,16 +154,13 @@ public class SpawnManagerTests
 
         try
         {
-            // Arrange
             var setup = CreateSpawnSetup(directory, timeOfDay: 12.0, spawnTickInterval: 0f);
             setup.EntityManager.Update(0.1);
             setup.EntityManager.Count.Should().Be(1);
             setup.PlayerPosition = new Vector3(512f, 90f, 512f);
 
-            // Act
             setup.EntityManager.Update(0.1);
 
-            // Assert
             setup.EntityManager.Count.Should().Be(0);
         }
         finally
@@ -205,16 +176,13 @@ public class SpawnManagerTests
 
         try
         {
-            // Arrange
             var setup = CreateSpawnSetup(directory, timeOfDay: 12.0, spawnTickInterval: 0f);
             setup.EntityManager.Update(0.1);
             global::VoxelEngine.Entity.Entity entity = setup.EntityManager.GetAll<global::VoxelEngine.Entity.Entity>().Single();
             setup.PlayerPosition = entity.InternalPosition + new Vector3(1f, 0f, 1f);
 
-            // Act
             setup.EntityManager.Update(0.1);
 
-            // Assert
             setup.EntityManager.Count.Should().Be(1);
         }
         finally
@@ -224,97 +192,22 @@ public class SpawnManagerTests
     }
 
     [Fact]
-    public void Tick_OnDayNightTransition_DespawnsBurrowingEntitiesOutsideProtectionRadius()
+    public void Tick_SpawnedAnimalReceivesAiComponentFromBehaviourTreeMetadata()
     {
         string directory = CreateClimateDirectory(SpawnActivity.Any, spawnInterval: 0f);
 
         try
         {
-            // Arrange
-            var setup = CreateSpawnSetup(
-                directory,
-                timeOfDay: 22.0,
-                spawnTickInterval: 0f,
-                dayActivity: EntityTimeOfDayActivity.Burrow,
-                nightActivity: EntityTimeOfDayActivity.Active);
-            setup.EntityManager.Update(0.1);
-            setup.EntityManager.Count.Should().Be(1);
-            setup.PlayerPosition = new Vector3(512f, 90f, 512f);
-            setup.Time.SetTime(12.0);
+            var setup = CreateSpawnSetup(directory, timeOfDay: 12.0, spawnTickInterval: 0f);
 
-            // Act
             setup.EntityManager.Update(0.1);
 
-            // Assert
-            setup.EntityManager.Count.Should().Be(0);
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
-        }
-    }
-
-    [Fact]
-    public void Tick_OnDayNightTransition_PutsAnimalsToSleepInsteadOfDespawning()
-    {
-        string directory = CreateClimateDirectory(SpawnActivity.Diurnal, spawnInterval: 0f);
-
-        try
-        {
-            // Arrange
-            var setup = CreateSpawnSetup(
-                directory,
-                timeOfDay: 12.0,
-                spawnTickInterval: 0f,
-                dayActivity: EntityTimeOfDayActivity.Active,
-                nightActivity: EntityTimeOfDayActivity.Sleep);
-            setup.EntityManager.Update(0.1);
-            setup.Time.SetTime(22.0);
-
-            // Act
-            setup.EntityManager.Update(0.1);
-
-            // Assert
-            setup.EntityManager.Count.Should().Be(1);
-            setup.EntityManager.GetAll<global::VoxelEngine.Entity.Entity>().Should().ContainSingle()
-                .Which.GetComponent<VoxelEngine.Entity.Components.AIComponent>()!.State
-                .Should().Be(AnimalMovementState.Sleep);
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
-        }
-    }
-
-    [Fact]
-    public void Tick_DelaysBurrowWhileEntityIsInsideProtectionRadius_AndDespawnsLater()
-    {
-        string directory = CreateClimateDirectory(SpawnActivity.Any, spawnInterval: 0f);
-
-        try
-        {
-            // Arrange
-            var setup = CreateSpawnSetup(
-                directory,
-                timeOfDay: 22.0,
-                spawnTickInterval: 0f,
-                dayActivity: EntityTimeOfDayActivity.Burrow,
-                nightActivity: EntityTimeOfDayActivity.Active);
-            setup.EntityManager.Update(0.1);
-            setup.Time.SetTime(12.0);
-
-            // Act
-            setup.EntityManager.Update(0.1);
-
-            // Assert
-            setup.EntityManager.Count.Should().Be(1);
-
-            // Act
-            setup.PlayerPosition = new Vector3(512f, 90f, 512f);
-            setup.EntityManager.Update(0.1);
-
-            // Assert
-            setup.EntityManager.Count.Should().Be(0);
+            setup.EntityManager.GetAll<global::VoxelEngine.Entity.Entity>()
+                .Should()
+                .ContainSingle()
+                .Which.GetComponent<AIComponent>()
+                .Should()
+                .NotBeNull();
         }
         finally
         {
@@ -326,8 +219,6 @@ public class SpawnManagerTests
         string climateDirectory,
         double timeOfDay,
         float spawnTickInterval = 0f,
-        EntityTimeOfDayActivity dayActivity = EntityTimeOfDayActivity.Active,
-        EntityTimeOfDayActivity nightActivity = EntityTimeOfDayActivity.Active,
         Func<Vector3, ViewFrustum>? frustumFactory = null)
     {
         var settings = new EngineSettings
@@ -338,6 +229,8 @@ public class SpawnManagerTests
             EntitySpawnPlacementAttempts = 128,
             EntityDespawnProtectionRadius = 128f
         };
+
+        RegisterBehaviourNodes();
 
         var generator = new WorldGenerator(settings, climateDirectory);
         (int worldX, int worldZ) = FindCoordinateForClimate(generator, "temperate");
@@ -360,13 +253,26 @@ public class SpawnManagerTests
             settings,
             generator,
             time,
-            new TestModelLibrary(CreateAnimalModel("deer", dayActivity, nightActivity)),
+            new TestModelLibrary(CreateAnimalModel("deer")),
             () => playerPosition,
             frustumFactory is null ? (() => null!) : () => frustumFactory(playerPosition),
             new Random(42));
         entityManager.SpawnManager = spawnManager;
+        entityManager.UpdateContext = new TestModContext(() => playerPosition, time);
 
         return new SpawnTestSetup(entityManager, spawnManager, time, () => playerPosition, value => playerPosition = value);
+    }
+
+    private static void RegisterBehaviourNodes()
+    {
+        var registry = EngineModContext.BehaviourTreeRegistry;
+        registry.RegisterCondition("player_near", config => new PlayerNearCondition(config.GetProperty("radius").GetSingle()));
+        registry.RegisterCondition("health_low", config => new HealthLowCondition(config.GetProperty("threshold").GetSingle()));
+        registry.RegisterCondition("is_night", _ => new IsNightCondition());
+        registry.RegisterCondition("is_day", _ => new IsDayCondition());
+        registry.RegisterAction("flee", config => new FleeAction(config.GetProperty("speed").GetSingle(), config.GetProperty("radius").GetSingle()));
+        registry.RegisterAction("wander", config => new WanderAction(config.GetProperty("speed").GetSingle(), config.GetProperty("radius").GetSingle(), config.GetProperty("pause_seconds").GetSingle(), new Random(42)));
+        registry.RegisterAction("idle", config => new IdleAction(config.GetProperty("duration_seconds").GetSingle()));
     }
 
     private static (int WorldX, int WorldZ) FindCoordinateForClimate(WorldGenerator generator, string climateId)
@@ -419,26 +325,31 @@ public class SpawnManagerTests
             """);
     }
 
-    private static IVoxelModelDefinition CreateAnimalModel(
-        string id,
-        EntityTimeOfDayActivity dayActivity,
-        EntityTimeOfDayActivity nightActivity)
+    private static IVoxelModelDefinition CreateAnimalModel(string id)
         => new VoxelModelDefinition(
             id,
             1f,
             [new VoxelModelVoxel(0, 0, 0, 0, 0, new VoxelTint(255, 255, 255, 255))],
             new EntityModelMetadata
             {
-                Behaviour = new EntityBehaviourMetadata
+                Ai = new EntityAiMetadata
                 {
-                    MoveSpeed = 0f,
-                    FleeSpeed = 0f,
-                    FleeRadius = 0f,
-                    IdleTimeMin = 1f,
-                    IdleTimeMax = 1f,
-                    WanderRadius = 0f,
-                    DayActivity = dayActivity,
-                    NightActivity = nightActivity
+                    BehaviourTree = JsonDocument.Parse(
+                        """
+                        {
+                          "type": "selector",
+                          "children": [
+                            {
+                              "type": "sequence",
+                              "children": [
+                                { "type": "condition", "name": "player_near", "radius": 8.0 },
+                                { "type": "action", "name": "flee", "speed": 3.0, "radius": 10.0 }
+                              ]
+                            },
+                            { "type": "action", "name": "wander", "speed": 1.5, "radius": 5.0, "pause_seconds": 2.0 }
+                          ]
+                        }
+                        """).RootElement.Clone()
                 }
             });
 
@@ -466,6 +377,30 @@ public class SpawnManagerTests
 
         public IVoxelModelDefinition GetModel(string modelId)
             => _models[modelId];
+    }
+
+    private sealed class TestModContext : IModContext
+    {
+        private readonly Func<Vector3> _playerPositionProvider;
+        private readonly WorldTime _time;
+
+        public TestModContext(Func<Vector3> playerPositionProvider, WorldTime time)
+        {
+            _playerPositionProvider = playerPositionProvider;
+            _time = time;
+        }
+
+        public string ModId => "test";
+        public IComponentRegistry ComponentRegistry => throw new NotSupportedException();
+        public IBehaviourRegistry BehaviourRegistry => EngineModContext.BehaviourTreeRegistry;
+        public IBlockRegistry BlockRegistry => throw new NotSupportedException();
+        public IWorldAccess World => throw new NotSupportedException();
+        public IInputState Input => throw new NotSupportedException();
+        public IKeyBindings KeyBindings => throw new NotSupportedException();
+        public IEntity Player => new global::VoxelEngine.Entity.Entity("player", _playerPositionProvider());
+        public double WorldTimeHours => _time.Time;
+        public bool IsDay => _time.IsDay;
+        public bool IsNight => _time.IsNight;
     }
 
     private sealed class SpawnTestSetup

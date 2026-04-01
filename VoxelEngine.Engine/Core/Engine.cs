@@ -125,6 +125,7 @@ public class Engine : IDisposable
         _persistence = new LocalFilePersistence(_settings.SaveDirectory);
         _context     = new GameContext(_settings, _keyBindings, world, playerEntity, camera, renderer, input, generator, entityModels, _persistence, _playerSpawnPoint);
         _modContext  = new EngineModContext(_context);
+        _context.EntityManager.UpdateContext = _modContext;
 
         // Spieler-Komponenten hinzufügen
         var playerPhys = new Entity.Components.PhysicsComponent(
@@ -474,5 +475,6 @@ public class Engine : IDisposable
     private static Vector3 ToNumerics(Vector3D<float> vector) => new(vector.X, vector.Y, vector.Z);
     private static Vector3D<float> ToSilk(Vector3 vector) => new(vector.X, vector.Y, vector.Z);
 }
+
 
 

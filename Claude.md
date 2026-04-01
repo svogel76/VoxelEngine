@@ -57,9 +57,9 @@ mod.json pro Mod:
 ```
 
 ## Naechste Schritte
-- Schritt 2 des Backlogs: echtes Component System auf Basis von `VoxelEngine.Api.Entity.IComponent`
-- Schritt 3: Behaviour Trees ueber `IBehaviour` und datengetriebene Entity-Definitionen
-- Schritt 4: Mod-Loader + `mod.json`-Aufloesung, damit `VoxelEngine.Game` als DLL geladen wird
+- Schritt 4 des Backlogs: Mod-Loader + `mod.json`-Aufloesung, damit `VoxelEngine.Game` als DLL geladen wird
+- Behaviour Trees sind datengetrieben ueber `ai.behaviour_tree` in Entity-JSON verfuegbar
+- Naechster Ausbau: mehr Mod-registrierbare Conditions/Actions (z. B. `attack`, Herdentrieb, Kontextsensoren)
 
 ## Koordinaten-System
 - Chunk-Koordinate: `Math.Floor(worldCoord / Chunk.Width)`
@@ -76,3 +76,4 @@ mod.json pro Mod:
 
 ## Neue Debug-Kommandos
 Jedes Kommando als eigene Klasse in `Core/Debug/Commands/` - nie inline.
+
