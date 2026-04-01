@@ -26,9 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\VoxelEngine.Game\Assets\**\*" Link="Assets\%(RecursiveDir)%(Filename)%(Extension)">
+    <None Include="..\Mods\VoxelGame\Assets\**\*" Link="Assets\%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
 </Project>
+

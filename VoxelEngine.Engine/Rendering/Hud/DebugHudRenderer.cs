@@ -11,9 +11,9 @@ public sealed class DebugHudRenderer : IHudRenderer
 
     private const float LineHeight = 18f;
 
-    public DebugHudRenderer(GL gl, int windowWidth, int windowHeight)
+    public DebugHudRenderer(GL gl, int windowWidth, int windowHeight, string fontPath)
     {
-        _font         = new BitmapFont(gl, "Assets/Fonts/font.png");
+        _font         = new BitmapFont(gl, fontPath);
         _textRenderer = new TextRenderer(gl, _font, windowWidth, windowHeight);
     }
 
@@ -67,3 +67,4 @@ public sealed class DebugHudRenderer : IHudRenderer
         GC.SuppressFinalize(this);
     }
 }
+

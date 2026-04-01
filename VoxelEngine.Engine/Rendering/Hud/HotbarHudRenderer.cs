@@ -29,10 +29,10 @@ public sealed class HotbarHudRenderer : IHudRenderer
     private const float Gap      = 2f;
     private const float IconPad  = 5f;   // Abstand Icon-Rand zum Slot-Rand (px)
 
-    public HotbarHudRenderer(GL gl, EngineSettings settings, int windowWidth, int windowHeight)
+    public HotbarHudRenderer(GL gl, EngineSettings settings, int windowWidth, int windowHeight, string fontPath)
     {
         _settings     = settings;
-        var font      = new BitmapFont(gl, "Assets/Fonts/font.png");
+        var font      = new BitmapFont(gl, fontPath);
         _textRenderer = new TextRenderer(gl, font, windowWidth, windowHeight);
         _iconRenderer = new IconRenderer(gl);
     }
@@ -142,3 +142,4 @@ public sealed class HotbarHudRenderer : IHudRenderer
         GC.SuppressFinalize(this);
     }
 }
+

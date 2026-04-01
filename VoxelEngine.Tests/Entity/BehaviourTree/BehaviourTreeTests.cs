@@ -157,6 +157,7 @@ public class BehaviourTreeTests
     private sealed class TestModContext : IModContext
     {
         public string ModId => "test";
+        public string AssetBasePath => Path.GetFullPath(Path.Combine("Mods", "Test", "Assets"));
         public IComponentRegistry ComponentRegistry => throw new NotSupportedException();
         public IBehaviourRegistry BehaviourRegistry => throw new NotSupportedException();
         public IBlockRegistry BlockRegistry => throw new NotSupportedException();
@@ -169,3 +170,4 @@ public class BehaviourTreeTests
         public bool IsNight => false;
     }
 }
+

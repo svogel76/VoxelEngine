@@ -391,6 +391,7 @@ public class SpawnManagerTests
         }
 
         public string ModId => "test";
+        public string AssetBasePath => Path.GetFullPath(Path.Combine("Mods", "Test", "Assets"));
         public IComponentRegistry ComponentRegistry => throw new NotSupportedException();
         public IBehaviourRegistry BehaviourRegistry => EngineModContext.BehaviourTreeRegistry;
         public IBlockRegistry BlockRegistry => throw new NotSupportedException();
@@ -433,3 +434,4 @@ public class SpawnManagerTests
         }
     }
 }
+

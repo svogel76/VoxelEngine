@@ -7,20 +7,24 @@ using VoxelEngine.World;
 namespace VoxelEngine.Core;
 
 /// <summary>
-/// IModContext-Implementierung für den Engine-Kern.
-/// Wird an Entity.Update() übergeben, damit Komponenten auf Eingabe, Welt und Registry zugreifen können.
+/// IModContext implementation used by the engine runtime.
 /// </summary>
 public sealed class EngineModContext : IModContext
 {
     private readonly GameContext _context;
 
-    public EngineModContext(GameContext context, string modId = "engine")
+    public EngineModContext(GameContext context, string modId, string assetBasePath)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        ArgumentException.ThrowIfNullOrWhiteSpace(modId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(assetBasePath);
+
         ModId = modId;
+        AssetBasePath = Path.GetFullPath(assetBasePath);
     }
 
     public string ModId { get; }
+    public string AssetBasePath { get; }
     public IComponentRegistry ComponentRegistry => _componentRegistry;
     public IBehaviourRegistry BehaviourRegistry => _behaviourRegistry;
     public IBlockRegistry BlockRegistry => BlockRegistryAdapter.Instance;

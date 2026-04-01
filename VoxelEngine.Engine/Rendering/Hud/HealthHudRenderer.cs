@@ -25,10 +25,10 @@ public sealed class HealthHudRenderer : IHudRenderer
     // Pulsieren bei kritischer HP
     private double _pulseTimer;
 
-    public HealthHudRenderer(GL gl, EngineSettings settings, int windowWidth, int windowHeight)
+    public HealthHudRenderer(GL gl, EngineSettings settings, int windowWidth, int windowHeight, string fontPath)
     {
         _settings = settings;
-        var font  = new BitmapFont(gl, "Assets/Fonts/font.png");
+        var font  = new BitmapFont(gl, fontPath);
         _text     = new TextRenderer(gl, font, windowWidth, windowHeight);
     }
 
@@ -129,3 +129,4 @@ public sealed class HealthHudRenderer : IHudRenderer
         GC.SuppressFinalize(this);
     }
 }
+

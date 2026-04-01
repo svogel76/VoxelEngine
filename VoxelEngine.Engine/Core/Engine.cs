@@ -27,12 +27,13 @@ public class Engine : IDisposable
     private readonly EngineSettings _settings;
     private readonly double         _fixedDelta;
     private readonly IKeyBindings   _keyBindings;
-    private readonly IGameMod       _game;
+    private readonly IReadOnlyList<IGameMod> _mods;
+    private readonly string _primaryAssetBasePath;
 
     private GL                   _gl             = null!;
     private IInputContext        _inputContext   = null!;
     private GameContext          _context        = null!;
-    private EngineModContext     _modContext     = null!;
+    private readonly List<EngineModContext> _modContexts = new();
     private DebugOverlay         _debugOverlay   = null!;
     private LocalFilePersistence _persistence    = null!;
     private PauseMenuPanel       _pauseMenu      = null!;
@@ -64,11 +65,18 @@ public class Engine : IDisposable
 
     private string _consoleInput = "";
 
-    public Engine(EngineSettings settings, IKeyBindings keyBindings, IGameMod game)
+    public Engine(EngineSettings settings, IKeyBindings keyBindings, IReadOnlyList<IGameMod> mods, string primaryAssetBasePath)
     {
+        ArgumentNullException.ThrowIfNull(mods);
+        if (mods.Count == 0)
+            throw new InvalidOperationException("At least one mod is required.");
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(primaryAssetBasePath);
+
         _settings    = settings;
         _keyBindings = keyBindings;
-        _game        = game;
+        _mods        = mods;
+        _primaryAssetBasePath = Path.GetFullPath(primaryAssetBasePath);
         _fixedDelta  = 1.0 / settings.TargetUPS;
 
         var options = WindowOptions.Default with
@@ -105,10 +113,10 @@ public class Engine : IDisposable
 
         float aspectRatio      = (float)_settings.WindowWidth / _settings.WindowHeight;
         var (camX, camY, camZ) = _settings.CameraStartPosition;
-        var entityModels = FileSystemEntityModelLibrary.LoadFromDirectory("Assets/Entities", _settings.EntityVoxelScale);
+        var entityModels = FileSystemEntityModelLibrary.LoadFromDirectory(Path.Combine(_primaryAssetBasePath, "Entities"), _settings.EntityVoxelScale);
         var renderer  = new Renderer(_gl, _settings, entityModels);
         var world     = new World.World();
-        var generator = new WorldGenerator(_settings);
+        var generator = new WorldGenerator(_settings, Path.Combine(_primaryAssetBasePath, "Climate"));
         var playerStart = CreatePlayerStartPosition(generator, camX, camY, camZ);
         _playerSpawnPoint = playerStart;
 
@@ -124,8 +132,14 @@ public class Engine : IDisposable
 
         _persistence = new LocalFilePersistence(_settings.SaveDirectory);
         _context     = new GameContext(_settings, _keyBindings, world, playerEntity, camera, renderer, input, generator, entityModels, _persistence, _playerSpawnPoint);
-        _modContext  = new EngineModContext(_context);
-        _context.EntityManager.UpdateContext = _modContext;
+        _modContexts.Clear();
+        foreach (IGameMod mod in _mods)
+        {
+            string assetBasePath = ResolveAssetBasePath(mod);
+            _modContexts.Add(new EngineModContext(_context, mod.Id, assetBasePath));
+        }
+
+        _context.EntityManager.UpdateContext = _modContexts[0];
 
         // Spieler-Komponenten hinzufügen
         var playerPhys = new Entity.Components.PhysicsComponent(
@@ -145,8 +159,9 @@ public class Engine : IDisposable
         // Spielerstand + Welt-Metadaten laden (falls vorhanden)
         var (savedPlayer, savedWorld) = _context.LoadGameStateAsync().GetAwaiter().GetResult();
 
-        // Mod initialisieren
-        _game.Initialize(_context);
+        // Mods initialisieren
+        for (int i = 0; i < _mods.Count; i++)
+            _mods[i].Initialize(_modContexts[i]);
 
         if (savedPlayer is not null && savedWorld is not null)
             _context.ApplyLoadedState(savedPlayer, savedWorld);
@@ -173,31 +188,31 @@ public class Engine : IDisposable
         _context.Console.Register(new EntityCommand());
         _context.Console.Register(new DamageCommand());
 
-        _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight);
+        _debugOverlay = new DebugOverlay(_gl, _context, _settings.WindowWidth, _settings.WindowHeight, Path.Combine(_primaryAssetBasePath, "Fonts", "font.png"));
 
         var hotbarElement  = new HotbarHudElement();
         _context.HudRegistry.Register(hotbarElement);
-        var hotbarRenderer = new HotbarHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
+        var hotbarRenderer = new HotbarHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight, Path.Combine(_primaryAssetBasePath, "Fonts", "font.png"));
         hotbarRenderer.Atlas = _context.Renderer.Atlas;
         _debugOverlay.HudManager.RegisterRenderer("hotbar", hotbarRenderer);
 
         var healthElement  = new HealthHudElement();
         _context.HudRegistry.Register(healthElement);
-        var healthRenderer = new HealthHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
+        var healthRenderer = new HealthHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight, Path.Combine(_primaryAssetBasePath, "Fonts", "font.png"));
         _debugOverlay.HudManager.RegisterRenderer("health", healthRenderer);
 
         var hungerElement  = new HungerHudElement();
         _context.HudRegistry.Register(hungerElement);
-        var hungerRenderer = new HungerHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight);
+        var hungerRenderer = new HungerHudRenderer(_gl, _settings, _settings.WindowWidth, _settings.WindowHeight, Path.Combine(_primaryAssetBasePath, "Fonts", "font.png"));
         _debugOverlay.HudManager.RegisterRenderer("hunger", hungerRenderer);
 
-        _context.HudRegistry.LoadConfig("Assets/Hud/hud.json");
+        _context.HudRegistry.LoadConfig(Path.Combine(_primaryAssetBasePath, "Hud", "hud.json"));
 
         _pauseMenu = new PauseMenuPanel();
-        _pauseMenu.InitRenderer(_gl);
+        _pauseMenu.InitRenderer(_gl, Path.Combine(_primaryAssetBasePath, "Fonts", "font.png"));
         _context.UI.Register(_pauseMenu, isGameMenu: true);
 
-        var invFont     = new BitmapFont(_gl, "Assets/Fonts/font.png");
+        var invFont     = new BitmapFont(_gl, Path.Combine(_primaryAssetBasePath, "Fonts", "font.png"));
         var invText     = new TextRenderer(_gl, invFont, _settings.WindowWidth, _settings.WindowHeight);
         var invIcon     = new IconRenderer(_gl);
         _inventoryPanel = new InventoryPanel(invText, invIcon, _keyBindings.ToggleInventory);
@@ -291,7 +306,7 @@ public class Engine : IDisposable
         _context.Camera.ProcessMouseMovement(deltaX, deltaY);
 
         // Spieler-Entity Update (InputComponent, CameraComponent, PhysicsComponent)
-        _context.Player.Update(_modContext, fixedDelta);
+        _context.Player.Update(_modContexts[0], fixedDelta);
 
         // Eye-Position für Raycast
         var eyePos = phys is not null
@@ -344,7 +359,8 @@ public class Engine : IDisposable
             _context.Renderer.RemoveChunkMesh(x, z);
 
         _context.EntityManager.Update(fixedDelta);
-        _game.Update(fixedDelta);
+        foreach (IGameMod mod in _mods)
+            mod.Update(fixedDelta);
         _context.RespawnPlayerIfDead();
     }
 
@@ -365,7 +381,8 @@ public class Engine : IDisposable
         _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime, _context.EntityManager, _context.TargetedBlock, _context.PlacementPreview);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
         _context.UI.Render(_context, frameTime, _settings.WindowWidth, _settings.WindowHeight);
-        _game.Render(frameTime);
+        foreach (IGameMod mod in _mods)
+            mod.Render(frameTime);
     }
 
     private void Close()
@@ -373,7 +390,8 @@ public class Engine : IDisposable
         if (_closed) return;
         _closed = true;
         _context?.SaveGameStateAsync().GetAwaiter().GetResult();
-        _game.Shutdown();
+        for (int i = _mods.Count - 1; i >= 0; i--)
+            _mods[i].Shutdown();
         _pauseMenu?.Dispose();
         _inventoryPanel?.Dispose();
         _debugOverlay?.Dispose();
@@ -472,9 +490,23 @@ public class Engine : IDisposable
         return new Vector3(startX, MathF.Max(configuredFeetY, minFeetY), startZ);
     }
 
+    private static string ResolveAssetBasePath(IGameMod mod)
+    {
+        if (mod is ModLoader.IModAssetProvider assetProvider)
+            return assetProvider.AssetBasePath;
+
+        return Path.GetFullPath(Path.Combine("Mods", mod.Id, "Assets"));
+    }
     private static Vector3 ToNumerics(Vector3D<float> vector) => new(vector.X, vector.Y, vector.Z);
     private static Vector3D<float> ToSilk(Vector3 vector) => new(vector.X, vector.Y, vector.Z);
 }
+
+
+
+
+
+
+
 
 
 

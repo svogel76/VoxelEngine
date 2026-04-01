@@ -57,7 +57,8 @@ mod.json pro Mod:
 ```
 
 ## Naechste Schritte
-- Schritt 4 des Backlogs: Mod-Loader + `mod.json`-Aufloesung, damit `VoxelEngine.Game` als DLL geladen wird
+- Schritt 4 des Backlogs ist umgesetzt: Mod-Loader + `mod.json`-Aufloesung laden `VoxelEngine.Game` aus `Mods/` als DLL
+- Naechster Fokus ist Schritt 5: Launcher-Projekt extrahieren und Bootstrap aus `VoxelEngine.Game` herausziehen
 - Behaviour Trees sind datengetrieben ueber `ai.behaviour_tree` in Entity-JSON verfuegbar
 - Naechster Ausbau: mehr Mod-registrierbare Conditions/Actions (z. B. `attack`, Herdentrieb, Kontextsensoren)
 
@@ -76,4 +77,5 @@ mod.json pro Mod:
 
 ## Neue Debug-Kommandos
 Jedes Kommando als eigene Klasse in `Core/Debug/Commands/` - nie inline.
+
 

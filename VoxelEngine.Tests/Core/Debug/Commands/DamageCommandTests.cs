@@ -5,7 +5,6 @@ using VoxelEngine.Core;
 using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Entity.Components;
 using VoxelEngine.Entity.Models;
-using VoxelEngine.Game;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
@@ -88,3 +87,4 @@ public class DamageCommandTests
         public IVoxelModelDefinition GetModel(string modelId) => _model;
     }
 }
+

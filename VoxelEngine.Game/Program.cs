@@ -1,6 +1,12 @@
 using VoxelEngine.Core;
-using VoxelEngine.Game;
 
-var settings = EngineSettings.LoadFrom("Assets/");
-var bindings = KeyBindingLoader.LoadFrom("Assets/");
-new EngineRunner(settings, bindings).Run(new VoxelGame());
+namespace VoxelEngine.Game;
+
+public static class Program
+{
+    public static void Main()
+    {
+        var mods = new ModLoader().LoadAll("Mods/");
+        new EngineRunner().Run(mods);
+    }
+}

@@ -16,14 +16,14 @@ public class DebugOverlay : IDisposable
 
     public HudManager HudManager => _hudManager;
 
-    public DebugOverlay(GL gl, GameContext context, int windowWidth, int windowHeight)
+    public DebugOverlay(GL gl, GameContext context, int windowWidth, int windowHeight, string fontPath)
     {
         _context     = context;
         DebugElement = new DebugHudElement();
         context.HudRegistry.Register(DebugElement);
 
         _hudManager = new HudManager(context.HudRegistry);
-        _hudManager.RegisterRenderer("debug", new DebugHudRenderer(gl, windowWidth, windowHeight));
+        _hudManager.RegisterRenderer("debug", new DebugHudRenderer(gl, windowWidth, windowHeight, fontPath));
     }
 
     public void Render(int windowWidth, int windowHeight, double fps, string consoleInput)
@@ -39,3 +39,4 @@ public class DebugOverlay : IDisposable
         GC.SuppressFinalize(this);
     }
 }
+

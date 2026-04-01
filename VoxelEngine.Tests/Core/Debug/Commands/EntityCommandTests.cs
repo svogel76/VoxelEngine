@@ -5,7 +5,6 @@ using VoxelEngine.Core;
 using VoxelEngine.Core.Debug.Commands;
 using VoxelEngine.Entity.Components;
 using VoxelEngine.Entity.Models;
-using VoxelEngine.Game;
 using VoxelEngine.Persistence;
 using VoxelEngine.Rendering;
 using VoxelEngine.World;
@@ -96,4 +95,5 @@ public class EntityCommandTests
                 id, 0.25f, [new VoxelModelVoxel(0, 0, 0, 0, 0, VoxelTint.White)]);
     }
 }
+
 

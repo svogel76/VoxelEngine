@@ -197,10 +197,10 @@ public sealed class PauseMenuPanel : IUIPanel, IDisposable
     /// Initialisiert den TextRenderer. Muss nach GL-Kontext-Init aufgerufen werden,
     /// d.h. aus Engine.Load() oder beim ersten OnOpen().
     /// </summary>
-    public void InitRenderer(GL gl)
+    public void InitRenderer(GL gl, string fontPath)
     {
         _gl = gl;
-        var font      = new BitmapFont(gl, "Assets/Fonts/font.png");
+        var font      = new BitmapFont(gl, fontPath);
         _textRenderer = new TextRenderer(gl, font, 1920, 1080); // Screendims werden in BeginFrame() überschrieben
     }
 
@@ -249,3 +249,4 @@ public sealed class PauseMenuPanel : IUIPanel, IDisposable
         });
     }
 }
+

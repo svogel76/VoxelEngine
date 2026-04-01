@@ -4,9 +4,6 @@ using VoxelEngine.Api.World;
 
 namespace VoxelEngine.Entity;
 
-/// <summary>
-/// Leerer IModContext für Engine-interne Komponenten, die keinen Mod-Zugriff benötigen.
-/// </summary>
 internal sealed class NullModContext : IModContext
 {
     public static readonly NullModContext Instance = new();
@@ -14,6 +11,7 @@ internal sealed class NullModContext : IModContext
     private NullModContext() { }
 
     public string ModId => string.Empty;
+    public string AssetBasePath => string.Empty;
     public IComponentRegistry ComponentRegistry => throw new NotSupportedException();
     public IBehaviourRegistry BehaviourRegistry => throw new NotSupportedException();
     public IBlockRegistry BlockRegistry => throw new NotSupportedException();
