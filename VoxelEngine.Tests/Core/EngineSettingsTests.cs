@@ -35,6 +35,9 @@ public sealed class EngineSettingsTests : IDisposable
             "start_percent": 0.4,
             "end_percent": 0.85
           },
+          "lighting": {
+            "min_sky_light_ambient": 0.12
+          },
           "debug": {
             "show_fps": false
           }
@@ -59,6 +62,7 @@ public sealed class EngineSettingsTests : IDisposable
         settings.EnableStepUp.Should().BeFalse();
         settings.FogStartFactor.Should().Be(0.4f);
         settings.FogEndFactor.Should().Be(0.85f);
+        settings.MinSkyLightAmbient.Should().Be(0.12f);
         settings.ShowFps.Should().BeFalse();
     }
 
@@ -85,7 +89,27 @@ public sealed class EngineSettingsTests : IDisposable
         settings.Gravity.Should().Be(defaults.Gravity);
         settings.FallDamageThreshold.Should().Be(defaults.FallDamageThreshold);
         settings.FallDamageMultiplier.Should().Be(defaults.FallDamageMultiplier);
+        settings.MinSkyLightAmbient.Should().Be(defaults.MinSkyLightAmbient);
         settings.ShowFps.Should().Be(defaults.ShowFps);
+    }
+
+    [Fact]
+    public void LoadFrom_LightingAmbient_ClampsToRange()
+    {
+        // Arrange
+        WriteEngineJson("""
+        {
+          "lighting": {
+            "min_sky_light_ambient": 2.0
+          }
+        }
+        """);
+
+        // Act
+        var settings = EngineSettings.LoadFrom(_tempRoot);
+
+        // Assert
+        settings.MinSkyLightAmbient.Should().Be(1f);
     }
 
     [Fact]

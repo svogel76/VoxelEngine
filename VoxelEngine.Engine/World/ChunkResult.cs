@@ -4,6 +4,7 @@ public sealed class ChunkResult
 {
     public int ChunkX { get; }
     public int ChunkZ { get; }
+    public ChunkJobKind JobKind { get; }
     public Chunk Chunk { get; }
     public float[] OpaqueVertices { get; }
     public uint[] OpaqueIndices { get; }
@@ -15,6 +16,7 @@ public sealed class ChunkResult
     public ChunkResult(
         int x,
         int z,
+        ChunkJobKind jobKind,
         Chunk chunk,
         float[] opaqueVerts,
         uint[] opaqueIdx,
@@ -25,6 +27,7 @@ public sealed class ChunkResult
     {
         ChunkX = x;
         ChunkZ = z;
+        JobKind = jobKind;
         Chunk = chunk;
         OpaqueVertices = opaqueVerts;
         OpaqueIndices = opaqueIdx;

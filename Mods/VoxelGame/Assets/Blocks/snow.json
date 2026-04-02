@@ -1,20 +1,21 @@
 {
-  "id": 9,
-  "name": "snow",
-  "textures": {
-    "top": "snow",
-    "side": "snow",
-    "bottom": "snow"
-  },
-  "properties": {
-    "solid": true,
-    "transparent": false,
-    "replaceable": false,
-    "max_stack": 64,
-    "tags": [
-      "natural",
-      "cold"
-    ]
-  },
-  "behaviour": "default"
+    "id":  9,
+    "name":  "snow",
+    "textures":  {
+                     "top":  "snow",
+                     "side":  "snow",
+                     "bottom":  "snow"
+                 },
+    "properties":  {
+                       "solid":  true,
+                       "transparent":  false,
+                       "replaceable":  false,
+                       "max_stack":  64,
+                       "tags":  [
+                                    "natural",
+                                    "cold"
+                                ],
+                       "sky_light_attenuation":  15
+                   },
+    "behaviour":  "default"
 }

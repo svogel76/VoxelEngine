@@ -105,6 +105,8 @@
 - [Nice-to-have] Wolken (prozedural, ziehen mit Wind)
 - [Nice-to-have] Sonnen-Halo / Atmosphaeren-Streuung
 - [Nice-to-have] Distant Horizons (LOD-Silhouetten)
+- [Erledigt] Sky-Light-Propagation Teil 1 (Chunk-Light-Array + top-down/Flood-Fill + datengetriebene Block-Daempfung + Chunk-Randwerte)
+- [Erledigt] Sky-Light-Propagation Teil 2 (Meshing nutzt Chunk-SkyLight * Richtungsfaktor; Mindest-Ambient via EngineSettings)
 - [Mittel] Licht und Schatten (stimmigere Tageszeit-Kontraste, Schattenwirkung im Wald)
 - [Mittel] Foliage-Polish (dichte Gras-/Blumen-/Buesch-Schicht fuer glaubhafte Waelder)
 - [Nice-to-have] Billboard-Sprites fuer Vegetation (Gras, Blumen, Wippen im Wind)
@@ -158,7 +160,41 @@
 
 ---
 
-## Phase 7 - Entity-System und Welt beleben
+## Phase 7 - Prozedurale Strukturen (Hybrid-Voxel-Ansatz)
+
+> Ziel: Hochauflösende .vox-Strukturen werden prozedural generiert und als statische
+> Geometrie in Chunks eingebettet. Terrain bleibt 1m-Voxel, Details (Gebäude, Ruinen,
+> Felsen, Vegetation) werden als Sub-Voxel-Modelle (0.25m) platziert.
+
+### Schritt 1 - Statische Vox-Platzierung in Chunks
+- [ ] [Mittel] `IStaticStructure`-Interface in Api: `VoxModel Generate(StructureParams p)`
+- [ ] [Mittel] `StaticStructureRenderer`: VoxModel → Mesh, in Chunk-Geometrie eingebacken
+- [ ] [Mittel] Chunk-Serialisierung: platzierte Strukturen in VXP6-Format persistieren
+- [ ] [Mittel] `StructureSpawnManager`: pro Chunk bei Generierung aufgerufen, Ergebnis gecacht
+
+### Schritt 2 - RuinGenerator
+- [ ] [Mittel] Basis-Formen: `Box()`, `Cylinder()`, `Arch()` als VoxModel-Builder
+- [ ] [Mittel] Erosion-Pass: Simplex-Noise knabbert obere Schichten weg
+- [ ] [Mittel] Loch-Pass: Kugel-Carving für Breschen in Wänden
+- [ ] [Mittel] Scatter-Pass: Trümmer-Voxel rund um die Basis
+- [ ] [Mittel] Vegetation-Pass: Moos auf Oberflächen, Efeu an Wänden
+- [ ] [Nice-to-have] Style-Grammatik: Tower, Wall, Chapel, Archway als kombinierbare Typen
+
+### Schritt 3 - Klimazonen-Parametrisierung
+- [ ] [Mittel] `StructureParams` / `RuinParams`: Seed, Größe, Steinfarbe, ErosionLevel,
+  MossChance, DebrisRadius, Style
+- [ ] [Mittel] BiomeDefinition.json: `structures`-Array mit type/style/weight pro Klimazone
+- [ ] [Nice-to-have] Wüste: Sandstein, wenig Moos, starke Erosion
+- [ ] [Nice-to-have] Wald: Granit, viel Moos, Efeu, moderate Erosion  
+- [ ] [Nice-to-have] Polar: Kalkstein, Schneeschicht oben, vereiste Risse
+
+### Schritt 4 - Weitere Generatoren
+- [ ] [Nice-to-have] `BoulderGenerator`: natürliche Felsformationen pro Klimazone
+- [ ] [Nice-to-have] `TreeGenerator`: Bäume als Sub-Voxel-Modelle (filigraner als Block-Bäume)
+- [ ] [Nice-to-have] `VegetationClusterGenerator`: Büsche, Farne, Pilze als Voxel-Cluster
+- [ ] [Nice-to-have] `StoneWallGenerator`: Feldstein-Mauern, Wegbegrenzungen
+
+## Phase 8 - Entity-System und Welt beleben
 
 > Voraussetzung: Inventar-System [Erledigt]
 
@@ -190,7 +226,37 @@
 
 ---
 
-## Phase 8 - Multiplayer (optional, langfristig)
+## Phase 9 - AI-gestützte Asset-Pipeline (Langfristig / Experimentell)
+
+> Ziel: Referenzbilder von Strukturen (Ruinen, Gebäude, Felsen) werden per Vision-KI
+> analysiert und in StructureParams übersetzt, die der prozedurale Generator direkt
+> verwenden kann. Kein manuelles Parametrisieren mehr.
+
+### Schritt 1 - Claude-Artifact: Image-to-Params Tool
+- [ ] [Nice-to-have] Standalone-Tool (Claude Artifact): Bild hochladen → Vision-Analyse
+  → `RuinParams`-JSON als Output
+- [ ] [Nice-to-have] Analysierte Felder: Style, Proportionen, Materialfarben, ErosionLevel,
+  MossChance, Dachtyp, Anbauten
+- [ ] [Nice-to-have] Output direkt als JSON kopierbar für `BiomeDefinition.json`
+
+### Schritt 2 - Integration in Build-Pipeline
+- [ ] [Nice-to-have] CLI-Tool `vox-analyze`: Bild-Pfad rein, `StructureParams`-JSON raus
+- [ ] [Nice-to-have] Batch-Modus: Ordner mit Referenzbildern → mehrere Params-JSONs
+- [ ] [Nice-to-have] Optionaler Preview: Generator läuft direkt durch, Screenshot des
+  erzeugten VoxModels als Vorschau
+
+### Schritt 3 - Feedback-Loop
+- [ ] [Nice-to-have] Params-JSON manuell nachbearbeiten, Generator neu ausführen
+- [ ] [Nice-to-have] A/B-Vergleich: Referenzbild neben generiertem Voxel-Preview
+- [ ] [Nice-to-have] Seed-Variation: ein Params-JSON → N verschiedene Variationen rendern
+
+### Abhängigkeiten
+- Setzt Phase 7 - Prozedurale Strukturen (Schritt 1+2) voraus
+- Claude Artifact (Schritt 1) ist unabhängig entwickelbar — guter Einstiegspunkt
+
+---
+
+## Phase 10 - Multiplayer (optional, langfristig)
 
 - [Nice-to-have] Option A: SpacetimeDB (C# Module, weniger Boilerplate, Free Tier)
 - [Nice-to-have] Option B: ASP.NET Core + SignalR + MessagePack (volle Kontrolle)
@@ -205,9 +271,12 @@ Erledigt:    Phase 4 - Atmosphaerischer Fog
 Jetzt:       Phase 4 - Atmosphaerische Ergaenzungen
                - Licht und Schatten
                - Foliage-Polish
-Dann:        Phase 7 - offene Gameplay-Items
+Dann:        Phase 8 - offene Gameplay-Items
                - Block-Pickup (Abbauen -> Inventar)
                - Dekrement beim Platzieren
                - Fog-Command Inversion Bug
-Langfristig: Phase 8 - Multiplayer
+Langfristig: Phase 9 - Multiplayer
 ```
+
+
+

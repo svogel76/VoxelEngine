@@ -1,20 +1,21 @@
 {
-  "id": 1,
-  "name": "grass",
-  "textures": {
-    "top": "grass_top",
-    "side": "grass_side",
-    "bottom": "dirt"
-  },
-  "properties": {
-    "solid": true,
-    "transparent": false,
-    "replaceable": false,
-    "max_stack": 64,
-    "tags": [
-      "natural",
-      "soil"
-    ]
-  },
-  "behaviour": "default"
+    "id":  1,
+    "name":  "grass",
+    "textures":  {
+                     "top":  "grass_top",
+                     "side":  "grass_side",
+                     "bottom":  "dirt"
+                 },
+    "properties":  {
+                       "solid":  true,
+                       "transparent":  false,
+                       "replaceable":  false,
+                       "max_stack":  64,
+                       "tags":  [
+                                    "natural",
+                                    "soil"
+                                ],
+                       "sky_light_attenuation":  15
+                   },
+    "behaviour":  "default"
 }

@@ -28,6 +28,7 @@ public sealed class BlockDefinitionLoaderTests : IDisposable
             "solid": true,
             "transparent": false,
             "replaceable": false,
+            "sky_light_attenuation": 15,
             "max_stack": 64
           },
           "behaviour": "default"
@@ -51,6 +52,7 @@ public sealed class BlockDefinitionLoaderTests : IDisposable
         definition.Solid.Should().BeTrue();
         definition.Transparent.Should().BeFalse();
         definition.Replaceable.Should().BeFalse();
+        definition.SkyLightAttenuation.Should().Be(15);
         definition.MaxStackSize.Should().Be(64);
     }
 
@@ -71,7 +73,8 @@ public sealed class BlockDefinitionLoaderTests : IDisposable
           "properties": {
             "solid": true,
             "transparent": false,
-            "replaceable": false
+            "replaceable": false,
+            "sky_light_attenuation": 15
           },
           "behaviour": "default"
         }
@@ -88,7 +91,8 @@ public sealed class BlockDefinitionLoaderTests : IDisposable
           "properties": {
             "solid": true,
             "transparent": false,
-            "replaceable": false
+            "replaceable": false,
+            "sky_light_attenuation": 15
           },
           "behaviour": "default"
         }
@@ -122,7 +126,8 @@ public sealed class BlockDefinitionLoaderTests : IDisposable
           "properties": {
             "solid": false,
             "transparent": true,
-            "replaceable": false
+            "replaceable": false,
+            "sky_light_attenuation": 1
           },
           "behaviour": "default"
         }
@@ -154,7 +159,8 @@ public sealed class BlockDefinitionLoaderTests : IDisposable
           "properties": {
             "solid": true,
             "transparent": false,
-            "replaceable": false
+            "replaceable": false,
+            "sky_light_attenuation": 15
           },
           "behaviour": "default"
         }
@@ -169,6 +175,40 @@ public sealed class BlockDefinitionLoaderTests : IDisposable
         // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*broken.json*'id'*");
+    }
+
+    [Fact]
+    public void LoadInto_MissingSkyLightAttenuation_ThrowsWithFilename()
+    {
+        // Arrange
+        WriteTextureManifest("stone");
+        WriteBlockJson("stone.json", """
+        {
+          "id": 3,
+          "name": "stone",
+          "textures": {
+            "top": "stone",
+            "side": "stone",
+            "bottom": "stone"
+          },
+          "properties": {
+            "solid": true,
+            "transparent": false,
+            "replaceable": false
+          },
+          "behaviour": "default"
+        }
+        """);
+
+        var loader = new BlockDefinitionLoader(_tempRoot);
+        var registry = new RecordingBlockRegistry();
+
+        // Act
+        Action act = () => loader.LoadInto(registry);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*stone.json*'properties.sky_light_attenuation'*");
     }
 
     public void Dispose()

@@ -104,6 +104,7 @@ public sealed class BlockDefinitionLoader
             RenderBackfaces = properties.RenderBackfaces,
             Replaceable = properties.Replaceable,
             Luminance = properties.Luminance,
+            SkyLightAttenuation = RequireSkyLightAttenuation(properties.SkyLightAttenuation, blockFile),
             Tags = properties.Tags ?? [],
             MaxStackSize = properties.MaxStackSize ?? 64
         };
@@ -121,6 +122,17 @@ public sealed class BlockDefinitionLoader
             return layer;
 
         throw new InvalidOperationException($"Unknown texture reference '{requiredTextureName}' for block '{blockName}' at key '{textureKey}'.");
+    }
+
+    private static int RequireSkyLightAttenuation(int? value, string blockFile)
+    {
+        if (value is null)
+            throw new InvalidOperationException($"Block definition '{Path.GetFileName(blockFile)}' is missing required field 'properties.sky_light_attenuation'.");
+
+        if (value < 0 || value > 15)
+            throw new InvalidOperationException($"Block definition '{Path.GetFileName(blockFile)}' has sky_light_attenuation {value} outside range 0..15.");
+
+        return value.Value;
     }
 
     private static byte RequireId(int? id, string blockFile)
@@ -185,6 +197,10 @@ public sealed class BlockDefinitionLoader
 
         public bool Replaceable { get; init; }
         public int Luminance { get; init; }
+
+        [JsonPropertyName("sky_light_attenuation")]
+        public int? SkyLightAttenuation { get; init; }
+
         public string[]? Tags { get; init; }
 
         [JsonPropertyName("max_stack")]

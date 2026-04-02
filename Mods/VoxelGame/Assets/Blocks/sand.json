@@ -1,20 +1,21 @@
 {
-  "id": 4,
-  "name": "sand",
-  "textures": {
-    "top": "sand",
-    "side": "sand",
-    "bottom": "sand"
-  },
-  "properties": {
-    "solid": true,
-    "transparent": false,
-    "replaceable": false,
-    "max_stack": 64,
-    "tags": [
-      "natural",
-      "sand"
-    ]
-  },
-  "behaviour": "default"
+    "id":  4,
+    "name":  "sand",
+    "textures":  {
+                     "top":  "sand",
+                     "side":  "sand",
+                     "bottom":  "sand"
+                 },
+    "properties":  {
+                       "solid":  true,
+                       "transparent":  false,
+                       "replaceable":  false,
+                       "max_stack":  64,
+                       "tags":  [
+                                    "natural",
+                                    "sand"
+                                ],
+                       "sky_light_attenuation":  15
+                   },
+    "behaviour":  "default"
 }

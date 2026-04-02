@@ -1,34 +1,33 @@
 {
-  "engine": {
-    "updates_per_second": 60,
-    "max_gl_uploads_per_frame": 16
-  },
-  "world": {
-    "render_distance": 5,
-    "unload_distance": 7,
-    "sea_level": 64
-  },
-  "physics": {
-    "gravity": -24.0,
-    "max_fall_speed": -50.0,
-    "jump_velocity": 9.5,
-    "fall_damage_threshold": 14.0,
-    "fall_damage_multiplier": 0.25,
-    "step_height": 1.0,
-    "enable_step_up": true,
-    "player_height": 1.8,
-    "player_width": 0.6,
-    "eye_height": 1.62
-  },
-  "fog": {
-    "start_percent": 0.5,
-    "end_percent": 0.9
-  },
-  "debug": {
-    "show_fps": true
-  }
+    "engine":  {
+                   "updates_per_second":  60,
+                   "max_gl_uploads_per_frame":  16
+               },
+    "world":  {
+                  "render_distance":  5,
+                  "unload_distance":  7,
+                  "sea_level":  64
+              },
+    "physics":  {
+                    "gravity":  -24.0,
+                    "max_fall_speed":  -50.0,
+                    "jump_velocity":  9.5,
+                    "fall_damage_threshold":  14.0,
+                    "fall_damage_multiplier":  0.25,
+                    "step_height":  1.0,
+                    "enable_step_up":  true,
+                    "player_height":  1.8,
+                    "player_width":  0.6,
+                    "eye_height":  1.62
+                },
+    "fog":  {
+                "start_percent":  0.5,
+                "end_percent":  0.9
+            },
+    "debug":  {
+                  "show_fps":  true
+              },
+    "lighting":  {
+                     "min_sky_light_ambient":  0.08
+                 }
 }
-
-
-
-

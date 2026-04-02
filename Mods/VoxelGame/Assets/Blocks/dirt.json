@@ -1,20 +1,21 @@
 {
-  "id": 2,
-  "name": "dirt",
-  "textures": {
-    "top": "dirt",
-    "side": "dirt",
-    "bottom": "dirt"
-  },
-  "properties": {
-    "solid": true,
-    "transparent": false,
-    "replaceable": false,
-    "max_stack": 64,
-    "tags": [
-      "natural",
-      "soil"
-    ]
-  },
-  "behaviour": "default"
+    "id":  2,
+    "name":  "dirt",
+    "textures":  {
+                     "top":  "dirt",
+                     "side":  "dirt",
+                     "bottom":  "dirt"
+                 },
+    "properties":  {
+                       "solid":  true,
+                       "transparent":  false,
+                       "replaceable":  false,
+                       "max_stack":  64,
+                       "tags":  [
+                                    "natural",
+                                    "soil"
+                                ],
+                       "sky_light_attenuation":  15
+                   },
+    "behaviour":  "default"
 }

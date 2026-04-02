@@ -31,6 +31,15 @@ public class World : IWorldAccess
         return chunk.GetBlock(WorldToLocal(worldX), worldY, WorldToLocal(worldZ));
     }
 
+    public byte GetSkyLight(int worldX, int worldY, int worldZ)
+    {
+        var chunk = GetChunk(WorldToChunk(worldX), WorldToChunk(worldZ));
+        if (chunk is null)
+            return 0;
+
+        return chunk.GetSkyLight(WorldToLocal(worldX), worldY, WorldToLocal(worldZ));
+    }
+
     public void SetBlock(int worldX, int worldY, int worldZ, byte type)
     {
         int localX = WorldToLocal(worldX);

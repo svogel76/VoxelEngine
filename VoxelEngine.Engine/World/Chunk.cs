@@ -7,6 +7,7 @@ public class Chunk
     public const int Depth  = 16;
 
     private readonly byte[,,] _blocks = new byte[Width, Height, Depth];
+    private readonly byte[,,] _skyLight = new byte[Width, Height, Depth];
     private readonly Dictionary<(byte x, byte y, byte z), byte> _playerEdits = new();
 
     public (int X, int Z) ChunkPosition { get; }
@@ -32,8 +33,26 @@ public class Chunk
         _blocks[x, y, z] = type;
     }
 
+    public byte GetSkyLight(int x, int y, int z)
+    {
+        if (x < 0 || x >= Width || y < 0 || y >= Height || z < 0 || z >= Depth)
+            return 0;
+
+        return _skyLight[x, y, z];
+    }
+
+    public void SetSkyLight(int x, int y, int z, byte light)
+    {
+        if (x < 0 || x >= Width || y < 0 || y >= Height || z < 0 || z >= Depth)
+            return;
+
+        _skyLight[x, y, z] = light;
+    }
+
+    public void ClearSkyLight() => Array.Clear(_skyLight);
+
     /// <summary>
-    /// Zeichnet eine Spieler-Änderung auf und setzt IsDirty. Nur über World.SetBlock() aufrufen.
+    /// Zeichnet eine Spieler-Aenderung auf und setzt IsDirty. Nur ueber World.SetBlock() aufrufen.
     /// </summary>
     public void RecordEdit(int x, int y, int z, byte blockType)
     {
@@ -44,8 +63,8 @@ public class Chunk
     }
 
     /// <summary>
-    /// Überträgt gespeicherte Edits eines entladenen Chunks in diesen neu generierten Chunk.
-    /// Wird von ChunkWorker aufgerufen, bevor der Chunk der Welt hinzugefügt wird.
+    /// Uebertraegt gespeicherte Edits eines entladenen Chunks in diesen neu generierten Chunk.
+    /// Wird von ChunkWorker aufgerufen, bevor der Chunk der Welt hinzugefuegt wird.
     /// </summary>
     public void LoadEdits(Dictionary<(byte x, byte y, byte z), byte> edits)
     {
@@ -57,7 +76,7 @@ public class Chunk
 
     /// <summary>
     /// Wendet alle gespeicherten Spieler-Edits auf das Blocks-Array an.
-    /// Nach prozeduraler Terrain-Generierung aufrufen, damit Änderungen Reload überleben.
+    /// Nach prozeduraler Terrain-Generierung aufrufen, damit Aenderungen Reload ueberleben.
     /// </summary>
     public void ApplyPlayerEdits()
     {

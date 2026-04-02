@@ -21,7 +21,7 @@ public class EngineSettings
 
     // Camera
     public float MovementSpeed    { get; init; } = 5.0f;
-    public float FlySpeed         { get; init; } = 0f;   // 0 = 2× MovementSpeed
+    public float FlySpeed         { get; init; } = 0f;   // 0 = 2x MovementSpeed
     public float MouseSensitivity { get; init; } = 0.1f;
     public float Fov              { get; init; } = 75.0f;
     public float NearPlane        { get; init; } = 0.1f;
@@ -99,6 +99,10 @@ public class EngineSettings
     public float FogStartFactor { get; init; } = 0.5f;
     /// <summary>Fog endet (vollstaendig) bei diesem Anteil der Render Distance (0.0-1.0)</summary>
     public float FogEndFactor   { get; init; } = 0.9f;
+
+    // Lighting
+    /// <summary>Mindestfaktor fuer Sky-Light (0.0-1.0), damit dunkle Bereiche nicht vollstaendig schwarz werden.</summary>
+    public float MinSkyLightAmbient { get; init; } = 0.08f;
 
     // Persistence
     /// <summary>Verzeichnis fuer Spielstaende (relativ zum Arbeitsverzeichnis)</summary>
@@ -186,6 +190,7 @@ public class EngineSettings
             EnableStepUp = document.Physics?.EnableStepUp ?? defaults.EnableStepUp,
             FogStartFactor = document.Fog?.StartPercent ?? defaults.FogStartFactor,
             FogEndFactor = document.Fog?.EndPercent ?? defaults.FogEndFactor,
+            MinSkyLightAmbient = Clamp01OrDefault(document.Lighting?.MinSkyLightAmbient, defaults.MinSkyLightAmbient),
             SaveDirectory = defaults.SaveDirectory,
             ConsoleHistorySize = defaults.ConsoleHistorySize,
             ShowFps = document.Debug?.ShowFps ?? defaults.ShowFps,
@@ -202,6 +207,9 @@ public class EngineSettings
 
     private static float AbsOrDefault(float? value, float fallback)
         => value is null ? fallback : MathF.Abs(value.Value);
+
+    private static float Clamp01OrDefault(float? value, float fallback)
+        => value is null ? fallback : Math.Clamp(value.Value, 0f, 1f);
 
     private static string ResolveDirectoryPath(string path)
     {
@@ -221,6 +229,7 @@ public class EngineSettings
         public WorldSection? World { get; init; }
         public PhysicsSection? Physics { get; init; }
         public FogSection? Fog { get; init; }
+        public LightingSection? Lighting { get; init; }
         public DebugSection? Debug { get; init; }
     }
 
@@ -277,13 +286,15 @@ public class EngineSettings
         public float? EndPercent { get; init; }
     }
 
+    private sealed class LightingSection
+    {
+        [JsonPropertyName("min_sky_light_ambient")]
+        public float? MinSkyLightAmbient { get; init; }
+    }
+
     private sealed class DebugSection
     {
         [JsonPropertyName("show_fps")]
         public bool? ShowFps { get; init; }
     }
 }
-
-
-
-

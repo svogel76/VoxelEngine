@@ -28,7 +28,7 @@ public sealed class ChunkManager : IDisposable
         _world       = world;
         _settings    = settings;
         _persistence = persistence;
-        _worker      = new ChunkWorker(world, generator, persistence);
+        _worker      = new ChunkWorker(world, generator, persistence, settings.MinSkyLightAmbient);
         RenderDistance = settings.RenderDistance;
     }
 
@@ -161,6 +161,9 @@ public sealed class ChunkManager : IDisposable
                 continue;
             }
 
+            if (result.JobKind == ChunkJobKind.Generate)
+                EnqueueNeighborRebuilds(result.ChunkX, result.ChunkZ);
+
             return true;
         }
 
@@ -168,6 +171,13 @@ public sealed class ChunkManager : IDisposable
         return false;
     }
 
+    private void EnqueueNeighborRebuilds(int chunkX, int chunkZ)
+    {
+        EnqueueChunkRebuild(chunkX - 1, chunkZ);
+        EnqueueChunkRebuild(chunkX + 1, chunkZ);
+        EnqueueChunkRebuild(chunkX, chunkZ - 1);
+        EnqueueChunkRebuild(chunkX, chunkZ + 1);
+    }
     public void Dispose()
     {
         if (_disposed)
@@ -189,3 +199,6 @@ public sealed class ChunkManager : IDisposable
             .Select(entry => (entry.X, entry.Z));
     }
 }
+
+
+

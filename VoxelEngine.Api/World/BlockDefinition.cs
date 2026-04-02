@@ -14,6 +14,7 @@ public sealed record BlockDefinition
     public bool RenderBackfaces { get; init; }
     public required bool Replaceable { get; init; }
     public int Luminance { get; init; }
+    public required int SkyLightAttenuation { get; init; }
     public string[] Tags { get; init; } = [];
     public int MaxStackSize { get; init; } = 64;
 

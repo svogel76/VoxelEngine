@@ -1,21 +1,22 @@
 {
-  "id": 6,
-  "name": "glass",
-  "textures": {
-    "top": "glass",
-    "side": "glass",
-    "bottom": "glass"
-  },
-  "properties": {
-    "solid": false,
-    "transparent": true,
-    "replaceable": false,
-    "collides_with_player": false,
-    "max_stack": 64,
-    "tags": [
-      "crafted",
-      "transparent"
-    ]
-  },
-  "behaviour": "default"
+    "id":  6,
+    "name":  "glass",
+    "textures":  {
+                     "top":  "glass",
+                     "side":  "glass",
+                     "bottom":  "glass"
+                 },
+    "properties":  {
+                       "solid":  false,
+                       "transparent":  true,
+                       "replaceable":  false,
+                       "collides_with_player":  false,
+                       "max_stack":  64,
+                       "tags":  [
+                                    "crafted",
+                                    "transparent"
+                                ],
+                       "sky_light_attenuation":  1
+                   },
+    "behaviour":  "default"
 }

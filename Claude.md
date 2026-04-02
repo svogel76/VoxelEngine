@@ -30,7 +30,9 @@ Run/                  # Startverzeichnis (gitignored)
 - Spieler-Entity trennt Position/Physik von der Kamera
 - BlockRegistry ist die zentrale Quelle der Wahrheit fuer alle Block-Eigenschaften
 - Block-Definitionen data-driven: `Assets/Blocks/*.json` + `Assets/Textures/blocks.manifest.json`
-- Key Bindings data-driven: `Assets/keybindings.json`
+- Key Bindings data-driven: Assets/keybindings.json
+- Sky-Light-Basis: jedes Chunk speichert `byte[,,]` SkyLight (0..15); Propagation top-down + Flood-Fill, Dampfungswerte kommen data-driven aus `BlockDefinition.SkyLightAttenuation`
+- Sky-Light-Meshing: faceLight = Richtungsfaktor * SkyLightFactor (0..15 -> MinSkyLightAmbient..1), MinSkyLightAmbient kommt aus EngineSettings
 - Dirty-Flag System: `Chunk.PlayerEdits` + `IsDirty`; `World.PersistedEdits` ueberlebt Unload/Reload
 - HUD-Framework: `IHudElement` + `IHudRenderer`, konfigurierbar via `Assets/Hud/hud.json`
 - Inventar: `Hotbar[9]`, `ItemStack`, `MaxStackSize` pro `BlockDefinition` (Default 64)
@@ -65,6 +67,9 @@ Run/                  # Startverzeichnis (gitignored)
 Jedes Kommando als eigene Klasse in `Core/Debug/Commands/` - nie inline.
 
 ## Naechste Schritte
-- Atmosphaerische Ergaenzungen priorisieren: Nebel [Erledigt], als naechstes Licht und Schatten
-- Danach Foliage-Polish (Gras/Blumen/Buesche als glaubhafte Waldschicht statt leerer Flaechen)
+- Sky-Light abgeschlossen (Teil 1+2): als naechstes Licht/Schatten-Feinschliff und visuelle Kontrastabstimmung.
+- Danach Foliage-Polish (Gras/Blumen/Buesche als glaubhafte Waldschicht statt leerer Flaechen).
 - Anschliessend Fog-Feintuning fuer Nicht-Temperate-Zonen und spaeter Wetter/Humidity-Kopplung
+
+
+

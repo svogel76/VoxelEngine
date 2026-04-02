@@ -1,23 +1,24 @@
 {
-  "id": 11,
-  "name": "leaves",
-  "textures": {
-    "top": "leaves",
-    "side": "leaves",
-    "bottom": "leaves"
-  },
-  "properties": {
-    "solid": false,
-    "transparent": false,
-    "cutout": true,
-    "replaceable": false,
-    "collides_with_player": true,
-    "render_backfaces": true,
-    "max_stack": 64,
-    "tags": [
-      "natural",
-      "foliage"
-    ]
-  },
-  "behaviour": "default"
+    "id":  11,
+    "name":  "leaves",
+    "textures":  {
+                     "top":  "leaves",
+                     "side":  "leaves",
+                     "bottom":  "leaves"
+                 },
+    "properties":  {
+                       "solid":  false,
+                       "transparent":  false,
+                       "cutout":  true,
+                       "replaceable":  false,
+                       "collides_with_player":  true,
+                       "render_backfaces":  true,
+                       "max_stack":  64,
+                       "tags":  [
+                                    "natural",
+                                    "foliage"
+                                ],
+                       "sky_light_attenuation":  2
+                   },
+    "behaviour":  "default"
 }
