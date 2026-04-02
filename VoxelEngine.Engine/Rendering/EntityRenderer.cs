@@ -2,9 +2,8 @@ using System.Numerics;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using VoxelEngine.Entity;
-using VoxelEngine.Entity.Models;
-using VoxelEngine.World;
 using VoxelEngine.Entity.Components;
+using VoxelEngine.Entity.Models;
 
 namespace VoxelEngine.Rendering;
 
@@ -27,24 +26,12 @@ public sealed class EntityRenderer : IDisposable
             _meshes[model.Id] = CreateMesh(gl, model, models.Atlas);
     }
 
-    public void Render(Camera camera, Skybox skybox, WorldTime time, EntityManager entityManager, float fogStartFactor, float fogEndFactor, int renderDistance)
+    public void Render(Camera camera, Skybox skybox, EntityManager entityManager, FogProfile fog)
     {
         var frustum = ViewFrustum.FromViewProjection(ToNumerics(camera.ViewMatrix * camera.ProjectionMatrix));
         var visibleEntities = entityManager.GetVisible(frustum);
         if (visibleEntities.Count == 0)
             return;
-
-        float renderDistanceBlocks = renderDistance * Chunk.Width;
-        float hours = (float)time.Time;
-        bool isNight = hours < 6.0f || hours > 20.0f;
-        float startFactor = fogEndFactor <= 0f
-            ? fogStartFactor
-            : isNight
-                ? MathF.Max(fogStartFactor, 0.7f)
-                : fogStartFactor;
-
-        float fogStart = fogEndFactor <= 0f ? 1e30f : renderDistanceBlocks * startFactor;
-        float fogEnd = fogEndFactor <= 0f ? 2e30f : renderDistanceBlocks * fogEndFactor;
 
         _gl.Enable(GLEnum.DepthTest);
         _gl.Enable(GLEnum.CullFace);
@@ -59,9 +46,9 @@ public sealed class EntityRenderer : IDisposable
         _shader.SetMatrix4("projection", camera.ProjectionMatrix);
         _shader.SetFloat("uGlobalLight", skybox.CurrentAmbientLight);
         _shader.SetVector3("uSunColor", skybox.CurrentSunColor);
-        _shader.SetVector3("uFogColor", skybox.FogColor);
-        _shader.SetFloat("uFogStart", fogStart);
-        _shader.SetFloat("uFogEnd", fogEnd);
+        _shader.SetVector3("uFogColor", fog.Color);
+        _shader.SetFloat("uFogStart", fog.StartDistance);
+        _shader.SetFloat("uFogEnd", fog.EndDistance);
 
         _atlas.Bind(TextureUnit.Texture0);
         _shader.SetInt("uTexture", 0);
@@ -69,10 +56,11 @@ public sealed class EntityRenderer : IDisposable
         var batches = new Dictionary<string, List<float>>(StringComparer.OrdinalIgnoreCase);
         foreach (var entity in visibleEntities)
         {
-            var render = entity.GetComponent<VoxelEngine.Entity.Components.RenderComponent>();
-            if (render is null) continue;
+            var render = entity.GetComponent<RenderComponent>();
+            if (render is null)
+                continue;
 
-            float yawRadians = entity.GetComponent<VoxelEngine.Entity.Components.AIComponent>()?.YawRadians ?? 0f;
+            float yawRadians = entity.GetComponent<AIComponent>()?.YawRadians ?? 0f;
             var renderInstance = render.GetRenderInstance(entity.InternalPosition, yawRadians);
             if (!_meshes.ContainsKey(renderInstance.ModelId))
                 continue;

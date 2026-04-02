@@ -8,20 +8,14 @@ namespace VoxelEngine.Rendering;
 
 public class ChunkRenderer : IDisposable
 {
-        private const float GhostScale = 1.002f;
-
-    // Sicherer Fog-Disable-Wert: weit genug von FLT_MAX entfernt,
-    // um NaN durch float.MaxValue-Arithmetik in GLSL zu vermeiden.
-    private const float FogDisabledStart = 1e30f;
-    private const float FogDisabledEnd   = 2e30f;
+    private const float GhostScale = 1.002f;
 
     private readonly GL _gl;
     private readonly Shader _shader;
     private readonly ArrayTexture _atlas;
-    private readonly int _renderDistance;
     private readonly int _maxUploadsPerFrame;
 
-    /// <summary>Die Block-ArrayTexture â€” zugÃ¤nglich fÃ¼r HUD-Renderer (Icons).</summary>
+    /// <summary>Die Block-ArrayTexture — zugänglich für HUD-Renderer (Icons).</summary>
     public ArrayTexture Atlas => _atlas;
 
     private readonly Dictionary<(int X, int Z), Mesh> _opaqueMeshes = new();
@@ -41,7 +35,6 @@ public class ChunkRenderer : IDisposable
         _gl = gl;
         _shader = shader;
         _atlas = new ArrayTexture(gl);
-        _renderDistance = settings.RenderDistance;
         _maxUploadsPerFrame = Math.Max(1, settings.MaxGlUploadsPerFrame);
         FogStartFactor = settings.FogStartFactor;
         FogEndFactor = settings.FogEndFactor;
@@ -112,24 +105,12 @@ public class ChunkRenderer : IDisposable
         }
     }
 
-    public void Render(Shader shader, Camera camera, Skybox skybox, WorldTime time)
+    public void Render(Shader shader, Camera camera, Skybox skybox, FogProfile fog)
     {
         _gl.Enable(GLEnum.DepthTest);
         _gl.Enable(GLEnum.CullFace);
         _gl.CullFace(GLEnum.Back);
         _gl.FrontFace(GLEnum.Ccw);
-
-        float renderDist = _renderDistance * (float)Chunk.Width;
-        float t = (float)time.Time;
-        bool isNight = t < 6.0f || t > 20.0f;
-        float startFactor = FogEndFactor <= 0f
-            ? FogStartFactor
-            : isNight
-                ? MathF.Max(FogStartFactor, 0.7f)
-                : FogStartFactor;
-
-        float fogStart = FogEndFactor <= 0f ? FogDisabledStart : renderDist * startFactor;
-        float fogEnd   = FogEndFactor <= 0f ? FogDisabledEnd   : renderDist * FogEndFactor;
 
         shader.Use();
         shader.SetMatrix4("model", Matrix4X4<float>.Identity);
@@ -137,9 +118,9 @@ public class ChunkRenderer : IDisposable
         shader.SetMatrix4("projection", camera.ProjectionMatrix);
         shader.SetFloat("uGlobalLight", skybox.CurrentAmbientLight);
         shader.SetVector3("uSunColor", skybox.CurrentSunColor);
-        shader.SetVector3("uFogColor", skybox.FogColor);
-        shader.SetFloat("uFogStart", fogStart);
-        shader.SetFloat("uFogEnd", fogEnd);
+        shader.SetVector3("uFogColor", fog.Color);
+        shader.SetFloat("uFogStart", fog.StartDistance);
+        shader.SetFloat("uFogEnd", fog.EndDistance);
         shader.SetFloat("uAlphaMultiplier", 1f);
 
         _atlas.Bind(TextureUnit.Texture0);
@@ -212,22 +193,10 @@ public class ChunkRenderer : IDisposable
         _gl.PolygonMode(GLEnum.FrontAndBack, GLEnum.Fill);
     }
 
-    public void RenderGhostBlock(Shader shader, Camera camera, Skybox skybox, WorldTime time, BlockPlacementPreview? preview)
+    public void RenderGhostBlock(Shader shader, Camera camera, Skybox skybox, FogProfile fog, BlockPlacementPreview? preview)
     {
         if (preview is null)
             return;
-
-        float renderDist = _renderDistance * (float)Chunk.Width;
-        float t = (float)time.Time;
-        bool isNight = t < 6.0f || t > 20.0f;
-        float startFactor = FogEndFactor <= 0f
-            ? FogStartFactor
-            : isNight
-                ? MathF.Max(FogStartFactor, 0.7f)
-                : FogStartFactor;
-
-        float fogStart = FogEndFactor <= 0f ? FogDisabledStart : renderDist * startFactor;
-        float fogEnd   = FogEndFactor <= 0f ? FogDisabledEnd   : renderDist * FogEndFactor;
 
         var ghost = preview.Value;
         var pos = ghost.Position;
@@ -254,9 +223,9 @@ public class ChunkRenderer : IDisposable
         shader.SetMatrix4("projection", camera.ProjectionMatrix);
         shader.SetFloat("uGlobalLight", skybox.CurrentAmbientLight);
         shader.SetVector3("uSunColor", skybox.CurrentSunColor);
-        shader.SetVector3("uFogColor", skybox.FogColor);
-        shader.SetFloat("uFogStart", fogStart);
-        shader.SetFloat("uFogEnd", fogEnd);
+        shader.SetVector3("uFogColor", fog.Color);
+        shader.SetFloat("uFogStart", fog.StartDistance);
+        shader.SetFloat("uFogEnd", fog.EndDistance);
         shader.SetFloat("uAlphaMultiplier", 0.4f);
 
         _atlas.Bind(TextureUnit.Texture0);

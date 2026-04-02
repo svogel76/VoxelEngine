@@ -1,13 +1,28 @@
 {
-  "id": "tropics",
-  "terrain": {
-    "baseHeight": 76,
-    "amplitude": 45,
-    "frequency": 0.006,
-    "octaves": 5
-  },
-  "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
-  "snowLine": 2147483647,
-  "trees": { "density": 0.022, "template": "mega_tropical" },
-  "spawns": []
+    "id":  "tropics",
+    "terrain":  {
+                    "baseHeight":  76,
+                    "amplitude":  45,
+                    "frequency":  0.006,
+                    "octaves":  5
+                },
+    "blocks":  {
+                   "surface":  "grass",
+                   "subsurface":  "dirt",
+                   "stone":  "stone",
+                   "sea":  "water"
+               },
+    "snowLine":  2147483647,
+    "trees":  {
+                  "density":  0.022,
+                  "template":  "mega_tropical"
+              },
+    "fog":  {
+                "density":  0.98,
+                "tintStrength":  0.3
+            },
+    "spawns":  [
+
+               ]
 }
+

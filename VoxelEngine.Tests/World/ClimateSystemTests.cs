@@ -46,12 +46,16 @@ public sealed class ClimateSystemTests : IDisposable
         temperate.SnowLine.Should().Be(999);
         temperate.TreeDensity.Should().Be(0.015f);
         temperate.TreeTemplate.Name.Should().Be("oak");
+        temperate.FogDensity.Should().Be(1.4f);
+        temperate.FogTintStrength.Should().Be(0.4f);
         temperate.Spawns.Should().ContainSingle();
         temperate.Spawns[0].Should().BeEquivalentTo(new ClimateSpawnDefinition("deer", 8, 16f, 30f, SpawnActivity.Diurnal));
 
         ClimateZone desert = system.Zones.Should().ContainSingle(zone => zone.Id == "desert").Subject;
         desert.SurfaceBlock.Should().Be(BlockType.Sand);
         desert.TreeTemplate.Name.Should().Be("cactus");
+        desert.FogDensity.Should().Be(0.6f);
+        desert.FogTintStrength.Should().Be(0.22f);
         desert.Spawns.Should().BeEmpty();
     }
 
@@ -68,6 +72,7 @@ public sealed class ClimateSystemTests : IDisposable
               "blocks": { "surface": "unknown_block", "subsurface": "dirt", "stone": "stone", "sea": "water" },
               "snowLine": 999,
               "trees": { "density": 0.015, "template": "oak" },
+              "fog": { "density": 1.4, "tintStrength": 0.4 },
               "spawns": []
             }
             """);
@@ -107,6 +112,7 @@ public sealed class ClimateSystemTests : IDisposable
               "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
               "snowLine": 999,
               "trees": { "density": 0.015, "template": "oak" },
+              "fog": { "density": 1.4, "tintStrength": 0.4 },
               "spawns": [
                 { "entity": "deer", "maxCount": 8, "minSpawnDistance": 16, "spawnInterval": 30 }
               ]
@@ -139,6 +145,7 @@ public sealed class ClimateSystemTests : IDisposable
               "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
               "snowLine": 999,
               "trees": { "density": 0.015, "template": "oak" },
+              "fog": { "density": 1.4, "tintStrength": 0.4 },
               "spawns": [
                 { "entity": "deer", "maxCount": 8, "minSpawnDistance": 16, "spawnInterval": 30, "activity": "diurnal" }
               ]
@@ -154,6 +161,7 @@ public sealed class ClimateSystemTests : IDisposable
               "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
               "snowLine": 100,
               "trees": { "density": 0.02, "template": "spruce" },
+              "fog": { "density": 1.2, "tintStrength": 0.3 },
               "spawns": []
             }
             """);
@@ -167,6 +175,7 @@ public sealed class ClimateSystemTests : IDisposable
               "blocks": { "surface": "dry_grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
               "snowLine": 999,
               "trees": { "density": 0.005, "template": "shrub" },
+              "fog": { "density": 0.95, "tintStrength": 0.3 },
               "spawns": []
             }
             """);
@@ -180,6 +189,7 @@ public sealed class ClimateSystemTests : IDisposable
               "blocks": { "surface": "dry_grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
               "snowLine": 999,
               "trees": { "density": 0.008, "template": "acacia" },
+              "fog": { "density": 0.72, "tintStrength": 0.22 },
               "spawns": []
             }
             """);
@@ -193,6 +203,7 @@ public sealed class ClimateSystemTests : IDisposable
               "blocks": { "surface": "sand", "subsurface": "sand", "stone": "stone", "sea": "water" },
               "snowLine": 999,
               "trees": { "density": 0.003, "template": "cactus" },
+              "fog": { "density": 0.6, "tintStrength": 0.22 },
               "spawns": []
             }
             """);
@@ -206,6 +217,7 @@ public sealed class ClimateSystemTests : IDisposable
               "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
               "snowLine": 999,
               "trees": { "density": 0.025, "template": "palm" },
+              "fog": { "density": 0.98, "tintStrength": 0.3 },
               "spawns": []
             }
             """);

@@ -240,6 +240,7 @@ public sealed class ClimateSystem
 
         var blocks = document.Blocks!;
         var trees = document.Trees!;
+        var fog = document.Fog!;
         var spawns = document.Spawns!;
 
         return new ClimateZone(
@@ -253,6 +254,8 @@ public sealed class ClimateSystem
             document.SnowLine,
             trees.Density,
             ResolveTreeTemplate(trees.Template, document.Id),
+            fog.Density,
+            fog.TintStrength,
             spawns
                 .Select(spawn => CreateSpawnDefinition(spawn, document.Id))
                 .ToArray());
@@ -357,6 +360,8 @@ public sealed class ClimateSystem
             throw new FormatException($"Climate zone '{document.Id}' is missing block settings.");
         if (document.Trees is null)
             throw new FormatException($"Climate zone '{document.Id}' is missing tree settings.");
+        if (document.Fog is null)
+            throw new FormatException($"Climate zone '{document.Id}' is missing fog settings.");
         if (document.Terrain.Frequency <= 0f)
             throw new FormatException($"Climate zone '{document.Id}' must define a terrain frequency greater than zero.");
         if (document.Terrain.Octaves <= 0)
@@ -367,6 +372,10 @@ public sealed class ClimateSystem
             throw new FormatException($"Climate zone '{document.Id}' must define a non-negative base height.");
         if (document.Trees.Density < 0f)
             throw new FormatException($"Climate zone '{document.Id}' must define a non-negative tree density.");
+        if (document.Fog.Density < 0f)
+            throw new FormatException($"Climate zone '{document.Id}' must define a non-negative fog density.");
+        if (document.Fog.TintStrength < 0f || document.Fog.TintStrength > 1f)
+            throw new FormatException($"Climate zone '{document.Id}' must define a fog tintStrength between 0 and 1.");
         if (string.IsNullOrWhiteSpace(document.Blocks.Surface) ||
             string.IsNullOrWhiteSpace(document.Blocks.Subsurface) ||
             string.IsNullOrWhiteSpace(document.Blocks.Stone) ||
@@ -398,6 +407,7 @@ public sealed class ClimateSystem
         public BlockDocument? Blocks { get; set; }
         public int SnowLine { get; set; }
         public TreeDocument? Trees { get; set; }
+        public FogDocument? Fog { get; set; }
         public List<ClimateSpawnDocument>? Spawns { get; set; }
     }
 
@@ -423,6 +433,12 @@ public sealed class ClimateSystem
         public string Template { get; set; } = string.Empty;
     }
 
+    private sealed class FogDocument
+    {
+        public float Density { get; set; }
+        public float TintStrength { get; set; }
+    }
+
     private sealed class ClimateSpawnDocument
     {
         public string Entity { get; set; } = string.Empty;
@@ -444,3 +460,5 @@ public readonly record struct ClimateSample(
     byte SubsurfaceBlock,
     byte StoneBlock,
     byte SeaBlock);
+
+

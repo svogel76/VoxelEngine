@@ -46,6 +46,8 @@ Run/                  # Startverzeichnis (gitignored)
 - `VoxelEngine.Game` ist eine Mod - keine Sonder-Privilegien gegenueber externen Mods
 - Der Launcher referenziert nur `VoxelEngine.Engine` - keinerlei Spiellogik
 
+- Atmosphaerischer Fog ist dynamisch pro Frame (Distanz + Klimazone + Tageszeit + Hoehe); ein gemeinsames FogProfile wird fuer Chunk-, Entity- und Ghost-Rendering verwendet
+
 ## Koordinaten-System
 - Chunk-Koordinate: `Math.Floor(worldCoord / Chunk.Width)`
 - Lokal-Koordinate: `((worldCoord % Width) + Width) % Width`
@@ -61,3 +63,8 @@ Run/                  # Startverzeichnis (gitignored)
 
 ## Neue Debug-Kommandos
 Jedes Kommando als eigene Klasse in `Core/Debug/Commands/` - nie inline.
+
+## Naechste Schritte
+- Atmosphaerische Ergaenzungen priorisieren: Nebel [Erledigt], als naechstes Licht und Schatten
+- Danach Foliage-Polish (Gras/Blumen/Buesche als glaubhafte Waldschicht statt leerer Flaechen)
+- Anschliessend Fog-Feintuning fuer Nicht-Temperate-Zonen und spaeter Wetter/Humidity-Kopplung
