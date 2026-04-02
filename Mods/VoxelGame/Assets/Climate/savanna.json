@@ -1,13 +1,28 @@
 {
-  "id": "savanna",
-  "terrain": {
-    "baseHeight": 68,
-    "amplitude": 28,
-    "frequency": 0.007,
-    "octaves": 4
-  },
-  "blocks": { "surface": "dry_grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
-  "snowLine": 2147483647,
-  "trees": { "density": 0.006, "template": "acacia" },
-  "spawns": []
+    "id":  "savanna",
+    "terrain":  {
+                    "baseHeight":  68,
+                    "amplitude":  28,
+                    "frequency":  0.007,
+                    "octaves":  4
+                },
+    "blocks":  {
+                   "surface":  "dry_grass",
+                   "subsurface":  "dirt",
+                   "stone":  "stone",
+                   "sea":  "water"
+               },
+    "snowLine":  2147483647,
+    "trees":  {
+                  "density":  0.006,
+                  "template":  "acacia"
+              },
+    "fog":  {
+                "density":  0.72,
+                "tintStrength":  0.22
+            },
+    "spawns":  [
+
+               ]
 }
+

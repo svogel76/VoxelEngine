@@ -381,7 +381,12 @@ public class Engine : IDisposable
         }
 
         _context.Renderer.UploadPendingMeshes(_context.ChunkManager);
-        _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime, _context.EntityManager, _context.TargetedBlock, _context.PlacementPreview);
+
+        int climateX = (int)MathF.Floor(_context.Camera.Position.X);
+        int climateZ = (int)MathF.Floor(_context.Camera.Position.Z);
+        ClimateSample climate = _context.Generator.SampleClimate(climateX, climateZ);
+
+        _context.Renderer.Render(_context.Camera, _context.Time, (float)frameTime, _context.EntityManager, climate, _context.TargetedBlock, _context.PlacementPreview);
         _debugOverlay.Render(_settings.WindowWidth, _settings.WindowHeight, _fps, _consoleInput);
         _context.UI.Render(_context, frameTime, _settings.WindowWidth, _settings.WindowHeight);
         foreach (IGameMod mod in _mods)
@@ -503,6 +508,7 @@ public class Engine : IDisposable
     private static Vector3 ToNumerics(Vector3D<float> vector) => new(vector.X, vector.Y, vector.Z);
     private static Vector3D<float> ToSilk(Vector3 vector) => new(vector.X, vector.Y, vector.Z);
 }
+
 
 
 

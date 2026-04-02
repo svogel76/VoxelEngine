@@ -1,15 +1,34 @@
 {
-  "id": "temperate",
-  "terrain": {
-    "baseHeight": 80,
-    "amplitude": 60,
-    "frequency": 0.0055,
-    "octaves": 6
-  },
-  "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
-  "snowLine": 2147483647,
-  "trees": { "density": 0.012, "template": "large_oak" },
-  "spawns": [
-    { "entity": "deer", "maxCount": 8, "minSpawnDistance": 16, "spawnInterval": 30, "activity": "diurnal" }
-  ]
+    "id":  "temperate",
+    "terrain":  {
+                    "baseHeight":  80,
+                    "amplitude":  60,
+                    "frequency":  0.0055,
+                    "octaves":  6
+                },
+    "blocks":  {
+                   "surface":  "grass",
+                   "subsurface":  "dirt",
+                   "stone":  "stone",
+                   "sea":  "water"
+               },
+    "snowLine":  2147483647,
+    "trees":  {
+                  "density":  0.012,
+                  "template":  "large_oak"
+              },
+    "fog":  {
+                "density":  1.4,
+                "tintStrength":  0.4
+            },
+    "spawns":  [
+                   {
+                       "entity":  "deer",
+                       "maxCount":  8,
+                       "minSpawnDistance":  16,
+                       "spawnInterval":  30,
+                       "activity":  "diurnal"
+                   }
+               ]
 }
+

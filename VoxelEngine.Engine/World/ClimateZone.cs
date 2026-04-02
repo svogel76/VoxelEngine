@@ -12,6 +12,8 @@ public sealed class ClimateZone
     public int SnowLine { get; }
     public float TreeDensity { get; }
     public TreeTemplate TreeTemplate { get; }
+    public float FogDensity { get; }
+    public float FogTintStrength { get; }
     public IReadOnlyList<ClimateSpawnDefinition> Spawns { get; }
 
     public ClimateZone(
@@ -25,6 +27,8 @@ public sealed class ClimateZone
         int snowLine,
         float treeDensity,
         TreeTemplate treeTemplate,
+        float fogDensity,
+        float fogTintStrength,
         IReadOnlyList<ClimateSpawnDefinition>? spawns = null)
     {
         Id = id;
@@ -37,6 +41,8 @@ public sealed class ClimateZone
         SnowLine = snowLine;
         TreeDensity = treeDensity;
         TreeTemplate = treeTemplate;
+        FogDensity = fogDensity;
+        FogTintStrength = fogTintStrength;
         Spawns = spawns ?? [];
     }
 }

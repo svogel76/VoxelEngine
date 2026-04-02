@@ -320,6 +320,7 @@ public class SpawnManagerTests
               "blocks": { "surface": "grass", "subsurface": "dirt", "stone": "stone", "sea": "water" },
               "snowLine": 999,
               "trees": { "density": 0.0, "template": "oak" },
+              "fog": { "density": 1.4, "tintStrength": 0.4 },
               {{spawnJson}}
             }
             """);
@@ -434,4 +435,8 @@ public class SpawnManagerTests
         }
     }
 }
+
+
+
+
 

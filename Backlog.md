@@ -97,13 +97,18 @@
 
 ## Phase 4 - Rendering und Visuals
 
+- [Erledigt] Atmosphaerischer Fog (Distanz-Softfade + Klima-/Tageszeit-/Hoehenabhaengigkeit, initial auf gemaessigte Zone getuned)
+
 - [Mittel] Jahreszeiten (Farb-Tint, Tageslaenge - DayCount vorhanden)
 - [Mittel] Wetter-Zustandsautomat (Sonnig -> Bewoelkt -> Regen/Schnee)
 - [Mittel] Regen/Schnee Partikel
 - [Nice-to-have] Wolken (prozedural, ziehen mit Wind)
 - [Nice-to-have] Sonnen-Halo / Atmosphaeren-Streuung
 - [Nice-to-have] Distant Horizons (LOD-Silhouetten)
+- [Mittel] Licht und Schatten (stimmigere Tageszeit-Kontraste, Schattenwirkung im Wald)
+- [Mittel] Foliage-Polish (dichte Gras-/Blumen-/Buesch-Schicht fuer glaubhafte Waelder)
 - [Nice-to-have] Billboard-Sprites fuer Vegetation (Gras, Blumen, Wippen im Wind)
+- [Nice-to-have] Dynamische Sonnenschatten (Shadow Map Pass, Cascaded Shadow Maps) — abhängig vom Sonnenstand; aufwändiges Rendering-Feature, eigener Architektur-Entscheid erforderlich
 
 ---
 
@@ -196,10 +201,13 @@
 ## Empfohlene Reihenfolge
 ```
 Erledigt:    Mod/Plugin-System Meilenstein (Schritte 1-5)
-Jetzt:       Phase 7 - offene Gameplay-Items
+Erledigt:    Phase 4 - Atmosphaerischer Fog
+Jetzt:       Phase 4 - Atmosphaerische Ergaenzungen
+               - Licht und Schatten
+               - Foliage-Polish
+Dann:        Phase 7 - offene Gameplay-Items
                - Block-Pickup (Abbauen -> Inventar)
                - Dekrement beim Platzieren
                - Fog-Command Inversion Bug
-Dann:        Phase 7 - Vegetation + Tiere vervollstaendigen
 Langfristig: Phase 8 - Multiplayer
 ```

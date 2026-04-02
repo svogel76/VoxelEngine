@@ -1,13 +1,28 @@
 {
-  "id": "desert",
-  "terrain": {
-    "baseHeight": 64,
-    "amplitude": 38,
-    "frequency": 0.004,
-    "octaves": 4
-  },
-  "blocks": { "surface": "sand", "subsurface": "sand", "stone": "stone", "sea": "water" },
-  "snowLine": 2147483647,
-  "trees": { "density": 0.004, "template": "cactus" },
-  "spawns": []
+    "id":  "desert",
+    "terrain":  {
+                    "baseHeight":  64,
+                    "amplitude":  38,
+                    "frequency":  0.004,
+                    "octaves":  4
+                },
+    "blocks":  {
+                   "surface":  "sand",
+                   "subsurface":  "sand",
+                   "stone":  "stone",
+                   "sea":  "water"
+               },
+    "snowLine":  2147483647,
+    "trees":  {
+                  "density":  0.004,
+                  "template":  "cactus"
+              },
+    "fog":  {
+                "density":  0.6,
+                "tintStrength":  0.22
+            },
+    "spawns":  [
+
+               ]
 }
+
