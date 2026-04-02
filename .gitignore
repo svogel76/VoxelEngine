@@ -5,6 +5,10 @@
 bin/
 obj/
 Run/
+Mods/VoxelGame/*.dll
+Mods/VoxelGame/*.pdb
+Mods/VoxelGame/*.deps.json
+Mods/VoxelGame/*.runtimeconfig.json
 
 # User-spezifische Visual Studio Dateien
 *.user
